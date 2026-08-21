@@ -8,16 +8,17 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "doctor": "expo-doctor"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "latest",
     "@react-native-community/netinfo": "latest",
     "@supabase/supabase-js": "latest",
-    "expo": "latest",
+    "expo": "~57.0.0",
     "expo-image-picker": "latest",
-    "react": "latest",
-    "react-native": "latest",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
     "react-native-url-polyfill": "latest"
   },
   "devDependencies": {
