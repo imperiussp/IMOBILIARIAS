@@ -1,5 +1,6 @@
 import PlatformAdminDashboard from "../../components/PlatformAdminDashboard";
 import PlatformAdminGate from "../../components/PlatformAdminGate";
+import PlatformBillingOverview from "../../components/PlatformBillingOverview";
 import PlatformPlanManager from "../../components/PlatformPlanManager";
 import PlatformSubscriptionManager from "../../components/PlatformSubscriptionManager";
 
@@ -16,10 +17,11 @@ export default function PlatformAdminPage() {
 
         <div className="container platformAdminShell">
           <section className="adminContent">
-            <div className="adminHeading"><div><span className="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</span><h1>Visão global do SaaS</h1><p>Imobiliárias, assinaturas, domínios, usuários, volume de imóveis e configuração comercial em um único painel da LENOY.</p></div></div>
+            <div className="adminHeading"><div><span className="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</span><h1>Visão global do SaaS</h1><p>Imobiliárias, assinaturas, cobrança, domínios, usuários, volume de imóveis e configuração comercial em um único painel da LENOY.</p></div></div>
             <PlatformAdminDashboard />
             <PlatformSubscriptionManager />
             <PlatformPlanManager />
+            <PlatformBillingOverview />
           </section>
         </div>
       </main>
