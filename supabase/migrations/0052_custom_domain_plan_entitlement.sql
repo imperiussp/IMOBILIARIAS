@@ -1,5 +1,23 @@
 -- Domínio próprio passa a respeitar o plano da imobiliária.
 -- A feature é lida de subscription_plans.features -> custom_domain.
+-- A verificação DNS fica protegida contra alteração pelo próprio cliente.
+
+alter table public.agency_domains
+  add column if not exists verification_token text,
+  add column if not exists verification_status text not null default 'pending',
+  add column if not exists last_verification_at timestamptz,
+  add column if not exists verification_error text;
+
+alter table public.agency_domains
+  drop constraint if exists agency_domains_verification_status_check;
+alter table public.agency_domains
+  add constraint agency_domains_verification_status_check
+  check (verification_status in ('pending','checking','verified','failed'));
+
+update public.agency_domains
+set verification_status = case when verified then 'verified' else 'pending' end
+where verification_status is null
+   or (verified = true and verification_status <> 'verified');
 
 create or replace function public.agency_can_use_custom_domain(p_agency_id uuid)
 returns boolean
@@ -12,10 +30,7 @@ as $$
     when public.is_platform_admin() then true
     when not public.is_agency_member(p_agency_id) then false
     else coalesce((
-      select case
-        when lower(coalesce(sp.features ->> 'custom_domain', 'false')) in ('true','1','yes','on') then true
-        else false
-      end
+      select lower(coalesce(sp.features ->> 'custom_domain', 'false')) in ('true','1','yes','on')
       from public.agency_subscriptions s
       join public.subscription_plans sp on sp.id = s.plan_id
       where s.agency_id = p_agency_id
@@ -35,7 +50,8 @@ returns table (
   id uuid,
   hostname text,
   verified boolean,
-  verification_token text
+  verification_token text,
+  verification_status text
 )
 language plpgsql
 security definer
@@ -84,12 +100,14 @@ begin
   token := 'lenoy-' || encode(gen_random_bytes(18), 'hex');
 
   insert into public.agency_domains (
-    agency_id, hostname, kind, is_primary, verified
+    agency_id, hostname, kind, is_primary, verified,
+    verification_token, verification_status, verification_error
   ) values (
-    p_agency_id, normalized, 'custom', false, false
+    p_agency_id, normalized, 'custom', false, false,
+    token, 'pending', null
   ) returning agency_domains.id into created_id;
 
-  return query select created_id, normalized, false, token;
+  return query select created_id, normalized, false, token, 'pending'::text;
 end;
 $$;
 
@@ -99,4 +117,40 @@ grant execute on function public.request_custom_agency_domain(uuid, text) to aut
 -- Evita que um cliente contorne a checagem do plano inserindo diretamente na tabela.
 revoke insert on public.agency_domains from authenticated;
 
--- Mantém leitura/edição/exclusão conforme as policies existentes; criação de domínio customizado usa RPC.
+-- Somente a plataforma pode marcar um domínio como verificado, alterar token/status
+-- de verificação ou trocar seu kind para 'platform'.
+create or replace function public.protect_domain_verification_fields()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if public.is_platform_admin() then
+    return new;
+  end if;
+
+  if new.verified is distinct from old.verified
+     or new.verified_at is distinct from old.verified_at
+     or new.verification_token is distinct from old.verification_token
+     or new.verification_status is distinct from old.verification_status
+     or new.last_verification_at is distinct from old.last_verification_at
+     or new.verification_error is distinct from old.verification_error
+     or new.kind is distinct from old.kind
+     or (old.kind = 'platform' and new.hostname is distinct from old.hostname) then
+    raise exception 'Os campos de verificação do domínio são controlados pela plataforma.';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.protect_domain_verification_fields() from public;
+
+drop trigger if exists agency_domains_protect_verification on public.agency_domains;
+create trigger agency_domains_protect_verification
+before update on public.agency_domains
+for each row execute function public.protect_domain_verification_fields();
+
+create index if not exists agency_domains_verification_queue_idx
+on public.agency_domains (verification_status, last_verification_at)
+where kind = 'custom' and verified = false;
