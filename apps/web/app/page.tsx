@@ -1,4 +1,5 @@
 import GeneralContactForm from "../components/GeneralContactForm";
+import OwnerPropertyForm from "../components/OwnerPropertyForm";
 import PropertyExplorer from "../components/PropertyExplorer";
 import PublicFooter from "../components/PublicFooter";
 import PublicHeader from "../components/PublicHeader";
@@ -25,6 +26,12 @@ export default function HomePage() {
       <section className="container section trustSection">
         <div><span className="eyebrow">GESTÃO INTEGRADA</span><h2>Um sistema para clientes, corretores e imobiliária.</h2></div>
         <div className="trustGrid"><article><strong>Catálogo centralizado</strong><p>Imóveis organizados em um único lugar, com status e responsável.</p></article><article><strong>Atendimento rápido</strong><p>O cliente chega ao corretor já informando o imóvel que deseja conhecer.</p></article><article><strong>Aplicativo integrado</strong><p>A mesma base é usada pelo aplicativo de cadastro, fotos e sincronização dos corretores.</p></article></div>
+      </section>
+
+      <section className="softSection" id="anuncie">
+        <div className="container section">
+          <OwnerPropertyForm />
+        </div>
       </section>
 
       <section className="container section" id="contato">
