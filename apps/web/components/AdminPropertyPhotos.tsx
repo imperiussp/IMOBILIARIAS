@@ -47,27 +47,33 @@ export default function AdminPropertyPhotos({ propertyId, propertyTitle }: Props
     if (!selected.length) return setMessage("O imóvel já atingiu o limite de 20 fotos.");
     setUploading(true); setMessage("");
     const createdPaths: string[] = [];
+    const insertedPhotoIds: string[] = [];
     try {
       let position = photos.length;
       for (const file of selected) {
         const prepared = await prepareBrowserPropertyPhoto(file);
         const token = `${Date.now()}-${position}`;
-        const storagePath = `${tenantId}/${propertyId}/admin-edit/${token}.jpg`;
-        const thumbnailPath = `${tenantId}/${propertyId}/admin-edit/thumbs/${token}.jpg`;
+        // Pastas virtuais do Storage: imobiliária / imóvel / fotos / origem.
+        // Mantém os dois primeiros segmentos compatíveis com as políticas existentes.
+        const storagePath = `${tenantId}/${propertyId}/photos/admin/${token}.jpg`;
+        const thumbnailPath = `${tenantId}/${propertyId}/photos/admin/thumbs/${token}.jpg`;
         const fullUpload = await supabaseBrowser.storage.from("property-photos").upload(storagePath, prepared.full, { contentType: "image/jpeg", cacheControl: "31536000", upsert: false });
         if (fullUpload.error) throw fullUpload.error;
         createdPaths.push(storagePath);
         const thumbUpload = await supabaseBrowser.storage.from("property-photos").upload(thumbnailPath, prepared.thumbnail, { contentType: "image/jpeg", cacheControl: "31536000", upsert: false });
         if (thumbUpload.error) throw thumbUpload.error;
         createdPaths.push(thumbnailPath);
-        const row = await supabaseBrowser.from("property_photos").insert({ property_id: propertyId, storage_path: storagePath, thumbnail_path: thumbnailPath, position, is_cover: photos.length === 0 && position === 0, alt_text: `${propertyTitle} - foto ${position + 1}` });
+        const row = await supabaseBrowser.from("property_photos").insert({ property_id: propertyId, storage_path: storagePath, thumbnail_path: thumbnailPath, position, is_cover: photos.length === 0 && position === 0, alt_text: `${propertyTitle} - foto ${position + 1}` }).select("id").single();
         if (row.error) throw row.error;
+        insertedPhotoIds.push(row.data.id);
         position += 1;
       }
       await load();
-      setMessage(`${selected.length} foto(s) adicionada(s).`);
+      setMessage(`${selected.length} foto(s) adicionada(s) na pasta organizada deste imóvel.`);
     } catch (error) {
+      if (insertedPhotoIds.length) await supabaseBrowser.from("property_photos").delete().in("id", insertedPhotoIds).eq("property_id", propertyId);
       if (createdPaths.length) await supabaseBrowser.storage.from("property-photos").remove(createdPaths);
+      await load();
       setMessage(error instanceof Error ? error.message : String(error));
     } finally { setUploading(false); }
   }
@@ -107,8 +113,8 @@ export default function AdminPropertyPhotos({ propertyId, propertyTitle }: Props
   }
 
   return <div className="photoManager">
-    <div className="adminPanelHeader"><div><span className="eyebrow">FOTOS</span><h3>{propertyTitle}</h3></div><span>{photos.length}/20 foto(s)</span></div>
-    <label className="uploadBox photoManagerUpload">Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading || photos.length >= 20} onChange={(event) => { void upload(event.target.files); event.currentTarget.value = ""; }} /><span>{uploading ? "Otimizando e enviando..." : "Selecione novas fotos. O sistema gera versão otimizada e miniatura automaticamente."}</span></label>
+    <div className="adminPanelHeader"><div><span className="eyebrow">FOTOS</span><h3>{propertyTitle}</h3><small>Pasta: imobiliária / imóvel / fotos / admin</small></div><span>{photos.length}/20 foto(s)</span></div>
+    <label className="uploadBox photoManagerUpload">Adicionar fotos<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading || photos.length >= 20} onChange={(event) => { void upload(event.target.files); event.currentTarget.value = ""; }} /><span>{uploading ? "Otimizando e enviando..." : "Selecione novas fotos. O sistema organiza, otimiza e cria miniaturas automaticamente."}</span></label>
     {message ? <div className="formMessage">{message}</div> : null}
     {photos.length === 0 ? <div className="emptyMini">Nenhuma foto cadastrada.</div> : <div className="adminPhotoGrid">{photos.map((photo, index) => <article className="adminPhotoCard" key={photo.id}><div className="adminPhotoImage" style={{ backgroundImage: photo.signed_url ? `url(${photo.signed_url})` : undefined }}>{photo.is_cover ? <span>CAPA</span> : null}</div><div className="adminPhotoActions"><button className="miniButton" onClick={() => void move(index, -1)} disabled={index === 0}>↑</button><button className="miniButton" onClick={() => void move(index, 1)} disabled={index === photos.length - 1}>↓</button><button className="miniButton" onClick={() => void setCover(photo.id)} disabled={photo.is_cover}>Capa</button><button className="miniButton danger" onClick={() => void remove(photo)}>Excluir</button></div></article>)}</div>}
   </div>;
