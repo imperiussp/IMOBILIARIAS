@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Property } from "../lib/properties";
 import { getPropertyPhotoUrl } from "../lib/propertyPhotos";
-import { isImobiliariasBackend } from "../lib/projectGuard";
+import { currentHostname, resolveCurrentTenant } from "../lib/tenantResolver";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Props = { properties: Property[] };
@@ -95,14 +95,12 @@ export default function PropertyExplorer({ properties }: Props) {
     if (!isSupabaseConfigured || !supabaseBrowser) return;
     let active = true;
     void (async () => {
-      const validBackend = await isImobiliariasBackend();
-      if (!active || !validBackend) return;
-      const { data, error } = await supabaseBrowser
-        .from("property_catalog")
-        .select("id,code,slug,title,purpose,zone,segment,status,price,bedrooms,bathrooms,parking_spaces,built_area_m2,land_area_m2,city,state_code,neighborhood,property_type,cover_path,cover_thumbnail_path,featured,published_at")
-        .order("featured", { ascending: false })
-        .order("published_at", { ascending: false });
-      if (!active || error || !data || data.length === 0) return;
+      const tenant = await resolveCurrentTenant();
+      if (!active || !tenant) return;
+      const host = currentHostname();
+      if (!host) return;
+      const { data, error } = await supabaseBrowser.rpc("public_catalog_for_host", { p_hostname: host });
+      if (!active || error || !Array.isArray(data)) return;
       const mapped: DisplayProperty[] = await Promise.all(data.map(async (item: any) => {
         const preferredPath = item.cover_thumbnail_path || item.cover_path;
         const image = (await getPropertyPhotoUrl(preferredPath)) || (item.cover_path && preferredPath !== item.cover_path ? await getPropertyPhotoUrl(item.cover_path) : "") || fallbackImage;
