@@ -7,10 +7,11 @@ type Props = { children: ReactNode };
 
 export default function AdminGate({ children }: Props) {
   const [state, setState] = useState<"checking" | "allowed" | "blocked" | "demo">("checking");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState<"admin" | "broker" | "">("");
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabaseBrowser) {
+      setRole("admin");
       setState("demo");
       return;
     }
@@ -38,10 +39,10 @@ export default function AdminGate({ children }: Props) {
   }
 
   if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso...</strong></div></div></main>;
-  if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login necessário</h1><p>Entre com uma conta de administrador ou corretor autorizada para abrir o painel.</p><a className="button primary full" href="../login/">Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
+  if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login necessário</h1><p>Entre com uma conta autorizada para abrir o painel.</p><a className="button primary full" href="../login/">Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
 
-  return <>
+  return <div data-access-role={role || "admin"}>
     {state === "demo" ? <div className="demoAdminBanner">Modo demonstração: o Supabase ainda não está configurado neste ambiente.</div> : <div className="sessionBar"><span>Acesso: <strong>{role === "admin" ? "Administrador" : "Corretor"}</strong></span><button onClick={() => void signOut()}>Sair</button></div>}
     {children}
-  </>;
+  </div>;
 }
