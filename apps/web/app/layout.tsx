@@ -12,6 +12,7 @@ import "./contact.css";
 import "./platform.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
+const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/LENOY.jpg";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -22,12 +23,18 @@ export const metadata: Metadata = {
   description: "Plataforma SaaS para imobiliárias com site próprio, catálogo de imóveis, corretores, leads, domínio personalizado e recursos de inteligência artificial.",
   keywords: ["imobiliária", "site para imobiliária", "sistema imobiliário", "imóveis", "corretores", "leads", "SaaS imobiliário"],
   alternates: { canonical: "/" },
+  icons: {
+    icon: [{ url: lenoyLogo, type: "image/jpeg" }],
+    shortcut: [{ url: lenoyLogo, type: "image/jpeg" }],
+    apple: [{ url: lenoyLogo, type: "image/jpeg" }],
+  },
   openGraph: {
     title: "LENOY IMÓVEIS",
     description: "Plataforma completa para imobiliárias criarem seu site, publicarem imóveis e gerenciarem equipe e contatos.",
     type: "website",
     locale: "pt_BR",
     url: "/",
+    images: [{ url: lenoyLogo, width: 256, height: 256, alt: "LENOY" }],
   },
   robots: { index: true, follow: true },
 };
