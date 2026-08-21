@@ -55,13 +55,14 @@ export default function AdminPropertyForm() {
 
   async function uploadPhotos(propertyId: string, propertyTitle: string) {
     if (!supabaseBrowser || photos.length === 0) return [] as string[];
+    if (!agencyId) throw new Error("Imobiliária não identificada para o armazenamento das fotos.");
     const createdPaths: string[] = [];
     try {
       for (const [index, file] of photos.entries()) {
         const prepared = await prepareBrowserPropertyPhoto(file);
         const token = `${Date.now()}-${index}`;
-        const storagePath = `${propertyId}/admin/${token}.jpg`;
-        const thumbnailPath = `${propertyId}/admin/thumbs/${token}.jpg`;
+        const storagePath = `${agencyId}/${propertyId}/admin/${token}.jpg`;
+        const thumbnailPath = `${agencyId}/${propertyId}/admin/thumbs/${token}.jpg`;
 
         const fullUpload = await supabaseBrowser.storage.from("property-photos").upload(storagePath, prepared.full, {
           cacheControl: "31536000",
@@ -165,7 +166,7 @@ export default function AdminPropertyForm() {
       if (createdPropertyId) {
         await supabaseBrowser.from("property_feature_links").delete().eq("property_id", createdPropertyId);
         await supabaseBrowser.from("property_photos").delete().eq("property_id", createdPropertyId);
-        await supabaseBrowser.from("properties").delete().eq("id", createdPropertyId);
+        await supabaseBrowser.from("properties").delete().eq("id", createdPropertyId).eq("agency_id", agencyId);
       }
       setMessage(error instanceof Error ? error.message : String(error));
     } finally { setSaving(false); }
