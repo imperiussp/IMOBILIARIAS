@@ -45,6 +45,35 @@ Deno.serve(async (request) => {
 
   const amount = Number(billingCycle === "annual" ? plan.annual_price : plan.monthly_price);
   if (!Number.isFinite(amount) || amount <= 0) return json({ error: "plan_price_not_configured" }, 409);
+
+  // Evita gerar vários links para o mesmo plano/ciclo por cliques repetidos.
+  const reuseAfter = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const { data: reusable } = await admin.from("billing_checkout_sessions")
+    .select("id,order_nsu,checkout_url,created_at")
+    .eq("agency_id", agencyId)
+    .eq("plan_id", planId)
+    .eq("provider", "infinitepay")
+    .eq("billing_cycle", billingCycle)
+    .eq("status", "pending")
+    .gte("created_at", reuseAfter)
+    .not("checkout_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (reusable?.checkout_url) {
+    return json({ checkout_url: reusable.checkout_url, checkout_id: reusable.id, order_nsu: reusable.order_nsu, reused: true });
+  }
+
+  // Links pendentes antigos deixam de aparecer como cobrança atual.
+  await admin.from("billing_checkout_sessions").update({ status: "expired", updated_at: new Date().toISOString() })
+    .eq("agency_id", agencyId)
+    .eq("plan_id", planId)
+    .eq("provider", "infinitepay")
+    .eq("billing_cycle", billingCycle)
+    .eq("status", "pending")
+    .lt("created_at", reuseAfter);
+
   const amountCents = Math.round(amount * 100);
   const sessionId = crypto.randomUUID();
   const orderNsu = sessionId;
@@ -68,7 +97,7 @@ Deno.serve(async (request) => {
     const checkoutUrl = String(body?.url || "").trim();
     if (!response.ok || !checkoutUrl) throw new Error(body?.message || body?.error || `InfinitePay HTTP ${response.status}`);
     await admin.from("billing_checkout_sessions").update({ status: "pending", checkout_url: checkoutUrl, provider_session_id: body?.slug ? String(body.slug) : null, provider_payload: { request: checkoutPayload, response: body }, updated_at: new Date().toISOString() }).eq("id", sessionId);
-    return json({ checkout_url: checkoutUrl, checkout_id: sessionId, order_nsu: orderNsu });
+    return json({ checkout_url: checkoutUrl, checkout_id: sessionId, order_nsu: orderNsu, reused: false });
   } catch (error) {
     await admin.from("billing_checkout_sessions").update({ status: "failed", provider_payload: { request: checkoutPayload, error: error instanceof Error ? error.message : String(error) }, updated_at: new Date().toISOString() }).eq("id", sessionId);
     return json({ error: error instanceof Error ? error.message : String(error) }, 502);
