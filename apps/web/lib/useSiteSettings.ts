@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isImobiliariasBackend } from "./projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "./supabaseBrowser";
 
 export type SiteSettings = {
@@ -31,9 +32,12 @@ export function useSiteSettings() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabaseBrowser) return;
     let active = true;
-    void supabaseBrowser.from("site_settings").select("agency_name,tagline,phone,whatsapp,email,address,company_creci,logo_url").eq("id", 1).maybeSingle().then(({ data }) => {
+    void (async () => {
+      const validBackend = await isImobiliariasBackend();
+      if (!active || !validBackend) return;
+      const { data } = await supabaseBrowser.from("site_settings").select("agency_name,tagline,phone,whatsapp,email,address,company_creci,logo_url").eq("id", 1).maybeSingle();
       if (active && data) setSettings({ ...defaultSiteSettings, ...data } as SiteSettings);
-    });
+    })();
     return () => { active = false; };
   }, []);
 
