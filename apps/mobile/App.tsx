@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import NetInfo from "@react-native-community/netinfo";
 import * as ImagePicker from "expo-image-picker";
 import BrokerAuthGate from "./src/components/BrokerAuthGate";
 import BrokerLeads from "./src/components/BrokerLeads";
 import PublishedProperties from "./src/components/PublishedProperties";
 import { mobileSupabase } from "./src/lib/supabase";
-import { enqueueOfflineJob, getOfflineQueue, processOfflineQueue, retryFailedJobs, startNetworkSyncListener } from "./src/services/offlineQueue";
+import { enqueueOfflineJob, getOfflineQueue, processOfflineQueue, retryFailedJobs } from "./src/services/offlineQueue";
 import { getPropertyDrafts, PropertyDraft, removePropertyDraft, savePropertyDraft } from "./src/services/propertyDrafts";
 
 type Screen = "home" | "editor" | "drafts" | "published" | "queue" | "leads";
@@ -34,16 +35,47 @@ function BrokerApp() {
     setDrafts(storedDrafts);
   }
 
-  async function syncNow() {
+  async function syncNow(allowCellular = false, silent = false) {
+    if (syncing) return;
+    const network = await NetInfo.fetch();
+    if (!network.isConnected) {
+      await refreshAll();
+      if (!silent) Alert.alert("Sem conexão", "Os itens continuam salvos no aparelho e serão enviados quando a internet voltar.");
+      return;
+    }
+
+    if (network.type === "cellular" && !allowCellular) {
+      const storedQueue = await getOfflineQueue();
+      if (!storedQueue.length) return;
+      Alert.alert(
+        "Usar dados móveis?",
+        `Existem ${storedQueue.length} item(ns) para enviar, incluindo fotos. Deseja enviar agora usando seus dados móveis ou aguardar uma conexão Wi-Fi?`,
+        [
+          { text: "Aguardar Wi-Fi", style: "cancel" },
+          { text: "Enviar pelos dados", onPress: () => void syncNow(true) },
+        ],
+      );
+      return;
+    }
+
     setSyncing(true);
     const result = await processOfflineQueue();
     await refreshAll();
     setSyncing(false);
-    if (result.processed > 0) Alert.alert("Sincronização concluída", `${result.processed} item(ns) enviado(s).`);
-    else if (result.pending > 0) Alert.alert("Sincronização pendente", "Ainda existem itens aguardando conexão ou correção de dados.");
+    if (!silent && result.processed > 0) Alert.alert("Sincronização concluída", `${result.processed} item(ns) enviado(s).`);
+    else if (!silent && result.pending > 0) Alert.alert("Sincronização pendente", "Ainda existem itens aguardando conexão ou correção de dados.");
   }
 
-  async function retryQueue() {
+  async function retryQueue(allowCellular = false) {
+    const network = await NetInfo.fetch();
+    if (!network.isConnected) return Alert.alert("Sem conexão", "A fila continuará guardada neste aparelho.");
+    if (network.type === "cellular" && !allowCellular) {
+      Alert.alert("Usar dados móveis?", "A nova tentativa pode enviar fotos e consumir seu pacote de dados.", [
+        { text: "Aguardar Wi-Fi", style: "cancel" },
+        { text: "Enviar pelos dados", onPress: () => void retryQueue(true) },
+      ]);
+      return;
+    }
     setSyncing(true);
     await retryFailedJobs();
     await refreshAll();
@@ -57,7 +89,16 @@ function BrokerApp() {
 
   useEffect(() => {
     void refreshAll();
-    const unsubscribe = startNetworkSyncListener();
+    let wasConnected = false;
+    let previousType = "unknown";
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const connected = Boolean(state.isConnected);
+      const connectionChanged = connected && (!wasConnected || state.type !== previousType);
+      if (connectionChanged && (state.type === "wifi" || state.type === "ethernet")) void syncNow(true, true);
+      if (connectionChanged && state.type === "cellular") void syncNow(false, true);
+      wasConnected = connected;
+      previousType = state.type;
+    });
     const timer = setInterval(() => void refreshAll(), 5000);
     return () => { unsubscribe(); clearInterval(timer); };
   }, []);
@@ -106,10 +147,14 @@ function BrokerApp() {
   async function queueForPublish() {
     if (!canPublish) return Alert.alert("Dados incompletos", "Preencha título, cidade, tipo e valor do imóvel.");
     const saved = await savePropertyDraft({ ...form, id: editingId });
-    await enqueueOfflineJob({ clientOperationId: `publish-${saved.id}`, entityType: "property_draft", entityLocalId: saved.id, payload: saved as unknown as Record<string, unknown> });
+    try {
+      await enqueueOfflineJob({ clientOperationId: `publish-${saved.id}`, entityType: "property_draft", entityLocalId: saved.id, payload: saved as unknown as Record<string, unknown> });
+    } catch (error) {
+      return Alert.alert("Não foi possível preparar a sincronização", error instanceof Error ? error.message : String(error));
+    }
     await refreshAll();
     setScreen("home");
-    Alert.alert("Pronto para sincronizar", "O imóvel entrou na fila e será enviado quando houver internet.");
+    Alert.alert("Pronto para sincronizar", "O imóvel entrou na fila. No Wi-Fi o envio é automático; em dados móveis o aplicativo pede sua confirmação.");
     void syncNow();
   }
 
@@ -126,6 +171,7 @@ function BrokerApp() {
   if (screen === "queue") return (
     <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content}>
       <View style={styles.editorHeader}><Pressable onPress={() => setScreen("home")}><Text style={styles.back}>← Voltar</Text></Pressable><Text style={styles.editorTitle}>Fila de sincronização</Text></View>
+      <View style={styles.infoCard}><Text style={styles.infoTitle}>Controle de internet</Text><Text style={styles.infoText}>No Wi-Fi a fila é enviada automaticamente. Se a internet voltar por dados móveis, você escolhe se quer enviar naquele momento ou aguardar o Wi-Fi.</Text></View>
       {queue.length === 0 ? <View style={styles.infoCard}><Text style={styles.infoTitle}>Tudo sincronizado</Text><Text style={styles.infoText}>Não há operações pendentes.</Text></View> : queue.map((job) => <View style={styles.queueCard} key={job.clientOperationId}><View style={styles.queueHead}><Text style={styles.draftTitle}>{job.entityType === "property_draft" ? "Publicação de imóvel" : "Sincronização"}</Text><Text style={[styles.queueState, job.state === "error" && styles.queueError]}>{job.state === "error" ? "ERRO" : job.state === "syncing" ? "ENVIANDO" : "PENDENTE"}</Text></View><Text style={styles.draftMeta}>Tentativas: {job.attempts}</Text>{job.lastError ? <Text style={styles.errorText}>{job.lastError}</Text> : null}</View>)}
       {failed > 0 ? <Pressable style={styles.primaryButton} onPress={() => void retryQueue()}><Text style={styles.primaryButtonText}>{syncing ? "Tentando..." : `Tentar novamente (${failed})`}</Text></Pressable> : null}
     </ScrollView></SafeAreaView>
@@ -169,11 +215,11 @@ function BrokerApp() {
       <View style={styles.grid}>
         <Pressable style={styles.primaryCard} onPress={openNew}><Text style={styles.primaryCardIcon}>＋</Text><Text style={styles.primaryCardTitle}>Novo imóvel</Text><Text style={styles.primaryCardText}>Cadastro completo, fotos e modo offline.</Text></Pressable>
         <Pressable style={styles.card} onPress={() => setScreen("published")}><Text style={styles.cardIcon}>⌂</Text><Text style={styles.cardTitle}>Meus imóveis</Text><Text style={styles.cardText}>Publicados, vendidos, alugados e rascunhos online.</Text></Pressable>
-        <Pressable style={styles.card} onPress={() => setScreen("leads")}><Text style={styles.cardIcon}>☏</Text><Text style={styles.cardTitle}>Contatos</Text><Text style={styles.cardText}>Interessados, WhatsApp, ligações e andamento comercial.</Text></Pressable>
+        <Pressable style={styles.card} onPress={() => setScreen("leads")}><Text style={styles.cardIcon}>☏</Text><Text style={styles.cardTitle}>Contatos</Text><Text style={styles.cardText}>Interessados classificados, WhatsApp, ligações e andamento comercial.</Text></Pressable>
         <Pressable style={styles.card} onPress={() => setScreen("drafts")}><Text style={styles.cardIcon}>▧</Text><Text style={styles.cardTitle}>Rascunhos locais</Text><Text style={styles.cardText}>{drafts.length} cadastro(s) salvo(s) neste aparelho.</Text></Pressable>
-        <Pressable style={styles.card} onPress={() => void syncNow()}><Text style={styles.cardIcon}>↻</Text><Text style={styles.cardTitle}>{syncing ? "Sincronizando..." : "Sincronizar agora"}</Text><Text style={styles.cardText}>Tenta enviar todos os itens pendentes.</Text></Pressable>
+        <Pressable style={styles.card} onPress={() => void syncNow()}><Text style={styles.cardIcon}>↻</Text><Text style={styles.cardTitle}>{syncing ? "Sincronizando..." : "Sincronizar agora"}</Text><Text style={styles.cardText}>Wi-Fi automático; dados móveis somente com sua autorização.</Text></Pressable>
       </View>
-      <View style={styles.infoCard}><Text style={styles.infoTitle}>Offline de verdade</Text><Text style={styles.infoText}>Fotos e dados ficam no aparelho. Quando a conexão volta, a fila resolve os vínculos, evita duplicidade e envia o cadastro.</Text></View>
+      <View style={styles.infoCard}><Text style={styles.infoTitle}>Offline de verdade</Text><Text style={styles.infoText}>Fotos e dados ficam no aparelho. Quando a conexão volta por Wi-Fi, a fila envia automaticamente. Se voltar por dados móveis, o aplicativo pergunta antes de usar sua franquia.</Text></View>
       <Pressable style={styles.logoutButton} onPress={() => void signOut()}><Text style={styles.logoutText}>Sair da conta</Text></Pressable>
     </ScrollView></SafeAreaView>
   );
