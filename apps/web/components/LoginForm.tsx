@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 export default function LoginForm() {
@@ -24,6 +25,14 @@ export default function LoginForm() {
     }
 
     setLoading(true);
+    setStatus("Verificando projeto...");
+    const validBackend = await isImobiliariasBackend();
+    if (!validBackend) {
+      setLoading(false);
+      setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
+      return;
+    }
+
     setStatus("Entrando...");
     const { data: authData, error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
     if (error || !authData.user) {
@@ -51,7 +60,7 @@ export default function LoginForm() {
       <p>Área destinada à administração e aos corretores autorizados.</p>
       <label>E-mail<input name="email" type="email" autoComplete="email" placeholder="voce@imobiliaria.com.br" required /></label>
       <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></label>
-      <button className="button primary full" type="submit" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
+      <button className="button primary full" type="submit" disabled={loading}>{loading ? "Aguarde..." : "Entrar"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
       <div className="loginLinks"><a href="../recuperar-senha/">Esqueci minha senha</a><a href="../cadastro/">Criar conta da equipe</a></div>
       <a className="backLink" href="../">← Voltar ao site</a>
