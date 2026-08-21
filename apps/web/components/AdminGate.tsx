@@ -1,0 +1,47 @@
+"use client";
+
+import { ReactNode, useEffect, useState } from "react";
+import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+
+type Props = { children: ReactNode };
+
+export default function AdminGate({ children }: Props) {
+  const [state, setState] = useState<"checking" | "allowed" | "blocked" | "demo">("checking");
+  const [role, setRole] = useState("");
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabaseBrowser) {
+      setState("demo");
+      return;
+    }
+    let active = true;
+    void supabaseBrowser.auth.getSession().then(async ({ data }) => {
+      if (!active) return;
+      const user = data.session?.user;
+      if (!user) { setState("blocked"); return; }
+      const { data: roleRow } = await supabaseBrowser.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+      if (!active) return;
+      if (roleRow?.role === "admin" || roleRow?.role === "broker") {
+        setRole(roleRow.role);
+        setState("allowed");
+      } else setState("blocked");
+    });
+    const { data: listener } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
+      if (!session) setState("blocked");
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, []);
+
+  async function signOut() {
+    if (supabaseBrowser) await supabaseBrowser.auth.signOut();
+    window.location.href = "../login/";
+  }
+
+  if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso...</strong></div></div></main>;
+  if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login necessário</h1><p>Entre com uma conta de administrador ou corretor autorizada para abrir o painel.</p><a className="button primary full" href="../login/">Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
+
+  return <>
+    {state === "demo" ? <div className="demoAdminBanner">Modo demonstração: o Supabase ainda não está configurado neste ambiente.</div> : <div className="sessionBar"><span>Acesso: <strong>{role === "admin" ? "Administrador" : "Corretor"}</strong></span><button onClick={() => void signOut()}>Sair</button></div>}
+    {children}
+  </>;
+}
