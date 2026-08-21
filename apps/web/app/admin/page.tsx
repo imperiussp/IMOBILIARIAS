@@ -3,6 +3,7 @@ import AdminAiDescription from "../../components/AdminAiDescription";
 import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
+import AdminDocuments from "../../components/AdminDocuments";
 import AdminDomains from "../../components/AdminDomains";
 import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
@@ -41,6 +42,7 @@ export default function AdminPage() {
             <a className="adminOnly" href="#corretores">Corretores</a>
             <a className="adminOnly" href="#usuarios">Usuários</a>
             <a className="adminOnly" href="#convites">Convites</a>
+            <a className="adminOnly" href="#documentos">Documentos</a>
             <a className="adminOnly" href="#meu-plano">Meu plano</a>
             <a className="adminOnly" href="#pagamento-infinitepay">Pagamento</a>
             <a className="adminOnly" href="#configuracoes">Imobiliária</a>
@@ -68,6 +70,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminBrokers /></div>
             <div className="adminOnly"><AdminUsers /></div>
             <div className="adminOnly"><AdminInvitations /></div>
+            <div className="adminOnly"><AdminDocuments /></div>
             <div className="adminOnly"><AdminPlan /></div>
             <div className="adminOnly"><AdminInfinitePayCheckout /></div>
             <div className="adminOnly"><AdminSiteSettings /></div>
