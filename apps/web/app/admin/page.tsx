@@ -15,6 +15,7 @@ import AdminLocations from "../../components/AdminLocations";
 import AdminPlan from "../../components/AdminPlan";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
+import AdminStorageOverview from "../../components/AdminStorageOverview";
 import AdminUsers from "../../components/AdminUsers";
 
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/LENOY.jpg";
@@ -43,6 +44,7 @@ export default function AdminPage() {
             <a className="adminOnly" href="#usuarios">Usuários</a>
             <a className="adminOnly" href="#convites">Convites</a>
             <a className="adminOnly" href="#documentos">Documentos</a>
+            <a className="adminOnly" href="#arquivos">Arquivos</a>
             <a className="adminOnly" href="#meu-plano">Meu plano</a>
             <a className="adminOnly" href="#pagamento-infinitepay">Pagamento</a>
             <a className="adminOnly" href="#configuracoes">Imobiliária</a>
@@ -54,7 +56,7 @@ export default function AdminPage() {
           </aside>
 
           <section className="adminContent" id="visao-geral">
-            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
+            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos, documentos, arquivos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
             <AdminLeadQualificationBoard />
@@ -71,6 +73,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminUsers /></div>
             <div className="adminOnly"><AdminInvitations /></div>
             <div className="adminOnly"><AdminDocuments /></div>
+            <AdminStorageOverview />
             <div className="adminOnly"><AdminPlan /></div>
             <div className="adminOnly"><AdminInfinitePayCheckout /></div>
             <div className="adminOnly"><AdminSiteSettings /></div>
