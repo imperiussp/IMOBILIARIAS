@@ -1,7 +1,9 @@
+const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/LENOY.jpg";
+
 export default function PlatformLanding() {
   return (
     <main className="platformLanding">
-      <header className="platformTopbar"><div className="container platformNav"><a className="brand" href="/"><img src="/logo-imobiliarias.svg" alt="IMOBILIARIAS" style={{ width: 210, maxWidth: "42vw", height: "auto", display: "block" }} /></a><nav><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#planos">Planos</a></nav><div className="platformActions"><a className="button secondary" href="/login/">Entrar</a><a className="button primary" href="/cadastro/">Criar imobiliária</a></div></div></header>
+      <header className="platformTopbar"><div className="container platformNav"><a className="brand" href="/"><img src={lenoyLogo} alt="LENOY" style={{ width: 112, maxWidth: "28vw", height: "auto", display: "block", borderRadius: 10 }} /></a><nav><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#planos">Planos</a></nav><div className="platformActions"><a className="button secondary" href="/login/">Entrar</a><a className="button primary" href="/cadastro/">Criar imobiliária</a></div></div></header>
 
       <section className="container section platformHero"><div><span className="eyebrow">PLATAFORMA SaaS PARA IMOBILIÁRIAS</span><h1>Seu site, seus imóveis, sua equipe. Tudo em um só lugar.</h1><p>Crie a imobiliária, personalize a marca, publique imóveis, organize corretores e leads e use um endereço exclusivo dentro da LENOY ou seu próprio domínio.</p><div className="platformHeroActions"><a className="button primary" href="/cadastro/">Começar agora</a><a className="button secondary" href="#como-funciona">Ver como funciona</a></div><small>Exemplo: suaimobiliaria.imoveis.lenoy.com.br</small></div><div className="platformHeroCard"><span>AMBIENTE DA IMOBILIÁRIA</span><strong>João Imobiliária</strong><div className="platformMiniGrid"><article><small>Imóveis</small><b>42</b></article><article><small>Leads</small><b>18</b></article><article><small>Corretores</small><b>4</b></article><article><small>Domínios</small><b>2</b></article></div></div></section>
 
@@ -11,7 +13,7 @@ export default function PlatformLanding() {
 
       <section className="softSection" id="planos"><div className="container section"><div className="sectionHeading"><div><span className="eyebrow">PLANOS</span><h2>Estrutura preparada para crescer com sua imobiliária.</h2><p className="sectionIntro">Preços e limites comerciais serão definidos antes do lançamento.</p></div></div><div className="trustGrid"><article><strong>Essencial</strong><p>Site, subdomínio, imóveis e atendimento.</p></article><article><strong>Profissional</strong><p>Mais usuários, equipe, relatórios e IA.</p></article><article><strong>Premium</strong><p>Domínio próprio, maior capacidade e recursos avançados.</p></article></div></div></section>
 
-      <footer className="container section platformFooter"><div><img src="/logo-imobiliarias.svg" alt="IMOBILIARIAS" style={{ width: 190, height: "auto", display: "block" }} /><p>Plataforma para imobiliárias.</p></div><div><a href="/login/">Entrar</a> · <a href="/cadastro/">Criar conta</a></div></footer>
+      <footer className="container section platformFooter"><div><img src={lenoyLogo} alt="LENOY" style={{ width: 110, height: "auto", display: "block", borderRadius: 10 }} /><p>Plataforma para imobiliárias.</p></div><div><a href="/login/">Entrar</a> · <a href="/cadastro/">Criar conta</a></div></footer>
     </main>
   );
 }
