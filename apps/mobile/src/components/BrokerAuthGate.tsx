@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { mobileSupabase, mobileSupabaseConfigured } from "../lib/supabase";
 
 type Props = { children: ReactNode };
@@ -8,6 +9,7 @@ type Mode = "login" | "register";
 export default function BrokerAuthGate({ children }: Props) {
   const [checking, setChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const [backendValid, setBackendValid] = useState(true);
   const [mode, setMode] = useState<Mode>("login");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,6 +19,9 @@ export default function BrokerAuthGate({ children }: Props) {
 
   async function validateSession() {
     if (!mobileSupabase) { setChecking(false); return; }
+    const validBackend = await isImobiliariasBackend();
+    setBackendValid(validBackend);
+    if (!validBackend) { setAuthorized(false); setChecking(false); return; }
     const { data } = await mobileSupabase.auth.getSession();
     const user = data.session?.user;
     if (!user) { setAuthorized(false); setChecking(false); return; }
@@ -34,6 +39,7 @@ export default function BrokerAuthGate({ children }: Props) {
 
   async function login() {
     if (!mobileSupabase) return Alert.alert("Configuração pendente", "O Supabase ainda não foi configurado neste aplicativo.");
+    if (!backendValid) return Alert.alert("Conexão bloqueada", "O backend configurado não pertence ao projeto IMOBILIARIAS.");
     if (!email.trim() || !password) return Alert.alert("Dados incompletos", "Informe e-mail e senha.");
     setLoading(true);
     const { data, error } = await mobileSupabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
@@ -53,6 +59,7 @@ export default function BrokerAuthGate({ children }: Props) {
 
   async function register() {
     if (!mobileSupabase) return Alert.alert("Configuração pendente", "O Supabase ainda não foi configurado neste aplicativo.");
+    if (!backendValid) return Alert.alert("Conexão bloqueada", "O backend configurado não pertence ao projeto IMOBILIARIAS.");
     if (!fullName.trim() || !email.trim() || !password) return Alert.alert("Dados incompletos", "Informe nome, e-mail e senha.");
     if (password.length < 8) return Alert.alert("Senha curta", "Use pelo menos 8 caracteres.");
     if (password !== confirm) return Alert.alert("Senhas diferentes", "Confirme a mesma senha nos dois campos.");
@@ -65,7 +72,8 @@ export default function BrokerAuthGate({ children }: Props) {
   }
 
   if (!mobileSupabaseConfigured) return <>{children}</>;
-  if (checking) return <SafeAreaView style={styles.screen}><ActivityIndicator size="large" /><Text style={styles.checking}>Verificando acesso...</Text></SafeAreaView>;
+  if (checking) return <SafeAreaView style={styles.screen}><ActivityIndicator size="large" /><Text style={styles.checking}>Verificando acesso e projeto...</Text></SafeAreaView>;
+  if (!backendValid) return <SafeAreaView style={styles.screen}><View style={styles.card}><Text style={styles.kicker}>PROTEÇÃO DE PROJETO</Text><Text style={styles.title}>Conexão bloqueada</Text><Text style={styles.text}>O servidor configurado não se identificou como IMOBILIARIAS. O aplicativo não acessará nem enviará dados até a configuração correta ser instalada.</Text></View></SafeAreaView>;
   if (authorized) return <>{children}</>;
 
   return (
@@ -90,8 +98,8 @@ export default function BrokerAuthGate({ children }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen:{flex:1,backgroundColor:"#f4f6f8"},
-  scroll:{flexGrow:1,alignItems:"center",justifyContent:"center",padding:22},
+  screen:{flex:1,backgroundColor:"#f4f6f8",alignItems:"center",justifyContent:"center",padding:22},
+  scroll:{flexGrow:1,alignItems:"center",justifyContent:"center",padding:0,width:"100%"},
   card:{width:"100%",maxWidth:460,backgroundColor:"#fff",borderRadius:24,padding:24},
   kicker:{fontSize:12,fontWeight:"800",letterSpacing:2,color:"#737e88"},
   title:{fontSize:30,fontWeight:"900",color:"#17202a",marginTop:8},
