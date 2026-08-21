@@ -101,6 +101,9 @@ begin
 end;
 $$;
 
+-- A função de trigger é chamada pelo PostgreSQL, não diretamente pelo navegador.
+revoke all on function public.handle_new_agency_owner() from public;
+
 drop trigger if exists on_auth_user_created_agency_owner on auth.users;
 create trigger on_auth_user_created_agency_owner
 after insert on auth.users
@@ -124,4 +127,5 @@ begin
 end;
 $$;
 
+revoke all on function public.agency_slug_available(text) from public;
 grant execute on function public.agency_slug_available(text) to anon, authenticated;
