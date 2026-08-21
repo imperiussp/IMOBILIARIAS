@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { prepareBrowserPropertyPhoto } from "../lib/browserImageProcessing";
+import { getCurrentAgency } from "../lib/currentAgency";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Option = { id: string; name: string; state_code?: string };
@@ -13,6 +14,8 @@ function slugify(value: string) {
 }
 
 export default function AdminPropertyForm() {
+  const [agencyId, setAgencyId] = useState("");
+  const [agencyName, setAgencyName] = useState("");
   const [cities, setCities] = useState<Option[]>([]);
   const [types, setTypes] = useState<Option[]>([]);
   const [brokers, setBrokers] = useState<BrokerOption[]>([]);
@@ -24,21 +27,34 @@ export default function AdminPropertyForm() {
 
   useEffect(() => {
     if (!supabaseBrowser) return;
-    void Promise.all([
-      supabaseBrowser.from("cities").select("id,name,state_code").order("name"),
-      supabaseBrowser.from("property_types").select("id,name").eq("active", true).order("name"),
-      supabaseBrowser.from("brokers").select("id,name").eq("active", true).order("name"),
-      supabaseBrowser.from("property_features").select("id,name").order("name"),
-    ]).then(([cityResult, typeResult, brokerResult, featureResult]) => {
+    let active = true;
+    void (async () => {
+      const currentAgency = await getCurrentAgency();
+      if (!active) return;
+      if (!currentAgency) {
+        setMessage("Vincule esta conta a uma imobiliária para cadastrar imóveis.");
+        return;
+      }
+      setAgencyId(currentAgency.agencyId);
+      setAgencyName(currentAgency.agencyName);
+
+      const [cityResult, typeResult, brokerResult, featureResult] = await Promise.all([
+        supabaseBrowser.from("cities").select("id,name,state_code").order("name"),
+        supabaseBrowser.from("property_types").select("id,name").eq("active", true).order("name"),
+        supabaseBrowser.from("brokers").select("id,name").eq("agency_id", currentAgency.agencyId).eq("active", true).order("name"),
+        supabaseBrowser.from("property_features").select("id,name").order("name"),
+      ]);
+      if (!active) return;
       if (cityResult.data) setCities(cityResult.data);
       if (typeResult.data) setTypes(typeResult.data);
       if (brokerResult.data) setBrokers(brokerResult.data);
       if (featureResult.data) setFeatures(featureResult.data);
-    });
+    })();
+    return () => { active = false; };
   }, []);
 
   async function uploadPhotos(propertyId: string, propertyTitle: string) {
-    if (!supabaseBrowser || photos.length === 0) return;
+    if (!supabaseBrowser || photos.length === 0) return [] as string[];
     const createdPaths: string[] = [];
     try {
       for (const [index, file] of photos.entries()) {
@@ -73,6 +89,7 @@ export default function AdminPropertyForm() {
         });
         if (inserted.error) throw inserted.error;
       }
+      return createdPaths;
     } catch (error) {
       if (createdPaths.length) await supabaseBrowser.storage.from("property-photos").remove(createdPaths);
       throw error;
@@ -89,6 +106,8 @@ export default function AdminPropertyForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setMessage("");
     if (!supabaseBrowser) return setMessage("Supabase ainda não configurado. O formulário está pronto, mas precisa das chaves do projeto para gravar.");
+    if (!agencyId) return setMessage("Não foi possível identificar a imobiliária desta conta.");
+
     const form = new FormData(event.currentTarget);
     const title = String(form.get("title") || "").trim();
     const cityId = String(form.get("city_id") || "");
@@ -105,6 +124,7 @@ export default function AdminPropertyForm() {
 
     setSaving(true);
     let createdPropertyId = "";
+    let uploadedStoragePaths: string[] = [];
     try {
       let neighborhoodId: string | null = null;
       if (neighborhoodName) {
@@ -121,6 +141,7 @@ export default function AdminPropertyForm() {
       const code = `IM-${Date.now().toString().slice(-6)}`;
       const slug = `${slugify(title)}-${code.toLowerCase()}`;
       const payload = {
+        agency_id: agencyId,
         code, title, slug, broker_id: brokerId, city_id: cityId, neighborhood_id: neighborhoodId, property_type_id: propertyTypeId,
         description: String(form.get("description") || "").trim() || null, purpose, zone, segment,
         publication_state: publicationState, status: String(form.get("status") || "available"), price,
@@ -134,12 +155,13 @@ export default function AdminPropertyForm() {
       if (result.error) throw result.error;
       createdPropertyId = result.data.id;
 
-      await uploadPhotos(result.data.id, title);
+      uploadedStoragePaths = await uploadPhotos(result.data.id, title);
       await saveFeatures(result.data.id);
 
-      setMessage(`Imóvel ${result.data.code} ${publicationState === "draft" ? "salvo como rascunho" : "publicado"}${photos.length ? ` com ${photos.length} foto(s)` : ""}.`);
+      setMessage(`Imóvel ${result.data.code} ${publicationState === "draft" ? "salvo como rascunho" : "publicado"}${photos.length ? ` com ${photos.length} foto(s)` : ""} em ${agencyName}.`);
       event.currentTarget.reset(); setPhotos([]); setSelectedFeatures([]);
     } catch (error) {
+      if (uploadedStoragePaths.length) await supabaseBrowser.storage.from("property-photos").remove(uploadedStoragePaths);
       if (createdPropertyId) {
         await supabaseBrowser.from("property_feature_links").delete().eq("property_id", createdPropertyId);
         await supabaseBrowser.from("property_photos").delete().eq("property_id", createdPropertyId);
@@ -152,6 +174,7 @@ export default function AdminPropertyForm() {
   return (
     <form className="propertyForm" onSubmit={submit}>
       {!isSupabaseConfigured && <div className="formNotice">Modo demonstração: configure o Supabase para ativar a gravação real.</div>}
+      {agencyName ? <div className="formNotice">Imobiliária: <strong>{agencyName}</strong></div> : null}
       <label>Título do imóvel<input name="title" placeholder="Ex.: Casa com 3 quartos no Centro" required /></label>
       <div className="formGrid three"><label>Finalidade<select name="purpose" defaultValue="sale"><option value="sale">Venda</option><option value="rent">Locação</option></select></label><label>Uso<select name="segment" defaultValue="residential"><option value="residential">Residencial</option><option value="commercial">Comercial</option></select></label><label>Zona<select name="zone" defaultValue="urban"><option value="urban">Urbana</option><option value="rural">Rural</option></select></label></div>
       <div className="formGrid"><label>Cidade<select name="city_id" required defaultValue=""><option value="">Selecione</option>{cities.map((city) => <option key={city.id} value={city.id}>{city.name}{city.state_code ? ` - ${city.state_code}` : ""}</option>)}</select></label><label>Bairro<input name="neighborhood" placeholder="Centro" /></label></div>
@@ -166,7 +189,7 @@ export default function AdminPropertyForm() {
       <label className="uploadBox">Fotos do imóvel<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} /><span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos. O sistema otimiza as imagens e gera miniaturas automaticamente."}</span></label>
       <label className="checkLabel"><input type="checkbox" name="featured" /> Destacar imóvel na vitrine</label>
       {message && <div className="formMessage">{message}</div>}
-      <div className="formActions"><button type="reset" className="button secondary" onClick={() => { setPhotos([]); setSelectedFeatures([]); }}>Limpar</button><button type="submit" className="button primary" disabled={saving}>{saving ? "Salvando..." : "Salvar imóvel"}</button></div>
+      <div className="formActions"><button type="reset" className="button secondary" onClick={() => { setPhotos([]); setSelectedFeatures([]); }}>Limpar</button><button type="submit" className="button primary" disabled={saving || !agencyId}>{saving ? "Salvando..." : "Salvar imóvel"}</button></div>
     </form>
   );
 }
