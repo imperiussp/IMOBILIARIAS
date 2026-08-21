@@ -10,7 +10,7 @@ export default function PlatformAdminPage() {
       <main className="adminPage platformAdminPage">
         <header className="adminTopbar">
           <div className="container adminNav">
-            <a className="brand" href="../"><span className="brandMark">L</span><span>LENOY IMÓVEIS</span></a>
+            <a className="brand" href="../"><img src="../logo-imobiliarias.svg" alt="IMOBILIARIAS" style={{ width: 190, maxWidth: "38vw", height: "auto", display: "block" }} /></a>
             <div className="adminNavActions"><span>Administração global</span><a className="button secondary small" href="../admin/">Painel de imobiliária</a><a className="button primary small" href="../">Ver plataforma</a></div>
           </div>
         </header>
