@@ -1,3 +1,4 @@
+import AdminBrokers from "../../components/AdminBrokers";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 
@@ -27,15 +28,11 @@ export default function AdminPage() {
           <AdminLiveData />
 
           <div className="adminPanel" id="novo-imovel">
-            <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>O formulário já grava no Supabase e pode enviar fotos para o storage quando as chaves do projeto estiverem configuradas.</p></div></div>
+            <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>O formulário grava no Supabase e envia as fotos para o storage quando as chaves do projeto estiverem configuradas.</p></div></div>
             <AdminPropertyForm />
           </div>
 
-          <div className="adminPanel" id="corretores">
-            <span className="eyebrow">EQUIPE</span>
-            <h2>Corretores</h2>
-            <p>Nome, WhatsApp, CRECI e vínculo dos imóveis ficam centralizados no mesmo banco. A próxima evolução desta área será cadastro, edição e ativação de corretores sem sair do painel.</p>
-          </div>
+          <AdminBrokers />
         </section>
       </div>
     </main>
