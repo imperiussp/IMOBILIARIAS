@@ -16,13 +16,15 @@ import AdminPropertyForm from "../../components/AdminPropertyForm";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
 import AdminUsers from "../../components/AdminUsers";
 
+const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/LENOY.jpg";
+
 export default function AdminPage() {
   return (
     <AdminGate>
       <main className="adminPage">
         <header className="adminTopbar">
           <div className="container adminNav">
-            <a className="brand" href="../"><img src="../logo-imobiliarias.svg" alt="IMOBILIARIAS" style={{ width: 190, maxWidth: "38vw", height: "auto", display: "block" }} /></a>
+            <a className="brand" href="../"><img src={lenoyLogo} alt="LENOY" style={{ width: 88, maxWidth: "24vw", height: "auto", display: "block", borderRadius: 8 }} /></a>
             <div className="adminNavActions"><AdminAgencySwitcher /><a className="button primary small" href="../">Ver site</a></div>
           </div>
         </header>
