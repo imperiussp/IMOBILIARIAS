@@ -5,6 +5,17 @@ import { getAvailableAgencies, setPreferredAgencyId } from "../lib/currentAgency
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
+function safeRedirectTarget() {
+  if (typeof window === "undefined") return "";
+  const value = new URLSearchParams(window.location.search).get("redirect") || "";
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "";
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (parsed.origin !== window.location.origin) return "";
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch { return ""; }
+}
+
 export default function LoginForm() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,6 +53,15 @@ export default function LoginForm() {
       return;
     }
 
+    // Convites precisam continuar mesmo quando o usuário ainda não possui vínculo com uma imobiliária.
+    // Aceitamos somente rotas internas do mesmo domínio para evitar redirecionamento externo malicioso.
+    const redirect = safeRedirectTarget();
+    if (redirect) {
+      setStatus("Acesso confirmado. Continuando...");
+      window.location.assign(redirect);
+      return;
+    }
+
     const platformCheck = await supabaseBrowser.rpc("is_platform_admin");
     if (!platformCheck.error && platformCheck.data === true) {
       setStatus("Acesso da plataforma confirmado.");
@@ -69,16 +89,19 @@ export default function LoginForm() {
     setLoading(false);
   }
 
+  const redirect = typeof window !== "undefined" ? safeRedirectTarget() : "";
+  const signupHref = redirect ? `../cadastro/?redirect=${encodeURIComponent(redirect)}` : "../cadastro/";
+
   return (
     <form className="loginCard" onSubmit={handleSubmit}>
       <span className="eyebrow">ACESSO RESTRITO</span>
       <h1>Entrar no painel</h1>
-      <p>Use sua conta da imobiliária. A plataforma identifica automaticamente seus vínculos e permissões.</p>
+      <p>{redirect ? "Entre para continuar o convite ou a ação que trouxe você até aqui." : "Use sua conta da imobiliária. A plataforma identifica automaticamente seus vínculos e permissões."}</p>
       <label>E-mail<input name="email" type="email" autoComplete="email" placeholder="voce@imobiliaria.com.br" required /></label>
       <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></label>
       <button className="button primary full" type="submit" disabled={loading}>{loading ? "Aguarde..." : "Entrar"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
-      <div className="loginLinks"><a href="../recuperar-senha/">Esqueci minha senha</a><a href="../cadastro/">Criar minha imobiliária</a></div>
+      <div className="loginLinks"><a href="../recuperar-senha/">Esqueci minha senha</a><a href={signupHref}>Criar conta</a></div>
       <a className="backLink" href="../">← Voltar ao site</a>
     </form>
   );
