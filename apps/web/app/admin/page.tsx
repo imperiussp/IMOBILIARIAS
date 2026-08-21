@@ -3,6 +3,7 @@ import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
 import AdminDomains from "../../components/AdminDomains";
+import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
 import AdminInvitations from "../../components/AdminInvitations";
 import AdminLiveData from "../../components/AdminLiveData";
@@ -61,6 +62,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminSiteSettings /></div>
             <div className="adminOnly"><AdminDomains /></div>
             <div className="adminOnly"><AdminAuditLog /></div>
+            <div className="adminOnly"><AdminExportTools /></div>
           </section>
         </div>
       </main>
