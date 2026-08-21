@@ -66,6 +66,18 @@ export async function retryFailedJobs() {
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
 
+function stableDraftCode(draftId: string) {
+  const clean = draftId.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  if (clean.length >= 12) return `IM-${clean.slice(-12)}`;
+  let hash = 2166136261;
+  for (let index = 0; index < draftId.length; index += 1) {
+    hash ^= draftId.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  const suffix = `${clean}${hash.toString(36).toUpperCase()}`.padStart(12, "0").slice(-12);
+  return `IM-${suffix}`;
+}
+
 async function blobFromUri(uri: string) {
   const response = await fetch(uri);
   if (!response.ok) throw new Error("Não foi possível preparar a imagem para envio.");
@@ -97,8 +109,7 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
     else throw new Error(`Bairro não cadastrado: ${draft.neighborhood}. Cadastre o bairro no painel administrativo e tente sincronizar novamente.`);
   }
 
-  const numericId = draft.id.replace(/\D/g, "").slice(-6).padStart(6, "0");
-  const code = `IM-${numericId}`;
+  const code = stableDraftCode(draft.id);
   const propertyPayload = {
     agency_id: context.agencyId,
     code,
