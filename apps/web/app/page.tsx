@@ -1,3 +1,4 @@
+import GeneralContactForm from "../components/GeneralContactForm";
 import PropertyExplorer from "../components/PropertyExplorer";
 import PublicFooter from "../components/PublicFooter";
 import PublicHeader from "../components/PublicHeader";
@@ -27,7 +28,8 @@ export default function HomePage() {
       </section>
 
       <section className="container section" id="contato">
-        <div className="contactCard"><div><span className="eyebrow">ATENDIMENTO DIRETO</span><h2>Gostou de um imóvel? Abra os detalhes e fale com o corretor.</h2><p>Cada página individual prepara uma mensagem de WhatsApp com o código do imóvel e também permite enviar uma solicitação de contato.</p></div><a className="button primary" href="#imoveis">Escolher imóvel</a></div>
+        <div className="sectionHeading"><div><span className="eyebrow">ATENDIMENTO</span><h2>Fale com a imobiliária</h2><p className="sectionIntro">Envie uma mensagem geral ou escolha um imóvel para falar diretamente com o corretor responsável.</p></div><a className="button secondary" href="#imoveis">Escolher imóvel</a></div>
+        <GeneralContactForm />
       </section>
 
       <PublicFooter />
