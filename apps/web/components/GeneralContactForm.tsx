@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
-import { resolveCurrentTenant } from "../lib/tenantResolver";
+import { currentHostname, resolveCurrentTenant } from "../lib/tenantResolver";
 import { useSiteSettings } from "../lib/useSiteSettings";
 
 export default function GeneralContactForm() {
@@ -34,19 +34,20 @@ export default function GeneralContactForm() {
       return;
     }
     setSending(true);
-    const tenant = await resolveCurrentTenant();
-    if (!tenant) {
+    const [tenant, host] = await Promise.all([resolveCurrentTenant(), Promise.resolve(currentHostname())]);
+    if (!tenant || !host) {
       setSending(false);
       setStatus("Não foi possível identificar a imobiliária deste endereço. Use o WhatsApp para atendimento.");
       return;
     }
-    const { error } = await supabaseBrowser.from("leads").insert({
-      agency_id: tenant.agency_id,
-      name,
-      phone: phone || null,
-      email: email || null,
-      message,
-      source: "web-general-contact",
+    const { error } = await supabaseBrowser.rpc("create_public_lead_for_host", {
+      p_hostname: host,
+      p_property_id: null,
+      p_name: name,
+      p_phone: phone || null,
+      p_email: email || null,
+      p_message: message,
+      p_source: "web-general-contact",
     });
     setSending(false);
     if (error) return setStatus("Não foi possível enviar agora. Tente pelo WhatsApp.");
@@ -57,9 +58,9 @@ export default function GeneralContactForm() {
   return <div className="generalContactGrid">
     <form className="generalContactForm" onSubmit={submit}>
       <input className="contactTrap" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
-      <div className="formGrid"><label>Nome<input name="name" required /></label><label>Telefone<input name="phone" inputMode="tel" /></label></div>
-      <label>E-mail<input name="email" type="email" /></label>
-      <label>Mensagem<textarea name="message" rows={4} required placeholder="Como podemos ajudar?" /></label>
+      <div className="formGrid"><label>Nome<input name="name" required maxLength={160} /></label><label>Telefone<input name="phone" inputMode="tel" maxLength={40} /></label></div>
+      <label>E-mail<input name="email" type="email" maxLength={254} /></label>
+      <label>Mensagem<textarea name="message" rows={4} required maxLength={4000} placeholder="Como podemos ajudar?" /></label>
       <button className="button primary" disabled={sending}>{sending ? "Enviando..." : "Enviar mensagem"}</button>
       {status ? <div className="formMessage">{status}</div> : null}
     </form>
