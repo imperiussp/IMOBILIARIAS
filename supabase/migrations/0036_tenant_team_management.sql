@@ -1,6 +1,8 @@
 -- Gestão de equipe por imobiliária no modelo SaaS.
 -- Proprietários e administradores gerenciam apenas membros do próprio tenant.
 
+-- Idempotência: evita conflito caso a policy já exista em uma base de teste.
+drop policy if exists "agency managers read member profiles" on public.profiles;
 create policy "agency managers read member profiles" on public.profiles
 for select to authenticated
 using (
@@ -147,5 +149,8 @@ begin
 end;
 $$;
 
+-- SECURITY DEFINER não deve herdar EXECUTE para PUBLIC.
+revoke all on function public.agency_set_member_role(uuid, uuid, text, uuid) from public;
+revoke all on function public.agency_revoke_member(uuid, uuid) from public;
 grant execute on function public.agency_set_member_role(uuid, uuid, text, uuid) to authenticated;
 grant execute on function public.agency_revoke_member(uuid, uuid) to authenticated;
