@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
-import { resolveCurrentTenant } from "../lib/tenantResolver";
+import { currentHostname, resolveCurrentTenant } from "../lib/tenantResolver";
 import { useSiteSettings } from "../lib/useSiteSettings";
 
 export default function OwnerPropertyForm() {
@@ -46,18 +46,20 @@ export default function OwnerPropertyForm() {
     }
     setSending(true);
     const tenant = await resolveCurrentTenant();
-    if (!tenant) {
+    const host = currentHostname();
+    if (!tenant || !host) {
       setSending(false);
       setStatus("Não foi possível identificar a imobiliária deste endereço. Use o WhatsApp para atendimento.");
       return;
     }
-    const { error } = await supabaseBrowser.from("leads").insert({
-      agency_id: tenant.agency_id,
-      name,
-      phone,
-      email: null,
-      message,
-      source: "web-owner-property",
+    const { error } = await supabaseBrowser.rpc("create_public_lead_for_host", {
+      p_hostname: host,
+      p_property_id: null,
+      p_name: name,
+      p_phone: phone,
+      p_email: null,
+      p_message: message,
+      p_source: "web-owner-property",
     });
     setSending(false);
     if (error) {
@@ -78,10 +80,10 @@ export default function OwnerPropertyForm() {
     </div>
     <form className="ownerForm" onSubmit={submit}>
       <input className="contactTrap" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
-      <div className="formGrid"><label>Seu nome<input name="name" required /></label><label>WhatsApp<input name="phone" inputMode="tel" required /></label></div>
-      <div className="formGrid"><label>Cidade do imóvel<input name="city" placeholder="Cidade - UF" required /></label><label>Tipo<select name="type" defaultValue="" required><option value="" disabled>Selecione</option><option>Casa</option><option>Apartamento</option><option>Terreno</option><option>Comercial</option><option>Rural</option><option>Outro</option></select></label></div>
+      <div className="formGrid"><label>Seu nome<input name="name" required maxLength={160} /></label><label>WhatsApp<input name="phone" inputMode="tel" required maxLength={40} /></label></div>
+      <div className="formGrid"><label>Cidade do imóvel<input name="city" placeholder="Cidade - UF" required maxLength={160} /></label><label>Tipo<select name="type" defaultValue="" required><option value="" disabled>Selecione</option><option>Casa</option><option>Apartamento</option><option>Terreno</option><option>Comercial</option><option>Rural</option><option>Outro</option></select></label></div>
       <label>O que deseja fazer?<select name="purpose" defaultValue="" required><option value="" disabled>Selecione</option><option>Vender</option><option>Alugar</option><option>Vender ou alugar</option></select></label>
-      <label>Observações<textarea name="notes" rows={4} placeholder="Bairro, área aproximada, número de quartos ou outras informações." /></label>
+      <label>Observações<textarea name="notes" rows={4} maxLength={3500} placeholder="Bairro, área aproximada, número de quartos ou outras informações." /></label>
       <button className="button primary" disabled={sending}>{sending ? "Enviando..." : "Quero anunciar meu imóvel"}</button>
       {status ? <div className="formMessage">{status}</div> : null}
     </form>
