@@ -1,4 +1,5 @@
 import AdminAgencySwitcher from "../../components/AdminAgencySwitcher";
+import AdminAiDescription from "../../components/AdminAiDescription";
 import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
@@ -30,6 +31,7 @@ export default function AdminPage() {
             <a className="active" href="#visao-geral">Visão geral</a>
             <a href="#imoveis">Imóveis</a>
             <a className="adminOnly" href="#novo-imovel">Novo imóvel</a>
+            <a className="adminOnly" href="#descricao-ia">Descrição com IA</a>
             <a className="adminOnly" href="#localidades">Localidades</a>
             <a className="adminOnly" href="#catalogo-config">Tipos e recursos</a>
             <a className="adminOnly" href="#corretores">Corretores</a>
@@ -53,6 +55,7 @@ export default function AdminPage() {
               <AdminPropertyForm />
             </div>
 
+            <div className="adminOnly"><AdminAiDescription /></div>
             <div className="adminOnly"><AdminLocations /></div>
             <div className="adminOnly"><AdminCatalogSettings /></div>
             <div className="adminOnly"><AdminBrokers /></div>
