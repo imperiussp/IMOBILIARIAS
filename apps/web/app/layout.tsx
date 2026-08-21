@@ -8,6 +8,7 @@ import "./detail-enhancements.css";
 import "./admin-extra.css";
 import "./access.css";
 import "./branding.css";
+import "./contact.css";
 
 export const metadata: Metadata = {
   title: {
