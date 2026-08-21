@@ -10,12 +10,19 @@ function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+function safeFilename(value: string) {
+  const parts = value.split(".");
+  const extension = parts.length > 1 ? `.${parts.pop()?.toLowerCase()}` : "";
+  return `${slugify(parts.join(".")) || "foto"}${extension}`;
+}
+
 export default function AdminPropertyForm() {
   const [cities, setCities] = useState<Option[]>([]);
   const [types, setTypes] = useState<Option[]>([]);
   const [brokers, setBrokers] = useState<BrokerOption[]>([]);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
 
   useEffect(() => {
     if (!supabaseBrowser) return;
@@ -29,6 +36,27 @@ export default function AdminPropertyForm() {
       if (brokerResult.data) setBrokers(brokerResult.data);
     });
   }, []);
+
+  async function uploadPhotos(propertyId: string) {
+    if (!supabaseBrowser || photos.length === 0) return;
+    const rows: Array<{ property_id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string }> = [];
+
+    for (const [index, file] of photos.entries()) {
+      const storagePath = `${propertyId}/${Date.now()}-${index}-${safeFilename(file.name)}`;
+      const upload = await supabaseBrowser.storage.from("property-photos").upload(storagePath, file, { cacheControl: "3600", upsert: false });
+      if (upload.error) throw upload.error;
+      rows.push({
+        property_id: propertyId,
+        storage_path: storagePath,
+        position: index,
+        is_cover: index === 0,
+        alt_text: `Foto ${index + 1} do imóvel`,
+      });
+    }
+
+    const inserted = await supabaseBrowser.from("property_photos").insert(rows);
+    if (inserted.error) throw inserted.error;
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,6 +78,10 @@ export default function AdminPropertyForm() {
 
     if (!title || !cityId || !propertyTypeId) {
       setMessage("Preencha título, cidade e tipo do imóvel.");
+      return;
+    }
+    if (photos.length > 20) {
+      setMessage("Use no máximo 20 fotos por imóvel.");
       return;
     }
 
@@ -94,8 +126,10 @@ export default function AdminPropertyForm() {
 
       const result = await supabaseBrowser.from("properties").insert(payload).select("id,code").single();
       if (result.error) throw result.error;
-      setMessage(`Imóvel ${result.data.code} cadastrado com sucesso.`);
+      await uploadPhotos(result.data.id);
+      setMessage(`Imóvel ${result.data.code} cadastrado com sucesso${photos.length ? ` com ${photos.length} foto(s)` : ""}.`);
       event.currentTarget.reset();
+      setPhotos([]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -123,9 +157,13 @@ export default function AdminPropertyForm() {
       <div className="formGrid three"><label>Quartos<input name="bedrooms" type="number" min="0" defaultValue="0" /></label><label>Suítes<input name="suites" type="number" min="0" defaultValue="0" /></label><label>Banheiros<input name="bathrooms" type="number" min="0" defaultValue="0" /></label></div>
       <div className="formGrid three"><label>Vagas<input name="parking_spaces" type="number" min="0" defaultValue="0" /></label><label>Área construída (m²)<input name="built_area_m2" type="number" min="0" step="0.01" /></label><label>Terreno (m²)<input name="land_area_m2" type="number" min="0" step="0.01" /></label></div>
       <label>Descrição<textarea name="description" rows={5} placeholder="Descreva os principais diferenciais do imóvel." /></label>
+      <label className="uploadBox">Fotos do imóvel
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} />
+        <span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos JPG, PNG ou WebP. A primeira será usada como capa."}</span>
+      </label>
       <label className="checkLabel"><input type="checkbox" name="featured" /> Destacar imóvel na vitrine</label>
       {message && <div className="formMessage">{message}</div>}
-      <div className="formActions"><button type="reset" className="button secondary">Limpar</button><button type="submit" className="button primary" disabled={saving}>{saving ? "Salvando..." : "Cadastrar imóvel"}</button></div>
+      <div className="formActions"><button type="reset" className="button secondary" onClick={() => setPhotos([])}>Limpar</button><button type="submit" className="button primary" disabled={saving}>{saving ? "Salvando..." : "Cadastrar imóvel"}</button></div>
     </form>
   );
 }
