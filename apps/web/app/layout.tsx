@@ -5,6 +5,7 @@ import "./admin.css";
 import "./explorer.css";
 import "./admin-tools.css";
 import "./detail-enhancements.css";
+import "./admin-extra.css";
 
 export const metadata: Metadata = {
   title: {
