@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import LeadForm from "../../../components/LeadForm";
 import { getPropertyBySlug, properties } from "../../../lib/properties";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -51,24 +52,16 @@ export default async function PropertyPage({ params }: PageProps) {
               <span><strong>{property.parking}</strong> vagas</span>
               <span><strong>{property.area}</strong> área</span>
             </div>
-
-            <div className="detailSection">
-              <h2>Sobre o imóvel</h2>
-              <p>{property.description}</p>
-            </div>
-
-            <div className="detailSection">
-              <h2>Características</h2>
-              <div className="featureList">{property.features.map((feature) => <span key={feature}>✓ {feature}</span>)}</div>
-            </div>
+            <div className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description}</p></div>
+            <div className="detailSection"><h2>Características</h2><div className="featureList">{property.features.map((feature) => <span key={feature}>✓ {feature}</span>)}</div></div>
           </section>
 
           <aside className="brokerCard">
             <span className="eyebrow">CORRETOR RESPONSÁVEL</span>
             <h3>{property.broker.name}</h3>
             <p>{property.broker.creci}</p>
-            <p>Ao chamar pelo WhatsApp, o código do imóvel já vai na mensagem.</p>
-            <a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a>
+            <p>Solicite retorno pelo formulário ou abra o WhatsApp já com o código do imóvel.</p>
+            <LeadForm propertyCode={property.code} propertyTitle={property.title} whatsappUrl={whatsappUrl} />
           </aside>
         </div>
       </section>
