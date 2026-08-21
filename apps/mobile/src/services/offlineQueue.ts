@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import { getMobileAgencyContext } from "../lib/currentAgency";
 import { mobileSupabase } from "../lib/supabase";
 import { preparePropertyPhoto } from "./imageProcessing";
 import type { PropertyDraft } from "./propertyDrafts";
@@ -11,6 +12,7 @@ export type OfflineJob = {
   clientOperationId: string;
   entityType: "property" | "property_photo" | "property_draft";
   entityLocalId: string;
+  agencyId?: string;
   state: SyncState;
   attempts: number;
   payload: Record<string, unknown>;
@@ -31,14 +33,20 @@ async function readQueue(): Promise<OfflineJob[]> {
 
 async function writeQueue(queue: OfflineJob[]) { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(queue)); }
 
-export async function enqueueOfflineJob(job: Omit<OfflineJob, "state" | "attempts" | "createdAt">) {
+export async function enqueueOfflineJob(job: Omit<OfflineJob, "state" | "attempts" | "createdAt" | "agencyId"> & { agencyId?: string }) {
+  const context = await getMobileAgencyContext();
+  const agencyId = job.agencyId || context?.agencyId;
+  if (!agencyId) throw new Error("Não foi possível identificar a imobiliária antes de salvar a fila offline.");
+
   const queue = await readQueue();
   const existing = queue.find((item) => item.clientOperationId === job.clientOperationId);
   if (existing) {
+    if (existing.agencyId && existing.agencyId !== agencyId) throw new Error("Esta operação offline pertence a outra imobiliária.");
+    existing.agencyId = agencyId;
     existing.payload = job.payload;
     existing.state = "waiting_network";
     existing.lastError = undefined;
-  } else queue.push({ ...job, state: "waiting_network", attempts: 0, createdAt: new Date().toISOString() });
+  } else queue.push({ ...job, agencyId, state: "waiting_network", attempts: 0, createdAt: new Date().toISOString() });
   await writeQueue(queue);
 }
 
@@ -64,14 +72,11 @@ async function blobFromUri(uri: string) {
   return response.blob();
 }
 
-async function syncDraft(draft: PropertyDraft) {
+async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
   if (!mobileSupabase) throw new Error("Supabase não configurado.");
-  const session = await mobileSupabase.auth.getSession();
-  const userId = session.data.session?.user.id;
-  if (!userId) throw new Error("Faça login no aplicativo antes de publicar.");
-
-  const brokerResult = await mobileSupabase.from("brokers").select("id").eq("user_id", userId).eq("active", true).single();
-  if (brokerResult.error) throw new Error("Usuário sem corretor ativo vinculado.");
+  const context = await getMobileAgencyContext();
+  if (!context || context.role !== "broker" || !context.brokerId) throw new Error("Usuário sem corretor ativo vinculado a uma imobiliária.");
+  if (context.agencyId !== expectedAgencyId) throw new Error("A fila offline pertence a outra imobiliária e não será enviada.");
 
   const cityParts = draft.city.split("-").map((part) => part.trim());
   const cityName = cityParts[0];
@@ -95,8 +100,9 @@ async function syncDraft(draft: PropertyDraft) {
   const numericId = draft.id.replace(/\D/g, "").slice(-6).padStart(6, "0");
   const code = `IM-${numericId}`;
   const propertyPayload = {
+    agency_id: context.agencyId,
     code,
-    broker_id: brokerResult.data.id,
+    broker_id: context.brokerId,
     city_id: cityResult.data.id,
     neighborhood_id: neighborhoodId,
     property_type_id: typeResult.data.id,
@@ -120,7 +126,12 @@ async function syncDraft(draft: PropertyDraft) {
     published_at: new Date().toISOString(),
   };
 
-  const propertyResult = await mobileSupabase.from("properties").upsert(propertyPayload, { onConflict: "code" }).select("id").single();
+  const existing = await mobileSupabase.from("properties").select("id,agency_id").eq("agency_id", context.agencyId).eq("code", code).maybeSingle();
+  if (existing.error) throw existing.error;
+
+  const propertyResult = existing.data?.id
+    ? await mobileSupabase.from("properties").update(propertyPayload).eq("id", existing.data.id).eq("agency_id", context.agencyId).select("id").single()
+    : await mobileSupabase.from("properties").insert(propertyPayload).select("id").single();
   if (propertyResult.error) throw propertyResult.error;
 
   for (let index = 0; index < draft.photoUris.length; index += 1) {
@@ -138,14 +149,17 @@ async function syncDraft(draft: PropertyDraft) {
     ]);
 
     const baseName = `${draft.id}-${index}.jpg`;
-    const storagePath = `${propertyResult.data.id}/mobile/${baseName}`;
-    const thumbnailPath = `${propertyResult.data.id}/mobile/thumbs/${baseName}`;
+    const storagePath = `${context.agencyId}/${propertyResult.data.id}/mobile/${baseName}`;
+    const thumbnailPath = `${context.agencyId}/${propertyResult.data.id}/mobile/thumbs/${baseName}`;
 
     const fullUpload = await mobileSupabase.storage.from("property-photos").upload(storagePath, fullBlob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
     if (fullUpload.error) throw fullUpload.error;
 
     const thumbUpload = await mobileSupabase.storage.from("property-photos").upload(thumbnailPath, thumbnailBlob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
-    if (thumbUpload.error) throw thumbUpload.error;
+    if (thumbUpload.error) {
+      await mobileSupabase.storage.from("property-photos").remove([storagePath]);
+      throw thumbUpload.error;
+    }
 
     const photo = await mobileSupabase.from("property_photos").upsert({
       property_id: propertyResult.data.id,
@@ -155,7 +169,10 @@ async function syncDraft(draft: PropertyDraft) {
       is_cover: index === 0,
       alt_text: `${draft.title} - foto ${index + 1}`,
     }, { onConflict: "property_id,storage_path" });
-    if (photo.error) throw photo.error;
+    if (photo.error) {
+      await mobileSupabase.storage.from("property-photos").remove([storagePath, thumbnailPath]);
+      throw photo.error;
+    }
   }
 
   await removePropertyDraft(draft.id);
@@ -164,17 +181,31 @@ async function syncDraft(draft: PropertyDraft) {
 export async function processOfflineQueue() {
   const network = await NetInfo.fetch();
   if (!network.isConnected || !mobileSupabase) return { processed: 0, pending: (await readQueue()).length };
+
+  const context = await getMobileAgencyContext();
+  if (!context || context.role !== "broker" || !context.brokerId) return { processed: 0, pending: (await readQueue()).length };
+
   const queue = await readQueue();
   let processed = 0;
   for (const job of queue) {
     if (job.state === "synced") continue;
     job.state = "syncing"; job.attempts += 1; await writeQueue(queue);
     try {
-      if (job.entityType === "property_draft") await syncDraft(job.payload as unknown as PropertyDraft);
+      if (!job.agencyId) throw new Error("Operação offline antiga sem identificação de imobiliária. Salve novamente este item antes de enviar.");
+      if (job.agencyId !== context.agencyId) throw new Error("Esta operação offline pertence a outra imobiliária.");
+
+      if (job.entityType === "property_draft") await syncDraft(job.payload as unknown as PropertyDraft, job.agencyId);
       else if (job.entityType === "property") {
-        const { error } = await mobileSupabase.from("properties").upsert(job.payload, { onConflict: "code" });
+        const payloadAgency = String(job.payload.agency_id || job.agencyId);
+        if (payloadAgency !== context.agencyId) throw new Error("Imóvel offline com imobiliária divergente.");
+        const payload = { ...job.payload, agency_id: context.agencyId };
+        const { error } = await mobileSupabase.from("properties").upsert(payload);
         if (error) throw error;
       } else {
+        const propertyId = String(job.payload.property_id || "");
+        if (!propertyId) throw new Error("Foto offline sem imóvel associado.");
+        const owner = await mobileSupabase.from("properties").select("id").eq("id", propertyId).eq("agency_id", context.agencyId).maybeSingle();
+        if (owner.error || !owner.data) throw new Error("O imóvel desta foto não pertence à imobiliária atual.");
         const { error } = await mobileSupabase.from("property_photos").upsert(job.payload);
         if (error) throw error;
       }
