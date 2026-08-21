@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { prepareBrowserPropertyPhoto } from "../lib/browserImageProcessing";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Option = { id: string; name: string; state_code?: string };
@@ -9,12 +10,6 @@ type FeatureOption = { id: string; name: string };
 
 function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-function safeFilename(value: string) {
-  const parts = value.split(".");
-  const extension = parts.length > 1 ? `.${parts.pop()?.toLowerCase()}` : "";
-  return `${slugify(parts.join(".")) || "foto"}${extension}`;
 }
 
 export default function AdminPropertyForm() {
@@ -42,17 +37,46 @@ export default function AdminPropertyForm() {
     });
   }, []);
 
-  async function uploadPhotos(propertyId: string) {
+  async function uploadPhotos(propertyId: string, propertyTitle: string) {
     if (!supabaseBrowser || photos.length === 0) return;
-    const rows: Array<{ property_id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string }> = [];
-    for (const [index, file] of photos.entries()) {
-      const storagePath = `${propertyId}/${Date.now()}-${index}-${safeFilename(file.name)}`;
-      const upload = await supabaseBrowser.storage.from("property-photos").upload(storagePath, file, { cacheControl: "3600", upsert: false });
-      if (upload.error) throw upload.error;
-      rows.push({ property_id: propertyId, storage_path: storagePath, position: index, is_cover: index === 0, alt_text: `Foto ${index + 1} do imóvel` });
+    const createdPaths: string[] = [];
+    try {
+      for (const [index, file] of photos.entries()) {
+        const prepared = await prepareBrowserPropertyPhoto(file);
+        const token = `${Date.now()}-${index}`;
+        const storagePath = `${propertyId}/admin/${token}.jpg`;
+        const thumbnailPath = `${propertyId}/admin/thumbs/${token}.jpg`;
+
+        const fullUpload = await supabaseBrowser.storage.from("property-photos").upload(storagePath, prepared.full, {
+          cacheControl: "31536000",
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+        if (fullUpload.error) throw fullUpload.error;
+        createdPaths.push(storagePath);
+
+        const thumbUpload = await supabaseBrowser.storage.from("property-photos").upload(thumbnailPath, prepared.thumbnail, {
+          cacheControl: "31536000",
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+        if (thumbUpload.error) throw thumbUpload.error;
+        createdPaths.push(thumbnailPath);
+
+        const inserted = await supabaseBrowser.from("property_photos").insert({
+          property_id: propertyId,
+          storage_path: storagePath,
+          thumbnail_path: thumbnailPath,
+          position: index,
+          is_cover: index === 0,
+          alt_text: `${propertyTitle} - foto ${index + 1}`,
+        });
+        if (inserted.error) throw inserted.error;
+      }
+    } catch (error) {
+      if (createdPaths.length) await supabaseBrowser.storage.from("property-photos").remove(createdPaths);
+      throw error;
     }
-    const inserted = await supabaseBrowser.from("property_photos").insert(rows);
-    if (inserted.error) throw inserted.error;
   }
 
   async function saveFeatures(propertyId: string) {
@@ -80,6 +104,7 @@ export default function AdminPropertyForm() {
     if (photos.length > 20) return setMessage("Use no máximo 20 fotos por imóvel.");
 
     setSaving(true);
+    let createdPropertyId = "";
     try {
       let neighborhoodId: string | null = null;
       if (neighborhoodName) {
@@ -107,11 +132,21 @@ export default function AdminPropertyForm() {
 
       const result = await supabaseBrowser.from("properties").insert(payload).select("id,code").single();
       if (result.error) throw result.error;
-      await Promise.all([uploadPhotos(result.data.id), saveFeatures(result.data.id)]);
+      createdPropertyId = result.data.id;
+
+      await uploadPhotos(result.data.id, title);
+      await saveFeatures(result.data.id);
+
       setMessage(`Imóvel ${result.data.code} ${publicationState === "draft" ? "salvo como rascunho" : "publicado"}${photos.length ? ` com ${photos.length} foto(s)` : ""}.`);
       event.currentTarget.reset(); setPhotos([]); setSelectedFeatures([]);
-    } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
-    finally { setSaving(false); }
+    } catch (error) {
+      if (createdPropertyId) {
+        await supabaseBrowser.from("property_feature_links").delete().eq("property_id", createdPropertyId);
+        await supabaseBrowser.from("property_photos").delete().eq("property_id", createdPropertyId);
+        await supabaseBrowser.from("properties").delete().eq("id", createdPropertyId);
+      }
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally { setSaving(false); }
   }
 
   return (
@@ -128,7 +163,7 @@ export default function AdminPropertyForm() {
       <div className="formGrid three"><label>Vagas<input name="parking_spaces" type="number" min="0" defaultValue="0" /></label><label>Área construída (m²)<input name="built_area_m2" type="number" min="0" step="0.01" /></label><label>Terreno (m²)<input name="land_area_m2" type="number" min="0" step="0.01" /></label></div>
       <label>Descrição<textarea name="description" rows={5} placeholder="Descreva os principais diferenciais do imóvel." /></label>
       {features.length > 0 ? <fieldset className="featurePicker"><legend>Características</legend><div>{features.map((feature) => <label className="featureOption" key={feature.id}><input type="checkbox" checked={selectedFeatures.includes(feature.id)} onChange={(event) => setSelectedFeatures((current) => event.target.checked ? [...current, feature.id] : current.filter((id) => id !== feature.id))} /> {feature.name}</label>)}</div></fieldset> : null}
-      <label className="uploadBox">Fotos do imóvel<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} /><span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos JPG, PNG ou WebP. A primeira será usada como capa."}</span></label>
+      <label className="uploadBox">Fotos do imóvel<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} /><span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos. O sistema otimiza as imagens e gera miniaturas automaticamente."}</span></label>
       <label className="checkLabel"><input type="checkbox" name="featured" /> Destacar imóvel na vitrine</label>
       {message && <div className="formMessage">{message}</div>}
       <div className="formActions"><button type="reset" className="button secondary" onClick={() => { setPhotos([]); setSelectedFeatures([]); }}>Limpar</button><button type="submit" className="button primary" disabled={saving}>{saving ? "Salvando..." : "Salvar imóvel"}</button></div>
