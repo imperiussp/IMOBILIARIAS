@@ -11,6 +11,11 @@ export type MobileAgencyContext = {
   logoUrl: string | null;
   primaryColor: string;
   secondaryColor: string;
+  planName: string;
+  brokerAppEnabled: boolean;
+  pushNotificationsEnabled: boolean;
+  emailLeadsEnabled: boolean;
+  aiDescriptionsEnabled: boolean;
 };
 
 const PREFERRED_AGENCY_KEY = "@imobiliarias/mobile-preferred-agency";
@@ -66,11 +71,13 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
   const membershipByAgency = new Map(brokerMemberships.map((membership) => [membership.agency_id, membership]));
   const brokerByAgency = new Map(brokers.map((broker) => [broker.agency_id, broker]));
 
-  return agencies
+  const contexts = await Promise.all(agencies
     .filter((agency) => ["trial", "active", "past_due"].includes(agency.status) && brokerByAgency.has(agency.id))
-    .map((agency) => {
+    .map(async (agency) => {
       const membership = membershipByAgency.get(agency.id)!;
       const broker = brokerByAgency.get(agency.id)!;
+      const featureResult = await mobileSupabase!.rpc("agency_plan_feature_snapshot", { p_agency_id: agency.id });
+      const feature = Array.isArray(featureResult.data) ? featureResult.data[0] : null;
       return {
         agencyId: agency.id,
         agencyName: agency.name,
@@ -80,9 +87,15 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
         logoUrl: agency.logo_url || null,
         primaryColor: validHex(agency.primary_color, "#17202a"),
         secondaryColor: validHex(agency.secondary_color, "#f4f6f8"),
-      };
-    })
-    .sort((a, b) => a.agencyName.localeCompare(b.agencyName, "pt-BR"));
+        planName: String(feature?.plan_name || "Sem plano configurado"),
+        brokerAppEnabled: featureResult.error ? true : feature?.broker_app !== false,
+        pushNotificationsEnabled: featureResult.error ? true : feature?.push_notifications !== false,
+        emailLeadsEnabled: featureResult.error ? true : feature?.email_leads !== false,
+        aiDescriptionsEnabled: featureResult.error ? true : feature?.ai_descriptions !== false,
+      } satisfies MobileAgencyContext;
+    }));
+
+  return contexts.sort((a, b) => a.agencyName.localeCompare(b.agencyName, "pt-BR"));
 }
 
 export async function getMobileAgencyContext(): Promise<MobileAgencyContext | null> {
