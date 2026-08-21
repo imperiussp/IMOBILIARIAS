@@ -5,6 +5,7 @@ import AdminGate from "../../components/AdminGate";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
+import AdminUsers from "../../components/AdminUsers";
 
 export default function AdminPage() {
   return (
@@ -26,13 +27,14 @@ export default function AdminPage() {
             <a href="#localidades">Localidades</a>
             <a href="#catalogo-config">Tipos e recursos</a>
             <a href="#corretores">Corretores</a>
+            <a href="#usuarios">Usuários</a>
             <a href="#contatos">Contatos</a>
             <a href="#historico">Histórico</a>
             <a href="#exportacoes">Exportações</a>
           </aside>
 
           <section className="adminContent" id="visao-geral">
-            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Gerencie catálogo, localidades, equipe, atendimento e histórico em um só lugar.</p></div><a className="button primary" href="#novo-imovel">+ Cadastrar imóvel</a></div>
+            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Gerencie catálogo, localidades, equipe, acessos, atendimento e histórico em um só lugar.</p></div><a className="button primary" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
 
@@ -44,6 +46,7 @@ export default function AdminPage() {
             <AdminLocations />
             <AdminCatalogSettings />
             <AdminBrokers />
+            <AdminUsers />
             <AdminAuditLog />
           </section>
         </div>
