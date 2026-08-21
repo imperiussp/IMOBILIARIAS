@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getCurrentAgency } from "../lib/currentAgency";
 import { properties as demoProperties } from "../lib/properties";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 import AdminPropertyPhotos from "./AdminPropertyPhotos";
@@ -24,6 +25,8 @@ const leadLabels: Record<LeadStatus, string> = { new: "Novo", contacted: "Contat
 function money(value: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0); }
 
 export default function AdminLiveData() {
+  const [agencyId, setAgencyId] = useState("");
+  const [agencyName, setAgencyName] = useState("");
   const [liveProperties, setLiveProperties] = useState<LiveProperty[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -41,13 +44,23 @@ export default function AdminLiveData() {
 
   async function load() {
     if (!supabaseBrowser) return;
-    setLoading(true);
+    setLoading(true); setMessage("");
+    const currentAgency = await getCurrentAgency();
+    if (!currentAgency) {
+      setAgencyId(""); setAgencyName(""); setLiveProperties([]); setLeads([]); setBrokers([]);
+      setMessage("Não foi possível identificar a imobiliária desta conta.");
+      setLoading(false);
+      return;
+    }
+    setAgencyId(currentAgency.agencyId);
+    setAgencyName(currentAgency.agencyName);
+
     const [propertyResult, leadResult, cityResult, typeResult, brokerResult] = await Promise.all([
-      supabaseBrowser.from("properties").select("id,code,title,purpose,segment,zone,publication_state,status,price,bedrooms,suites,bathrooms,parking_spaces,built_area_m2,land_area_m2,featured,description,address,address_public,created_at,broker_id,city_id,neighborhood_id,property_type_id,cities(name,state_code),neighborhoods(name),property_types(name),brokers(name)").order("created_at", { ascending: false }),
-      supabaseBrowser.from("leads").select("id,name,phone,email,message,source,status,notes,created_at").order("created_at", { ascending: false }).limit(60),
+      supabaseBrowser.from("properties").select("id,code,title,purpose,segment,zone,publication_state,status,price,bedrooms,suites,bathrooms,parking_spaces,built_area_m2,land_area_m2,featured,description,address,address_public,created_at,broker_id,city_id,neighborhood_id,property_type_id,cities(name,state_code),neighborhoods(name),property_types(name),brokers(name)").eq("agency_id", currentAgency.agencyId).order("created_at", { ascending: false }),
+      supabaseBrowser.from("leads").select("id,name,phone,email,message,source,status,notes,created_at").eq("agency_id", currentAgency.agencyId).order("created_at", { ascending: false }).limit(60),
       supabaseBrowser.from("cities").select("id,name,state_code").order("name"),
       supabaseBrowser.from("property_types").select("id,name").eq("active", true).order("name"),
-      supabaseBrowser.from("brokers").select("id,name").eq("active", true).order("name"),
+      supabaseBrowser.from("brokers").select("id,name").eq("agency_id", currentAgency.agencyId).eq("active", true).order("name"),
     ]);
     if (propertyResult.data) setLiveProperties(propertyResult.data as unknown as LiveProperty[]);
     if (leadResult.data) setLeads(leadResult.data as Lead[]);
@@ -84,8 +97,8 @@ export default function AdminLiveData() {
   }, [liveProperties, search, statusFilter, purposeFilter, publicationFilter]);
 
   async function changeStatus(id: string, status: LiveProperty["status"]) {
-    if (!supabaseBrowser) return;
-    const result = await supabaseBrowser.from("properties").update({ status }).eq("id", id);
+    if (!supabaseBrowser || !agencyId) return;
+    const result = await supabaseBrowser.from("properties").update({ status }).eq("id", id).eq("agency_id", agencyId);
     if (result.error) return setMessage(result.error.message);
     setLiveProperties((current) => current.map((item) => item.id === id ? { ...item, status } : item));
     setMessage("Status atualizado.");
@@ -108,7 +121,7 @@ export default function AdminLiveData() {
   }
 
   async function saveEditing() {
-    if (!supabaseBrowser || !editing) return;
+    if (!supabaseBrowser || !editing || !agencyId) return;
     setSavingEdit(true); setMessage("");
     try {
       const neighborhoodId = await resolveNeighborhood(editing.city_id, editingNeighborhood);
@@ -121,7 +134,7 @@ export default function AdminLiveData() {
         broker_id: editing.broker_id || null, city_id: editing.city_id, neighborhood_id: neighborhoodId, property_type_id: editing.property_type_id || null,
         published_at: editing.publication_state === "draft" ? null : new Date().toISOString(),
       };
-      const { error } = await supabaseBrowser.from("properties").update(payload).eq("id", editing.id);
+      const { error } = await supabaseBrowser.from("properties").update(payload).eq("id", editing.id).eq("agency_id", agencyId);
       if (error) throw error;
       setMessage(`Imóvel ${editing.code} atualizado.`);
       await load();
@@ -133,25 +146,26 @@ export default function AdminLiveData() {
   }
 
   async function archiveProperty(property: LiveProperty) {
-    if (!supabaseBrowser) return;
+    if (!supabaseBrowser || !agencyId) return;
     if (!window.confirm(`Arquivar ${property.code}? O imóvel será preservado no histórico e sairá do catálogo público.`)) return;
-    const { error } = await supabaseBrowser.from("properties").update({ status: "inactive", publication_state: "draft", published_at: null }).eq("id", property.id);
+    const { error } = await supabaseBrowser.from("properties").update({ status: "inactive", publication_state: "draft", published_at: null }).eq("id", property.id).eq("agency_id", agencyId);
     if (error) return setMessage(error.message);
     setMessage(`${property.code} arquivado sem exclusão.`);
     await load();
   }
 
   async function updateLead(id: string, patch: Partial<Pick<Lead, "status" | "notes">>) {
-    if (!supabaseBrowser) return;
-    const { error } = await supabaseBrowser.from("leads").update(patch).eq("id", id);
+    if (!supabaseBrowser || !agencyId) return;
+    const { error } = await supabaseBrowser.from("leads").update(patch).eq("id", id).eq("agency_id", agencyId);
     if (error) return setMessage(error.message);
     setLeads((current) => current.map((lead) => lead.id === id ? { ...lead, ...patch } : lead));
   }
 
   return (
     <>
+      {agencyName ? <div className="formNotice">Dados exibidos somente de <strong>{agencyName}</strong>.</div> : null}
       <div className="adminMetrics">
-        <article><span>Total de imóveis</span><strong>{stats.total}</strong><small>{isSupabaseConfigured ? "Base real" : "Base demonstrativa"}</small></article>
+        <article><span>Total de imóveis</span><strong>{stats.total}</strong><small>{isSupabaseConfigured ? "Base desta imobiliária" : "Base demonstrativa"}</small></article>
         <article><span>Em negociação</span><strong>{stats.active}</strong><small>Disponíveis ou reservados</small></article>
         <article><span>Negócios concluídos</span><strong>{stats.closed}</strong><small>Vendidos ou alugados</small></article>
         <article><span>Contatos em andamento</span><strong>{stats.leads}</strong><small>Pipeline comercial ativo</small></article>
