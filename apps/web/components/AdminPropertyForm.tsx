@@ -45,13 +45,7 @@ export default function AdminPropertyForm() {
       const storagePath = `${propertyId}/${Date.now()}-${index}-${safeFilename(file.name)}`;
       const upload = await supabaseBrowser.storage.from("property-photos").upload(storagePath, file, { cacheControl: "3600", upsert: false });
       if (upload.error) throw upload.error;
-      rows.push({
-        property_id: propertyId,
-        storage_path: storagePath,
-        position: index,
-        is_cover: index === 0,
-        alt_text: `Foto ${index + 1} do imóvel`,
-      });
+      rows.push({ property_id: propertyId, storage_path: storagePath, position: index, is_cover: index === 0, alt_text: `Foto ${index + 1} do imóvel` });
     }
 
     const inserted = await supabaseBrowser.from("property_photos").insert(rows);
@@ -74,6 +68,8 @@ export default function AdminPropertyForm() {
     const brokerId = String(form.get("broker_id") || "") || null;
     const purpose = String(form.get("purpose") || "sale");
     const zone = String(form.get("zone") || "urban");
+    const segment = String(form.get("segment") || "residential");
+    const publicationState = String(form.get("publication_state") || "published");
     const price = Number(String(form.get("price") || "0").replace(/[^0-9.,]/g, "").replace(/\./g, "").replace(",", ".")) || 0;
 
     if (!title || !cityId || !propertyTypeId) {
@@ -112,6 +108,8 @@ export default function AdminPropertyForm() {
         description: String(form.get("description") || "").trim() || null,
         purpose,
         zone,
+        segment,
+        publication_state: publicationState,
         status: String(form.get("status") || "available"),
         price,
         bedrooms: Number(form.get("bedrooms") || 0),
@@ -120,14 +118,16 @@ export default function AdminPropertyForm() {
         parking_spaces: Number(form.get("parking_spaces") || 0),
         built_area_m2: Number(form.get("built_area_m2") || 0) || null,
         land_area_m2: Number(form.get("land_area_m2") || 0) || null,
+        address: String(form.get("address") || "").trim() || null,
+        address_public: form.get("address_public") === "on",
         featured: form.get("featured") === "on",
-        published_at: new Date().toISOString(),
+        published_at: publicationState === "published" ? new Date().toISOString() : null,
       };
 
       const result = await supabaseBrowser.from("properties").insert(payload).select("id,code").single();
       if (result.error) throw result.error;
       await uploadPhotos(result.data.id);
-      setMessage(`Imóvel ${result.data.code} cadastrado com sucesso${photos.length ? ` com ${photos.length} foto(s)` : ""}.`);
+      setMessage(`Imóvel ${result.data.code} ${publicationState === "draft" ? "salvo como rascunho" : "publicado"}${photos.length ? ` com ${photos.length} foto(s)` : ""}.`);
       event.currentTarget.reset();
       setPhotos([]);
     } catch (error) {
@@ -141,29 +141,33 @@ export default function AdminPropertyForm() {
     <form className="propertyForm" onSubmit={submit}>
       {!isSupabaseConfigured && <div className="formNotice">Modo demonstração: configure o Supabase para ativar a gravação real.</div>}
       <label>Título do imóvel<input name="title" placeholder="Ex.: Casa com 3 quartos no Centro" required /></label>
-      <div className="formGrid">
+      <div className="formGrid three">
         <label>Finalidade<select name="purpose" defaultValue="sale"><option value="sale">Venda</option><option value="rent">Locação</option></select></label>
+        <label>Uso<select name="segment" defaultValue="residential"><option value="residential">Residencial</option><option value="commercial">Comercial</option></select></label>
         <label>Zona<select name="zone" defaultValue="urban"><option value="urban">Urbana</option><option value="rural">Rural</option></select></label>
       </div>
       <div className="formGrid">
         <label>Cidade<select name="city_id" required defaultValue=""><option value="">Selecione</option>{cities.map((city) => <option key={city.id} value={city.id}>{city.name}{city.state_code ? ` - ${city.state_code}` : ""}</option>)}</select></label>
         <label>Bairro<input name="neighborhood" placeholder="Centro" /></label>
       </div>
+      <label>Endereço<input name="address" placeholder="Rua, número e complemento" /></label>
+      <label className="checkLabel"><input type="checkbox" name="address_public" /> Exibir endereço completo no site público</label>
       <div className="formGrid">
         <label>Tipo<select name="property_type_id" required defaultValue=""><option value="">Selecione</option>{types.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select></label>
         <label>Corretor<select name="broker_id" defaultValue=""><option value="">Sem corretor definido</option>{brokers.map((broker) => <option key={broker.id} value={broker.id}>{broker.name}</option>)}</select></label>
       </div>
-      <div className="formGrid"><label>Valor<input name="price" inputMode="decimal" placeholder="R$ 0,00" /></label><label>Status<select name="status" defaultValue="available"><option value="available">Disponível</option><option value="reserved">Reservado</option><option value="rented">Alugado</option><option value="sold">Vendido</option><option value="inactive">Inativo</option></select></label></div>
+      <div className="formGrid three">
+        <label>Valor<input name="price" inputMode="decimal" placeholder="R$ 0,00" /></label>
+        <label>Status<select name="status" defaultValue="available"><option value="available">Disponível</option><option value="reserved">Reservado</option><option value="rented">Alugado</option><option value="sold">Vendido</option><option value="inactive">Inativo</option></select></label>
+        <label>Publicação<select name="publication_state" defaultValue="published"><option value="published">Publicar agora</option><option value="draft">Salvar como rascunho</option></select></label>
+      </div>
       <div className="formGrid three"><label>Quartos<input name="bedrooms" type="number" min="0" defaultValue="0" /></label><label>Suítes<input name="suites" type="number" min="0" defaultValue="0" /></label><label>Banheiros<input name="bathrooms" type="number" min="0" defaultValue="0" /></label></div>
       <div className="formGrid three"><label>Vagas<input name="parking_spaces" type="number" min="0" defaultValue="0" /></label><label>Área construída (m²)<input name="built_area_m2" type="number" min="0" step="0.01" /></label><label>Terreno (m²)<input name="land_area_m2" type="number" min="0" step="0.01" /></label></div>
       <label>Descrição<textarea name="description" rows={5} placeholder="Descreva os principais diferenciais do imóvel." /></label>
-      <label className="uploadBox">Fotos do imóvel
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} />
-        <span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos JPG, PNG ou WebP. A primeira será usada como capa."}</span>
-      </label>
+      <label className="uploadBox">Fotos do imóvel<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} /><span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos JPG, PNG ou WebP. A primeira será usada como capa."}</span></label>
       <label className="checkLabel"><input type="checkbox" name="featured" /> Destacar imóvel na vitrine</label>
       {message && <div className="formMessage">{message}</div>}
-      <div className="formActions"><button type="reset" className="button secondary" onClick={() => setPhotos([])}>Limpar</button><button type="submit" className="button primary" disabled={saving}>{saving ? "Salvando..." : "Cadastrar imóvel"}</button></div>
+      <div className="formActions"><button type="reset" className="button secondary" onClick={() => setPhotos([])}>Limpar</button><button type="submit" className="button primary" disabled={saving}>{saving ? "Salvando..." : "Salvar imóvel"}</button></div>
     </form>
   );
 }
