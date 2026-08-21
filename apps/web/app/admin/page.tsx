@@ -1,3 +1,4 @@
+import AdminAgencySwitcher from "../../components/AdminAgencySwitcher";
 import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
@@ -18,7 +19,7 @@ export default function AdminPage() {
         <header className="adminTopbar">
           <div className="container adminNav">
             <a className="brand" href="../"><span className="brandMark">I</span><span>IMOBILIARIAS</span></a>
-            <div className="adminNavActions"><span>Painel de gestão</span><a className="button primary small" href="../">Ver site</a></div>
+            <div className="adminNavActions"><AdminAgencySwitcher /><a className="button primary small" href="../">Ver site</a></div>
           </div>
         </header>
 
@@ -42,7 +43,7 @@ export default function AdminPage() {
           </aside>
 
           <section className="adminContent" id="visao-geral">
-            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis e contatos aparecem conforme as permissões da sua conta.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
+            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
 
