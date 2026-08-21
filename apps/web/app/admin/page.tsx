@@ -22,7 +22,7 @@ export default function AdminPage() {
       <main className="adminPage">
         <header className="adminTopbar">
           <div className="container adminNav">
-            <a className="brand" href="../"><span className="brandMark">I</span><span>IMOBILIARIAS</span></a>
+            <a className="brand" href="../"><img src="../logo-imobiliarias.svg" alt="IMOBILIARIAS" style={{ width: 190, maxWidth: "38vw", height: "auto", display: "block" }} /></a>
             <div className="adminNavActions"><AdminAgencySwitcher /><a className="button primary small" href="../">Ver site</a></div>
           </div>
         </header>
