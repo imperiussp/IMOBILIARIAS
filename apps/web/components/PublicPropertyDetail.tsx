@@ -8,10 +8,11 @@ type CatalogRow = {
   segment?: "residential" | "commercial"; status: string; price: number; bedrooms: number | null; suites: number | null;
   bathrooms: number | null; parking_spaces: number | null; built_area_m2: number | null; land_area_m2: number | null;
   city: string; state_code: string; neighborhood: string | null; property_type: string | null; broker_name: string | null;
-  broker_whatsapp: string | null; broker_creci: string | null; address: string | null; address_public: boolean;
+  broker_whatsapp: string | null; broker_creci: string | null; broker_area_of_operation?: string | null; address: string | null; address_public: boolean;
 };
 
 type Photo = { id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string | null };
+type FeatureLink = { property_features: { name: string } | { name: string }[] | null };
 
 function money(value: number, purpose: string) {
   const formatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
@@ -26,6 +27,7 @@ function photoUrl(path: string) {
 export default function PublicPropertyDetail() {
   const [property, setProperty] = useState<CatalogRow | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [features, setFeatures] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activePhoto, setActivePhoto] = useState(0);
@@ -40,11 +42,20 @@ export default function PublicPropertyDetail() {
     void Promise.all([
       supabaseBrowser.from("property_catalog").select("*").eq("id", id).maybeSingle(),
       supabaseBrowser.from("property_photos").select("id,storage_path,position,is_cover,alt_text").eq("property_id", id).order("is_cover", { ascending: false }).order("position"),
-    ]).then(([propertyResult, photoResult]) => {
+      supabaseBrowser.from("property_feature_links").select("property_features(name)").eq("property_id", id),
+    ]).then(([propertyResult, photoResult, featureResult]) => {
       if (!active) return;
       if (propertyResult.error || !propertyResult.data) setError("Este imóvel não está disponível no catálogo.");
       else setProperty(propertyResult.data as CatalogRow);
       if (photoResult.data) setPhotos(photoResult.data as Photo[]);
+      if (featureResult.data) {
+        const names = (featureResult.data as unknown as FeatureLink[]).flatMap((row) => {
+          const value = row.property_features;
+          if (Array.isArray(value)) return value.map((item) => item.name);
+          return value?.name ? [value.name] : [];
+        });
+        setFeatures(names);
+      }
       setLoading(false);
     });
     return () => { active = false; };
@@ -64,15 +75,18 @@ export default function PublicPropertyDetail() {
       name: property.title,
       description: property.description || undefined,
       address: { "@type": "PostalAddress", addressLocality: property.city, addressRegion: property.state_code },
+      amenityFeature: features.map((name) => ({ "@type": "LocationFeatureSpecification", name, value: true })),
       offers: { "@type": "Offer", priceCurrency: "BRL", price: Number(property.price || 0), availability: "https://schema.org/InStock" },
     });
     document.head.appendChild(script);
     return () => script.remove();
-  }, [property]);
+  }, [property, features]);
 
   const whatsappUrl = useMemo(() => {
-    if (!property?.broker_whatsapp) return "";
-    const number = property.broker_whatsapp.replace(/\D/g, "");
+    if (!property) return "";
+    const raw = property.broker_whatsapp || process.env.NEXT_PUBLIC_WHATSAPP_DEFAULT || "";
+    const number = raw.replace(/\D/g, "");
+    if (!number) return "";
     const message = encodeURIComponent(`Olá, gostaria de informações sobre o imóvel código ${property.code}.`);
     return `https://wa.me/${number}?text=${message}`;
   }, [property]);
@@ -134,10 +148,11 @@ export default function PublicPropertyDetail() {
           <section>
             <div className="facts"><span><strong>{property.bedrooms || 0}</strong> quartos</span><span><strong>{property.suites || 0}</strong> suítes</span><span><strong>{property.bathrooms || 0}</strong> banheiros</span><span><strong>{property.parking_spaces || 0}</strong> vagas</span></div>
             <div className="facts secondaryFacts"><span><strong>{area ? Number(area).toLocaleString("pt-BR") : "—"}</strong> m²</span><span><strong>{property.property_type || "Imóvel"}</strong> tipo</span><span><strong>{property.segment === "commercial" ? "Comercial" : "Residencial"}</strong> uso</span><span><strong>{property.zone === "rural" ? "Rural" : "Urbana"}</strong> zona</span></div>
+            {features.length > 0 ? <div className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature) => <span key={feature}>✓ {feature}</span>)}</div></div> : null}
             <div className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description || "Entre em contato para receber mais informações sobre este imóvel."}</p></div>
             <div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required /></label><label>Telefone<input name="phone" required /></label></div><label>E-mail<input name="email" type="email" /></label><label>Mensagem<textarea name="message" rows={4} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`} /></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage ? <div className="formMessage">{leadMessage}</div> : null}</form></div>
           </section>
-          <aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name || "Atendimento da imobiliária"}</h3><p>{property.broker_creci || "CRECI a informar"}</p><p>O código <strong>{property.code}</strong> já identifica este imóvel no atendimento.</p>{whatsappUrl ? <a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a> : <p>WhatsApp ainda não configurado para este imóvel.</p>}</aside>
+          <aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name || "Atendimento da imobiliária"}</h3><p>{property.broker_creci || "CRECI a informar"}</p>{property.broker_area_of_operation ? <p>Atuação: {property.broker_area_of_operation}</p> : null}<p>O código <strong>{property.code}</strong> já identifica este imóvel no atendimento.</p>{whatsappUrl ? <a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a> : <p>WhatsApp ainda não configurado para este imóvel.</p>}</aside>
         </div>
       </section>
     </main>
