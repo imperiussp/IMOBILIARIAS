@@ -42,9 +42,29 @@ export default function LoginForm() {
     }
 
     const { data: roleRow, error: roleError } = await supabaseBrowser.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
-    if (roleError || !roleRow || !["admin", "broker"].includes(roleRow.role)) {
+    if (roleError) {
+      await supabaseBrowser.auth.signOut();
+      setStatus("Não foi possível verificar sua permissão.");
+      setLoading(false);
+      return;
+    }
+
+    if (!roleRow) {
+      const { data: initialAvailable, error: initialError } = await supabaseBrowser.rpc("initial_admin_available");
+      if (!initialError && initialAvailable === true) {
+        setStatus("Primeira instalação detectada. Abrindo configuração do administrador...");
+        window.location.href = "../primeiro-acesso/";
+        return;
+      }
       await supabaseBrowser.auth.signOut();
       setStatus("Sua conta existe, mas ainda aguarda liberação do administrador.");
+      setLoading(false);
+      return;
+    }
+
+    if (!["admin", "broker"].includes(roleRow.role)) {
+      await supabaseBrowser.auth.signOut();
+      setStatus("Esta conta não possui uma permissão válida.");
       setLoading(false);
       return;
     }
