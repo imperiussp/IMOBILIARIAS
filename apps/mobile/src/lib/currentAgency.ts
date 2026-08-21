@@ -7,7 +7,15 @@ export type MobileAgencyContext = {
   agencySlug: string;
   role: "owner" | "admin" | "broker" | "staff";
   brokerId: string | null;
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
 };
+
+function validHex(value: unknown, fallback: string) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^#[0-9a-f]{6}$/i.test(text) ? text : fallback;
+}
 
 export async function getMobileAgencyContext(): Promise<MobileAgencyContext | null> {
   if (!mobileSupabaseConfigured || !mobileSupabase) return null;
@@ -30,7 +38,7 @@ export async function getMobileAgencyContext(): Promise<MobileAgencyContext | nu
 
   const { data: agency, error: agencyError } = await mobileSupabase
     .from("agencies")
-    .select("id,name,slug,status")
+    .select("id,name,slug,status,logo_url,primary_color,secondary_color")
     .eq("id", membership.agency_id)
     .maybeSingle();
 
@@ -50,5 +58,8 @@ export async function getMobileAgencyContext(): Promise<MobileAgencyContext | nu
     agencySlug: agency.slug,
     role: membership.role as MobileAgencyContext["role"],
     brokerId: broker?.id || null,
+    logoUrl: agency.logo_url || null,
+    primaryColor: validHex(agency.primary_color, "#17202a"),
+    secondaryColor: validHex(agency.secondary_color, "#f4f6f8"),
   };
 }
