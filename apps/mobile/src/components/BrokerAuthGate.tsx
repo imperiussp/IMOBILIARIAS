@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { getMobileAgencyContext } from "../lib/currentAgency";
+import { getMobileAgencyContext, getMobileAvailableAgencies, MobileAgencyContext, setPreferredMobileAgencyId } from "../lib/currentAgency";
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { mobileSupabase, mobileSupabaseConfigured } from "../lib/supabase";
 import { configureBrokerNotifications, countUnreadBrokerNotifications, markBrokerNotificationsRead, presentNewestUnreadNotification } from "../services/brokerNotifications";
@@ -15,6 +15,8 @@ export default function BrokerAuthGate({ children }: Props) {
   const [agencyName, setAgencyName] = useState("");
   const [agencyLogo, setAgencyLogo] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#17202a");
+  const [availableAgencies, setAvailableAgencies] = useState<MobileAgencyContext[]>([]);
+  const [selectingAgency, setSelectingAgency] = useState(false);
   const [unread, setUnread] = useState(0);
   const [mode, setMode] = useState<Mode>("login");
   const [fullName, setFullName] = useState("");
@@ -29,26 +31,32 @@ export default function BrokerAuthGate({ children }: Props) {
     setUnread(await countUnreadBrokerNotifications());
   }
 
-  async function validateSession() {
-    if (!mobileSupabase) { setChecking(false); return; }
-    const validBackend = await isImobiliariasBackend();
-    setBackendValid(validBackend);
-    if (!validBackend) { setAuthorized(false); setAgencyName(""); setChecking(false); return; }
-
-    const context = await getMobileAgencyContext();
-    if (!context || context.role !== "broker" || !context.brokerId) {
-      setAuthorized(false);
-      setAgencyName(context?.agencyName || "");
-      setAgencyLogo(context?.logoUrl || "");
-      setPrimaryColor(context?.primaryColor || "#17202a");
-      setChecking(false);
-      return;
-    }
-
+  function applyContext(context: MobileAgencyContext) {
     setAgencyName(context.agencyName);
     setAgencyLogo(context.logoUrl || "");
     setPrimaryColor(context.primaryColor);
     setAuthorized(true);
+  }
+
+  async function validateSession() {
+    if (!mobileSupabase) { setChecking(false); return; }
+    const validBackend = await isImobiliariasBackend();
+    setBackendValid(validBackend);
+    if (!validBackend) { setAuthorized(false); setAgencyName(""); setAvailableAgencies([]); setChecking(false); return; }
+
+    const agencies = await getMobileAvailableAgencies();
+    setAvailableAgencies(agencies);
+    const context = await getMobileAgencyContext();
+    if (!context || context.role !== "broker" || !context.brokerId) {
+      setAuthorized(false);
+      setAgencyName("");
+      setAgencyLogo("");
+      setPrimaryColor("#17202a");
+      setChecking(false);
+      return;
+    }
+
+    applyContext(context);
     setChecking(false);
     await configureBrokerNotifications();
     setUnread(await countUnreadBrokerNotifications());
@@ -66,7 +74,7 @@ export default function BrokerAuthGate({ children }: Props) {
     void refreshNotifications(false);
     const timer = setInterval(() => void refreshNotifications(true), 15000);
     return () => clearInterval(timer);
-  }, [authorized]);
+  }, [authorized, agencyName]);
 
   async function login() {
     if (!mobileSupabase) return Alert.alert("Configuração pendente", "O Supabase ainda não foi configurado neste aplicativo.");
@@ -79,6 +87,8 @@ export default function BrokerAuthGate({ children }: Props) {
       return Alert.alert("Não foi possível entrar", "Confira o e-mail e a senha.");
     }
 
+    const agencies = await getMobileAvailableAgencies();
+    setAvailableAgencies(agencies);
     const context = await getMobileAgencyContext();
     if (!context || context.role !== "broker" || !context.brokerId) {
       await mobileSupabase.auth.signOut();
@@ -86,10 +96,7 @@ export default function BrokerAuthGate({ children }: Props) {
       return Alert.alert("Aguardando liberação", "Sua conta precisa estar ativa como corretor de uma imobiliária antes de usar o aplicativo.");
     }
 
-    setAgencyName(context.agencyName);
-    setAgencyLogo(context.logoUrl || "");
-    setPrimaryColor(context.primaryColor);
-    setAuthorized(true);
+    applyContext(context);
     setLoading(false);
   }
 
@@ -107,6 +114,15 @@ export default function BrokerAuthGate({ children }: Props) {
     Alert.alert("Conta criada", "Confirme seu e-mail, se solicitado. Depois o administrador da sua imobiliária precisa vincular esta conta ao cadastro de corretor.");
   }
 
+  async function switchAgency(context: MobileAgencyContext) {
+    if (context.agencyName === agencyName) { setSelectingAgency(false); return; }
+    await setPreferredMobileAgencyId(context.agencyId);
+    setUnread(0);
+    setSelectingAgency(false);
+    setChecking(true);
+    await validateSession();
+  }
+
   async function clearUnread() {
     if (!unread) return Alert.alert("Notificações", "Não há notificações não lidas.");
     Alert.alert("Notificações", `Você tem ${unread} notificação(ões) nova(s). Elas correspondem a contatos e mensagens recebidos pela imobiliária.`, [
@@ -118,7 +134,11 @@ export default function BrokerAuthGate({ children }: Props) {
   if (!mobileSupabaseConfigured) return <>{children}</>;
   if (checking) return <SafeAreaView style={styles.screen}><ActivityIndicator size="large" /><Text style={styles.checking}>Verificando imobiliária e acesso...</Text></SafeAreaView>;
   if (!backendValid) return <SafeAreaView style={styles.screen}><View style={styles.card}><Text style={styles.kicker}>PROTEÇÃO DE PROJETO</Text><Text style={styles.title}>Conexão bloqueada</Text><Text style={styles.text}>O servidor configurado não se identificou como IMOBILIARIAS. O aplicativo não acessará nem enviará dados até a configuração correta ser instalada.</Text></View></SafeAreaView>;
-  if (authorized) return <View style={styles.authorizedShell}>{agencyName ? <View style={[styles.tenantBar, { backgroundColor: primaryColor }]}><View style={styles.tenantIdentity}>{agencyLogo ? <Image source={{ uri: agencyLogo }} style={styles.tenantLogo} /> : <View style={styles.tenantLogoFallback}><Text style={styles.tenantLogoFallbackText}>{agencyName.slice(0, 1).toUpperCase()}</Text></View>}<View><Text style={styles.tenantOverline}>APP DO CORRETOR</Text><Text style={styles.tenantText}>{agencyName}</Text></View></View><Pressable style={styles.notificationButton} onPress={() => void clearUnread()}><Text style={styles.notificationIcon}>🔔</Text>{unread > 0 ? <Text style={styles.notificationBadge}>{unread > 99 ? "99+" : unread}</Text> : null}</Pressable></View> : null}{children}</View>;
+  if (authorized) return <View style={styles.authorizedShell}>
+    {agencyName ? <View style={[styles.tenantBar, { backgroundColor: primaryColor }]}><View style={styles.tenantIdentity}>{agencyLogo ? <Image source={{ uri: agencyLogo }} style={styles.tenantLogo} /> : <View style={styles.tenantLogoFallback}><Text style={styles.tenantLogoFallbackText}>{agencyName.slice(0, 1).toUpperCase()}</Text></View>}<View style={{ flex: 1 }}><Text style={styles.tenantOverline}>APP DO CORRETOR</Text><Text style={styles.tenantText}>{agencyName}</Text></View></View><View style={styles.topActions}>{availableAgencies.length > 1 ? <Pressable style={styles.switchAgencyButton} onPress={() => setSelectingAgency((value) => !value)}><Text style={styles.switchAgencyText}>Trocar</Text></Pressable> : null}<Pressable style={styles.notificationButton} onPress={() => void clearUnread()}><Text style={styles.notificationIcon}>🔔</Text>{unread > 0 ? <Text style={styles.notificationBadge}>{unread > 99 ? "99+" : unread}</Text> : null}</Pressable></View></View> : null}
+    {selectingAgency && availableAgencies.length > 1 ? <View style={styles.agencyPicker}><Text style={styles.agencyPickerTitle}>Escolha a imobiliária ativa</Text>{availableAgencies.map((agency) => <Pressable key={agency.agencyId} style={[styles.agencyOption, agency.agencyName === agencyName && styles.agencyOptionActive]} onPress={() => void switchAgency(agency)}><View>{<Text style={styles.agencyOptionName}>{agency.agencyName}</Text>}<Text style={styles.agencyOptionSub}>{agency.agencySlug}.imoveis.lenoy.com.br</Text></View><Text style={styles.agencyOptionState}>{agency.agencyName === agencyName ? "ATIVA" : "ABRIR"}</Text></Pressable>)}</View> : null}
+    {children}
+  </View>;
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -150,9 +170,19 @@ const styles = StyleSheet.create({
   tenantLogoFallbackText:{color:"#fff",fontWeight:"900",fontSize:16},
   tenantOverline:{color:"rgba(255,255,255,.68)",fontSize:8,fontWeight:"900",letterSpacing:1.4},
   tenantText:{color:"#fff",fontSize:12,fontWeight:"900",marginTop:2},
+  topActions:{flexDirection:"row",alignItems:"center",gap:7},
+  switchAgencyButton:{height:38,borderRadius:12,backgroundColor:"rgba(255,255,255,.14)",paddingHorizontal:11,alignItems:"center",justifyContent:"center"},
+  switchAgencyText:{color:"#fff",fontSize:10,fontWeight:"900"},
   notificationButton:{width:42,height:38,borderRadius:12,backgroundColor:"rgba(255,255,255,.14)",alignItems:"center",justifyContent:"center",position:"relative"},
   notificationIcon:{fontSize:18},
   notificationBadge:{position:"absolute",right:-4,top:-5,minWidth:19,height:19,borderRadius:10,backgroundColor:"#fff",color:"#17202a",fontSize:9,fontWeight:"900",textAlign:"center",lineHeight:19,paddingHorizontal:4},
+  agencyPicker:{backgroundColor:"#fff",padding:12,gap:8,borderBottomWidth:1,borderBottomColor:"#e4e8eb"},
+  agencyPickerTitle:{fontSize:11,fontWeight:"900",color:"#65717c",marginBottom:2},
+  agencyOption:{borderWidth:1,borderColor:"#dce2e6",borderRadius:12,padding:12,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:10},
+  agencyOptionActive:{borderColor:"#17202a",backgroundColor:"#f4f6f8"},
+  agencyOptionName:{fontSize:13,fontWeight:"900",color:"#17202a"},
+  agencyOptionSub:{fontSize:10,color:"#7b8790",marginTop:3},
+  agencyOptionState:{fontSize:9,fontWeight:"900",color:"#53616d"},
   screen:{flex:1,backgroundColor:"#f4f6f8",alignItems:"center",justifyContent:"center",padding:22},
   scroll:{flexGrow:1,alignItems:"center",justifyContent:"center",padding:0,width:"100%"},
   card:{width:"100%",maxWidth:460,backgroundColor:"#fff",borderRadius:24,padding:24},
