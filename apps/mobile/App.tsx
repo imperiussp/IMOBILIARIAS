@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import BrokerAuthGate from "./src/components/BrokerAuthGate";
+import BrokerLeads from "./src/components/BrokerLeads";
 import PublishedProperties from "./src/components/PublishedProperties";
 import { mobileSupabase } from "./src/lib/supabase";
 import { enqueueOfflineJob, getOfflineQueue, processOfflineQueue, retryFailedJobs, startNetworkSyncListener } from "./src/services/offlineQueue";
 import { getPropertyDrafts, PropertyDraft, removePropertyDraft, savePropertyDraft } from "./src/services/propertyDrafts";
 
-type Screen = "home" | "editor" | "drafts" | "published" | "queue";
+type Screen = "home" | "editor" | "drafts" | "published" | "queue" | "leads";
 
 const emptyDraft = (): Omit<PropertyDraft, "id" | "updatedAt"> => ({
   title: "", city: "", neighborhood: "", purpose: "Venda", category: "Casa", segment: "Residencial", zone: "Urbana", price: "",
@@ -120,6 +121,7 @@ function BrokerApp() {
   }
 
   if (screen === "published") return <SafeAreaView style={styles.screen}><PublishedProperties onClose={() => setScreen("home")} /></SafeAreaView>;
+  if (screen === "leads") return <SafeAreaView style={styles.screen}><BrokerLeads onClose={() => setScreen("home")} /></SafeAreaView>;
 
   if (screen === "queue") return (
     <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content}>
@@ -163,10 +165,11 @@ function BrokerApp() {
 
   return (
     <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.header}><View><Text style={styles.kicker}>IMOBILIARIAS</Text><Text style={styles.title}>Painel do corretor</Text><Text style={styles.text}>Cadastre, fotografe, publique e continue trabalhando mesmo sem sinal.</Text></View><Pressable style={styles.syncBadge} onPress={() => setScreen("queue")}><Text style={styles.syncNumber}>{pending}</Text><Text style={styles.syncLabel}>{failed ? `${failed} erro(s)` : "pendentes"}</Text></Pressable></View>
+      <View style={styles.header}><View><Text style={styles.kicker}>IMOBILIARIAS</Text><Text style={styles.title}>Painel do corretor</Text><Text style={styles.text}>Cadastre, fotografe, publique e acompanhe contatos mesmo durante o trabalho de campo.</Text></View><Pressable style={styles.syncBadge} onPress={() => setScreen("queue")}><Text style={styles.syncNumber}>{pending}</Text><Text style={styles.syncLabel}>{failed ? `${failed} erro(s)` : "pendentes"}</Text></Pressable></View>
       <View style={styles.grid}>
         <Pressable style={styles.primaryCard} onPress={openNew}><Text style={styles.primaryCardIcon}>＋</Text><Text style={styles.primaryCardTitle}>Novo imóvel</Text><Text style={styles.primaryCardText}>Cadastro completo, fotos e modo offline.</Text></Pressable>
         <Pressable style={styles.card} onPress={() => setScreen("published")}><Text style={styles.cardIcon}>⌂</Text><Text style={styles.cardTitle}>Meus imóveis</Text><Text style={styles.cardText}>Publicados, vendidos, alugados e rascunhos online.</Text></Pressable>
+        <Pressable style={styles.card} onPress={() => setScreen("leads")}><Text style={styles.cardIcon}>☏</Text><Text style={styles.cardTitle}>Contatos</Text><Text style={styles.cardText}>Interessados, WhatsApp, ligações e andamento comercial.</Text></Pressable>
         <Pressable style={styles.card} onPress={() => setScreen("drafts")}><Text style={styles.cardIcon}>▧</Text><Text style={styles.cardTitle}>Rascunhos locais</Text><Text style={styles.cardText}>{drafts.length} cadastro(s) salvo(s) neste aparelho.</Text></Pressable>
         <Pressable style={styles.card} onPress={() => void syncNow()}><Text style={styles.cardIcon}>↻</Text><Text style={styles.cardTitle}>{syncing ? "Sincronizando..." : "Sincronizar agora"}</Text><Text style={styles.cardText}>Tenta enviar todos os itens pendentes.</Text></Pressable>
       </View>
