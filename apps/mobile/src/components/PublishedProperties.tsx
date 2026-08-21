@@ -136,6 +136,7 @@ export default function PublishedProperties({ onClose }: Props) {
     if (photos.length + uris.length > 20) return Alert.alert("Limite de fotos", "O imóvel pode ter até 20 fotos.");
     setPhotoBusy(true); setMessage("");
     const createdPaths: string[] = [];
+    const insertedPhotoIds: string[] = [];
     try {
       const allowed = await mobileSupabase.from("properties").select("id").eq("id", editing.id).eq("agency_id", agencyId).eq("broker_id", brokerId).maybeSingle();
       if (allowed.error || !allowed.data) throw new Error("Este imóvel não pertence ao corretor desta imobiliária.");
@@ -163,13 +164,18 @@ export default function PublishedProperties({ onClose }: Props) {
           position: nextPosition + offset,
           is_cover: photos.length === 0 && offset === 0,
           alt_text: `${editing.title} - foto ${nextPosition + offset + 1}`,
-        });
+        }).select("id").single();
         if (insert.error) throw insert.error;
+        insertedPhotoIds.push(insert.data.id);
       }
       await loadPhotos(editing.id);
       setMessage("Fotos adicionadas e otimizadas.");
     } catch (error) {
+      if (insertedPhotoIds.length) {
+        await mobileSupabase.from("property_photos").delete().in("id", insertedPhotoIds).eq("property_id", editing.id);
+      }
       if (createdPaths.length) await mobileSupabase.storage.from("property-photos").remove(createdPaths);
+      await loadPhotos(editing.id);
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setPhotoBusy(false);
