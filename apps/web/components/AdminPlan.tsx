@@ -90,6 +90,9 @@ export default function AdminPlan() {
   useEffect(() => { void load(); }, []);
 
   const plan = subscription?.subscription_plans || null;
+  const propertyLimitReached = Boolean(usage?.max_properties != null && usage.used_properties >= usage.max_properties);
+  const userLimitReached = Boolean(usage?.max_users != null && usage.used_users >= usage.max_users);
+  const aiLimitReached = Boolean(usage?.max_ai_descriptions != null && usage.used_ai_descriptions >= usage.max_ai_descriptions);
 
   return <div className="adminPanel" id="meu-plano">
     <div className="adminPanelHeader"><div><span className="eyebrow">ASSINATURA</span><h2>Meu plano</h2><p>Plano, vigência e consumo vinculados somente a {agencyName || "esta imobiliária"}.</p></div><span>{loading ? "Carregando..." : subscription ? statusLabels[subscription.status] : "Sem assinatura ativa"}</span></div>
@@ -98,10 +101,13 @@ export default function AdminPlan() {
     {!loading && !message && !subscription ? <div className="emptyMini">Nenhum plano ativo foi vinculado a esta imobiliária ainda.</div> : null}
     {subscription && plan ? <div className="adminMetrics planMetrics">
       <article><span>Plano atual</span><strong>{plan.name}</strong><small>{plan.description || statusLabels[subscription.status]}</small></article>
-      <article><span>Imóveis em uso</span><strong>{usage ? usageText(usage.used_properties, usage.max_properties) : "—"}</strong><small>Ativos dentro do limite do plano</small></article>
-      <article><span>Usuários em uso</span><strong>{usage ? usageText(usage.used_users, usage.max_users) : "—"}</strong><small>Contas ativas da equipe</small></article>
-      <article><span>Descrições com IA</span><strong>{usage ? usageText(usage.used_ai_descriptions, usage.max_ai_descriptions, "/mês") : "—"}</strong><small>Contador mensal preparado para a IA</small></article>
+      <article><span>Imóveis em uso</span><strong>{usage ? usageText(usage.used_properties, usage.max_properties) : "—"}</strong><small>{propertyLimitReached ? "Limite atingido" : "Ativos dentro do limite do plano"}</small></article>
+      <article><span>Usuários em uso</span><strong>{usage ? usageText(usage.used_users, usage.max_users) : "—"}</strong><small>{userLimitReached ? "Limite atingido" : "Contas ativas da equipe"}</small></article>
+      <article><span>Descrições com IA</span><strong>{usage ? usageText(usage.used_ai_descriptions, usage.max_ai_descriptions, "/mês") : "—"}</strong><small>{aiLimitReached ? "Limite mensal atingido" : "Contador mensal preparado para a IA"}</small></article>
     </div> : null}
     {subscription ? <div className="domainPrimaryCard"><div><span className="eyebrow">VIGÊNCIA</span><strong>{statusLabels[subscription.status]}</strong><small>Início: {date(subscription.starts_at)} · Renovação: {date(subscription.renews_at)} · Término: {date(subscription.ends_at)}</small></div></div> : null}
+    {propertyLimitReached ? <div className="formNotice">Limite de imóveis atingido. O sistema bloqueia novos imóveis ativos até liberar espaço ou alterar o plano.</div> : null}
+    {userLimitReached ? <div className="formNotice">Limite de usuários atingido. O sistema bloqueia a ativação de novos membros até liberar espaço ou alterar o plano.</div> : null}
+    {aiLimitReached ? <div className="formNotice">Limite mensal de descrições com IA atingido. Uma nova geração ficará disponível após renovação do ciclo ou mudança de plano.</div> : null}
   </div>;
 }
