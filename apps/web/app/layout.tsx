@@ -3,6 +3,7 @@ import "./globals.css";
 import "./property.css";
 import "./admin.css";
 import "./explorer.css";
+import "./admin-tools.css";
 
 export const metadata: Metadata = {
   title: {
