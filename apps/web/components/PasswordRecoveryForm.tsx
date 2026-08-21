@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 export default function PasswordRecoveryForm() {
@@ -13,6 +14,11 @@ export default function PasswordRecoveryForm() {
     const email = String(new FormData(event.currentTarget).get("email") || "").trim().toLowerCase();
     if (!email) return setStatus("Informe seu e-mail.");
     setLoading(true);
+    const validBackend = await isImobiliariasBackend();
+    if (!validBackend) {
+      setLoading(false);
+      return setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
+    }
     const redirectTo = `${window.location.origin}${window.location.pathname.replace(/recuperar-senha\/?$/, "nova-senha/")}`;
     const { error } = await supabaseBrowser.auth.resetPasswordForEmail(email, { redirectTo });
     setLoading(false);
@@ -22,7 +28,7 @@ export default function PasswordRecoveryForm() {
   return <form className="loginCard" onSubmit={submit}>
     <span className="eyebrow">SEGURANÇA</span><h1>Recuperar senha</h1><p>Informe o e-mail da sua conta de acesso.</p>
     <label>E-mail<input name="email" type="email" autoComplete="email" required /></label>
-    <button className="button primary full" disabled={loading}>{loading ? "Enviando..." : "Enviar recuperação"}</button>
+    <button className="button primary full" disabled={loading}>{loading ? "Verificando..." : "Enviar recuperação"}</button>
     {status ? <p className="loginStatus">{status}</p> : null}
     <a className="backLink" href="../login/">← Voltar ao login</a>
   </form>;
