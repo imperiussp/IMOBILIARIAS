@@ -5,6 +5,15 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o IMOBILIARIAS acesse suas fotos para anexar imagens aos imóveis.",
+          "cameraPermission": "Permita que o IMOBILIARIAS use a câmera para fotografar os imóveis."
+        }
+      ]
+    ],
     "ios": { "supportsTablet": true },
     "android": { "adaptiveIcon": { "backgroundColor": "#ffffff" } }
   }
