@@ -18,11 +18,11 @@ let lastPresentedId = "";
 
 async function registerDevicePushToken() {
   if (!mobileSupabase || (Platform.OS !== "android" && Platform.OS !== "ios")) return;
+  const context = await getMobileAgencyContext();
+  if (!context || context.role !== "broker" || !context.brokerId || !context.pushNotificationsEnabled) return;
+
   const permission = await Notifications.getPermissionsAsync();
   if (permission.status !== "granted") return;
-
-  const context = await getMobileAgencyContext();
-  if (!context || context.role !== "broker" || !context.brokerId) return;
 
   const { data: authData } = await mobileSupabase.auth.getUser();
   const userId = authData.user?.id;
@@ -42,11 +42,14 @@ async function registerDevicePushToken() {
       last_seen_at: new Date().toISOString(),
     }, { onConflict: "user_id,token" });
   } catch {
-    // Em Expo Go/build sem projectId de push, o app continua funcionando com notificações locais.
+    // Em Expo Go/build sem projectId de push, o app continua funcionando sem push remoto.
   }
 }
 
 export async function configureBrokerNotifications() {
+  const context = await getMobileAgencyContext();
+  if (!context || !context.pushNotificationsEnabled) return;
+
   if (!configured) {
     configured = true;
     Notifications.setNotificationHandler({
@@ -72,7 +75,6 @@ export async function configureBrokerNotifications() {
     }
   }
 
-  // Roda em toda validação/troca de imobiliária para manter o token associado ao tenant ativo.
   await registerDevicePushToken();
 }
 
@@ -132,6 +134,8 @@ export async function markBrokerNotificationsRead(ids?: string[]) {
 }
 
 export async function presentNewestUnreadNotification() {
+  const context = await getMobileAgencyContext();
+  if (!context || !context.pushNotificationsEnabled) return countUnreadBrokerNotifications();
   const rows = await loadBrokerNotifications(10);
   const newest = rows.find((row) => !row.read_at);
   if (!newest || newest.id === lastPresentedId) return countUnreadBrokerNotifications();
