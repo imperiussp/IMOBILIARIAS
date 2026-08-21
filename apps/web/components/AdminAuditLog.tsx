@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getCurrentAgency } from "../lib/currentAgency";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type AuditRow = {
@@ -35,13 +36,26 @@ function describe(row: AuditRow) {
 }
 
 export default function AdminAuditLog() {
+  const [agencyName, setAgencyName] = useState("");
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [message, setMessage] = useState("");
   const [filter, setFilter] = useState("all");
 
   async function load() {
     if (!supabaseBrowser) return;
-    const { data, error } = await supabaseBrowser.from("audit_log").select("id,entity_type,entity_id,action,created_at,old_data,new_data").order("created_at", { ascending: false }).limit(100);
+    const currentAgency = await getCurrentAgency();
+    if (!currentAgency) {
+      setRows([]);
+      setAgencyName("");
+      return setMessage("Não foi possível identificar a imobiliária desta conta.");
+    }
+    setAgencyName(currentAgency.agencyName);
+    const { data, error } = await supabaseBrowser
+      .from("audit_log")
+      .select("id,entity_type,entity_id,action,created_at,old_data,new_data")
+      .eq("agency_id", currentAgency.agencyId)
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (error) return setMessage(error.message);
     setRows((data || []) as AuditRow[]);
   }
@@ -53,9 +67,10 @@ export default function AdminAuditLog() {
   return (
     <div className="adminPanel" id="historico">
       <div className="adminPanelHeader">
-        <div><span className="eyebrow">AUDITORIA</span><h2>Histórico de alterações</h2><p>Registra criação, edição e exclusão de imóveis e corretores.</p></div>
+        <div><span className="eyebrow">AUDITORIA</span><h2>Histórico de alterações</h2><p>Registra criação, edição e exclusão somente dos dados desta imobiliária.</p></div>
         <div className="adminPanelTools"><select className="compactSelect" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">Tudo</option><option value="property">Imóveis</option><option value="broker">Corretores</option></select>{isSupabaseConfigured && <button className="miniButton" onClick={() => void load()}>Atualizar</button>}</div>
       </div>
+      {agencyName ? <div className="formNotice">Histórico de <strong>{agencyName}</strong>.</div> : null}
       {!isSupabaseConfigured ? <div className="formNotice">O histórico será ativado quando o Supabase exclusivo do IMOBILIARIAS estiver configurado.</div> : filtered.length === 0 ? <span className="emptyMini">Nenhuma alteração registrada ainda.</span> : <div className="auditList">{filtered.map((row) => <article className="auditRow" key={row.id}><div><strong>{actionLabel(row.action)} · {entityLabel(row.entity_type)}</strong><span>{describe(row)}</span></div><time>{new Date(row.created_at).toLocaleString("pt-BR")}</time></article>)}</div>}
       {message && <div className="formMessage">{message}</div>}
     </div>
