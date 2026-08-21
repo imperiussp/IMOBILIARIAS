@@ -6,6 +6,7 @@ import "./explorer.css";
 import "./admin-tools.css";
 import "./detail-enhancements.css";
 import "./admin-extra.css";
+import "./access.css";
 
 export const metadata: Metadata = {
   title: {
