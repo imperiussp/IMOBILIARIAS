@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Property } from "../lib/properties";
 import { getPropertyPhotoUrl } from "../lib/propertyPhotos";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Props = { properties: Property[] };
@@ -93,43 +94,45 @@ export default function PropertyExplorer({ properties }: Props) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabaseBrowser) return;
     let active = true;
-    void supabaseBrowser
-      .from("property_catalog")
-      .select("id,code,slug,title,purpose,zone,segment,status,price,bedrooms,bathrooms,parking_spaces,built_area_m2,land_area_m2,city,state_code,neighborhood,property_type,cover_path,featured,published_at")
-      .order("featured", { ascending: false })
-      .order("published_at", { ascending: false })
-      .then(async ({ data, error }) => {
-        if (!active || error || !data || data.length === 0) return;
-        const mapped: DisplayProperty[] = await Promise.all(data.map(async (item: any) => {
-          const image = (await getPropertyPhotoUrl(item.cover_path)) || fallbackImage;
-          const areaValue = Number(item.built_area_m2 || item.land_area_m2 || 0);
-          const numericPrice = Number(item.price || 0);
-          return {
-            id: item.id,
-            code: item.code,
-            slug: item.slug,
-            title: item.title,
-            city: `${item.city}${item.state_code ? ` - ${item.state_code}` : ""}`,
-            neighborhood: item.neighborhood || "Localização não informada",
-            purpose: item.purpose === "rent" ? "Locação" : "Venda",
-            category: item.property_type || "Imóvel",
-            segment: item.segment === "commercial" ? "Comercial" : "Residencial",
-            zone: item.zone === "rural" ? "Rural" : "Urbana",
-            price: money(numericPrice, item.purpose),
-            numericPrice,
-            bedrooms: Number(item.bedrooms || 0),
-            bathrooms: Number(item.bathrooms || 0),
-            parking: Number(item.parking_spaces || 0),
-            area: areaValue ? `${areaValue.toLocaleString("pt-BR")} m²` : "Área a consultar",
-            numericArea: areaValue,
-            image,
-            detailHref: `imovel/?id=${encodeURIComponent(item.id)}`,
-          };
-        }));
-        if (!active) return;
-        setCatalog(mapped);
-        setSource("supabase");
-      });
+    void (async () => {
+      const validBackend = await isImobiliariasBackend();
+      if (!active || !validBackend) return;
+      const { data, error } = await supabaseBrowser
+        .from("property_catalog")
+        .select("id,code,slug,title,purpose,zone,segment,status,price,bedrooms,bathrooms,parking_spaces,built_area_m2,land_area_m2,city,state_code,neighborhood,property_type,cover_path,featured,published_at")
+        .order("featured", { ascending: false })
+        .order("published_at", { ascending: false });
+      if (!active || error || !data || data.length === 0) return;
+      const mapped: DisplayProperty[] = await Promise.all(data.map(async (item: any) => {
+        const image = (await getPropertyPhotoUrl(item.cover_path)) || fallbackImage;
+        const areaValue = Number(item.built_area_m2 || item.land_area_m2 || 0);
+        const numericPrice = Number(item.price || 0);
+        return {
+          id: item.id,
+          code: item.code,
+          slug: item.slug,
+          title: item.title,
+          city: `${item.city}${item.state_code ? ` - ${item.state_code}` : ""}`,
+          neighborhood: item.neighborhood || "Localização não informada",
+          purpose: item.purpose === "rent" ? "Locação" : "Venda",
+          category: item.property_type || "Imóvel",
+          segment: item.segment === "commercial" ? "Comercial" : "Residencial",
+          zone: item.zone === "rural" ? "Rural" : "Urbana",
+          price: money(numericPrice, item.purpose),
+          numericPrice,
+          bedrooms: Number(item.bedrooms || 0),
+          bathrooms: Number(item.bathrooms || 0),
+          parking: Number(item.parking_spaces || 0),
+          area: areaValue ? `${areaValue.toLocaleString("pt-BR")} m²` : "Área a consultar",
+          numericArea: areaValue,
+          image,
+          detailHref: `imovel/?id=${encodeURIComponent(item.id)}`,
+        };
+      }));
+      if (!active) return;
+      setCatalog(mapped);
+      setSource("supabase");
+    })();
     return () => { active = false; };
   }, []);
 
