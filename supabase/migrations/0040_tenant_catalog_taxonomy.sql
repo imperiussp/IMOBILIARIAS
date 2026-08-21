@@ -66,6 +66,42 @@ on public.property_types (agency_id, active, name);
 create index if not exists property_features_agency_name_idx
 on public.property_features (agency_id, name);
 
+-- Compatibilidade com os formulários antigos: ao criar um bairro sem agency_id,
+-- uma conta gestora de apenas um tenant recebe automaticamente o tenant correto.
+create or replace function public.assign_neighborhood_agency()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  target_agency uuid;
+  agency_count integer;
+begin
+  if new.agency_id is not null or public.is_admin() then
+    return new;
+  end if;
+
+  select count(*), min(am.agency_id)
+    into agency_count, target_agency
+  from public.agency_memberships am
+  where am.user_id = auth.uid()
+    and am.active = true
+    and am.role in ('owner','admin');
+
+  if agency_count <> 1 or target_agency is null then
+    raise exception 'Informe explicitamente a imobiliária ao cadastrar o bairro.';
+  end if;
+
+  new.agency_id := target_agency;
+  return new;
+end;
+$$;
+
+drop trigger if exists neighborhoods_assign_agency_trigger on public.neighborhoods;
+create trigger neighborhoods_assign_agency_trigger
+before insert on public.neighborhoods
+for each row execute function public.assign_neighborhood_agency();
+
 -- Remove as regras antigas amplas e permite leitura apenas de itens globais
 -- ou itens pertencentes às imobiliárias do usuário autenticado.
 drop policy if exists "public read neighborhoods" on public.neighborhoods;
@@ -85,11 +121,9 @@ using (
 create policy "read global or tenant property types" on public.property_types
 for select to anon, authenticated
 using (
-  active = true
-  and (
-    agency_id is null
-    or (auth.uid() is not null and (public.is_admin() or public.is_agency_member(agency_id)))
-  )
+  (agency_id is null and active = true)
+  or (auth.uid() is not null and public.is_admin())
+  or (agency_id is not null and auth.uid() is not null and public.is_agency_member(agency_id))
 );
 
 create policy "read global or tenant property features" on public.property_features
