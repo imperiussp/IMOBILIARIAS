@@ -22,7 +22,10 @@ const STORAGE_KEY = "@imobiliarias/offline-sync-queue";
 async function readQueue(): Promise<OfflineJob[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
-  try { return JSON.parse(raw) as OfflineJob[]; } catch { return []; }
+  try {
+    const parsed = JSON.parse(raw) as OfflineJob[];
+    return parsed.map((job) => job.state === "syncing" ? { ...job, state: "waiting_network" as SyncState, lastError: job.lastError || "Envio anterior interrompido; pronto para nova tentativa." } : job);
+  } catch { return []; }
 }
 
 async function writeQueue(queue: OfflineJob[]) { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(queue)); }
@@ -39,6 +42,11 @@ export async function enqueueOfflineJob(job: Omit<OfflineJob, "state" | "attempt
 }
 
 export async function getOfflineQueue() { return readQueue(); }
+
+export async function removeOfflineJob(clientOperationId: string) {
+  const queue = await readQueue();
+  await writeQueue(queue.filter((job) => job.clientOperationId !== clientOperationId));
+}
 
 export async function retryFailedJobs() {
   const queue = await readQueue();
@@ -115,6 +123,7 @@ async function syncDraft(draft: PropertyDraft) {
   for (let index = 0; index < draft.photoUris.length; index += 1) {
     const uri = draft.photoUris[index];
     const response = await fetch(uri);
+    if (!response.ok) throw new Error(`Não foi possível ler a foto ${index + 1} no aparelho.`);
     const blob = await response.blob();
     const extension = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
     const safeExtension = ["jpg", "jpeg", "png", "webp"].includes(extension) ? extension : "jpg";
