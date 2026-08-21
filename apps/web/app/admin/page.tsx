@@ -7,6 +7,7 @@ import AdminDomains from "../../components/AdminDomains";
 import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
 import AdminInvitations from "../../components/AdminInvitations";
+import AdminLeadQualificationBoard from "../../components/AdminLeadQualificationBoard";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminPlan from "../../components/AdminPlan";
@@ -41,6 +42,7 @@ export default function AdminPage() {
             <a className="adminOnly" href="#configuracoes">Imobiliária</a>
             <a className="adminOnly" href="#dominios">Domínios</a>
             <a href="#contatos">Contatos</a>
+            <a href="#qualificacao-contatos">Classificação</a>
             <a className="adminOnly" href="#historico">Histórico</a>
             <a className="adminOnly" href="#exportacoes">Exportações</a>
           </aside>
@@ -49,6 +51,7 @@ export default function AdminPage() {
             <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
+            <AdminLeadQualificationBoard />
 
             <div className="adminPanel adminOnly" id="novo-imovel">
               <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>Cadastro completo com corretor, características, privacidade de endereço e fotos.</p></div></div>
