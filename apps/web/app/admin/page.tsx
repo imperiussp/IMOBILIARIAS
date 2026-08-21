@@ -1,5 +1,6 @@
 import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
+import AdminCatalogSettings from "../../components/AdminCatalogSettings";
 import AdminGate from "../../components/AdminGate";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
@@ -23,6 +24,7 @@ export default function AdminPage() {
             <a href="#imoveis">Imóveis</a>
             <a href="#novo-imovel">Novo imóvel</a>
             <a href="#localidades">Localidades</a>
+            <a href="#catalogo-config">Tipos e recursos</a>
             <a href="#corretores">Corretores</a>
             <a href="#contatos">Contatos</a>
             <a href="#historico">Histórico</a>
@@ -40,6 +42,7 @@ export default function AdminPage() {
             </div>
 
             <AdminLocations />
+            <AdminCatalogSettings />
             <AdminBrokers />
             <AdminAuditLog />
           </section>
