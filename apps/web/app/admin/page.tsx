@@ -5,6 +5,7 @@ import AdminDomains from "../../components/AdminDomains";
 import AdminGate from "../../components/AdminGate";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
+import AdminPlan from "../../components/AdminPlan";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
 import AdminUsers from "../../components/AdminUsers";
@@ -30,6 +31,7 @@ export default function AdminPage() {
             <a className="adminOnly" href="#catalogo-config">Tipos e recursos</a>
             <a className="adminOnly" href="#corretores">Corretores</a>
             <a className="adminOnly" href="#usuarios">Usuários</a>
+            <a className="adminOnly" href="#meu-plano">Meu plano</a>
             <a className="adminOnly" href="#configuracoes">Imobiliária</a>
             <a className="adminOnly" href="#dominios">Domínios</a>
             <a href="#contatos">Contatos</a>
@@ -51,6 +53,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminCatalogSettings /></div>
             <div className="adminOnly"><AdminBrokers /></div>
             <div className="adminOnly"><AdminUsers /></div>
+            <div className="adminOnly"><AdminPlan /></div>
             <div className="adminOnly"><AdminSiteSettings /></div>
             <div className="adminOnly"><AdminDomains /></div>
             <div className="adminOnly"><AdminAuditLog /></div>
