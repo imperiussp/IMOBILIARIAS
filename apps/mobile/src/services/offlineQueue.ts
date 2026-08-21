@@ -31,12 +31,25 @@ async function writeQueue(queue: OfflineJob[]) {
 
 export async function enqueueOfflineJob(job: Omit<OfflineJob, "state" | "attempts" | "createdAt">) {
   const queue = await readQueue();
-  if (queue.some((item) => item.clientOperationId === job.clientOperationId)) return;
-  queue.push({ ...job, state: "waiting_network", attempts: 0, createdAt: new Date().toISOString() });
+  const existing = queue.find((item) => item.clientOperationId === job.clientOperationId);
+  if (existing) {
+    existing.payload = job.payload;
+    existing.state = "waiting_network";
+    existing.lastError = undefined;
+  } else {
+    queue.push({ ...job, state: "waiting_network", attempts: 0, createdAt: new Date().toISOString() });
+  }
   await writeQueue(queue);
 }
 
 export async function getOfflineQueue() { return readQueue(); }
+
+export async function retryFailedJobs() {
+  const queue = await readQueue();
+  queue.forEach((job) => { if (job.state === "error") { job.state = "waiting_network"; job.lastError = undefined; } });
+  await writeQueue(queue);
+  return processOfflineQueue();
+}
 
 function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -82,6 +95,8 @@ async function syncDraft(draft: PropertyDraft) {
     description: draft.description.trim() || null,
     purpose: draft.purpose === "Venda" ? "sale" : "rent",
     zone: draft.category === "Rural" ? "rural" : "urban",
+    segment: draft.category === "Comercial" ? "commercial" : "residential",
+    publication_state: "published",
     status: "available",
     price: Number(draft.price.replace(/[^0-9.,]/g, "").replace(/\./g, "").replace(",", ".")) || 0,
     bedrooms: Number(draft.bedrooms) || 0,
@@ -102,13 +117,7 @@ async function syncDraft(draft: PropertyDraft) {
     const storagePath = `${brokerResult.data.id}/${propertyResult.data.id}/${draft.id}-${index}.${safeExtension}`;
     const upload = await mobileSupabase.storage.from("property-photos").upload(storagePath, blob, { upsert: true, contentType: blob.type || `image/${safeExtension === "jpg" ? "jpeg" : safeExtension}` });
     if (upload.error) throw upload.error;
-    const photo = await mobileSupabase.from("property_photos").upsert({
-      property_id: propertyResult.data.id,
-      storage_path: storagePath,
-      position: index,
-      is_cover: index === 0,
-      alt_text: `${draft.title} - foto ${index + 1}`,
-    }, { onConflict: "property_id,storage_path" });
+    const photo = await mobileSupabase.from("property_photos").upsert({ property_id: propertyResult.data.id, storage_path: storagePath, position: index, is_cover: index === 0, alt_text: `${draft.title} - foto ${index + 1}` }, { onConflict: "property_id,storage_path" });
     if (photo.error) throw photo.error;
   }
 
@@ -127,9 +136,8 @@ export async function processOfflineQueue() {
     job.attempts += 1;
     await writeQueue(queue);
     try {
-      if (job.entityType === "property_draft") {
-        await syncDraft(job.payload as unknown as PropertyDraft);
-      } else if (job.entityType === "property") {
+      if (job.entityType === "property_draft") await syncDraft(job.payload as unknown as PropertyDraft);
+      else if (job.entityType === "property") {
         const { error } = await mobileSupabase.from("properties").upsert(job.payload, { onConflict: "code" });
         if (error) throw error;
       } else {
