@@ -30,6 +30,7 @@ export default function PublicPropertyDetail() {
   const [error, setError] = useState("");
   const [activePhoto, setActivePhoto] = useState(0);
   const [leadMessage, setLeadMessage] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -49,12 +50,45 @@ export default function PublicPropertyDetail() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!property) return;
+    document.title = `${property.title} · ${property.code} | IMOBILIARIAS`;
+    const existing = document.getElementById("property-jsonld");
+    if (existing) existing.remove();
+    const script = document.createElement("script");
+    script.id = "property-jsonld";
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": property.segment === "commercial" ? "Place" : "Accommodation",
+      name: property.title,
+      description: property.description || undefined,
+      address: { "@type": "PostalAddress", addressLocality: property.city, addressRegion: property.state_code },
+      offers: { "@type": "Offer", priceCurrency: "BRL", price: Number(property.price || 0), availability: "https://schema.org/InStock" },
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, [property]);
+
   const whatsappUrl = useMemo(() => {
     if (!property?.broker_whatsapp) return "";
     const number = property.broker_whatsapp.replace(/\D/g, "");
     const message = encodeURIComponent(`Olá, gostaria de informações sobre o imóvel código ${property.code}.`);
     return `https://wa.me/${number}?text=${message}`;
   }, [property]);
+
+  async function shareProperty() {
+    if (!property) return;
+    const data = { title: `${property.title} · ${property.code}`, text: `Veja este imóvel: ${property.title} (${property.code}).`, url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(data);
+      else {
+        await navigator.clipboard.writeText(window.location.href);
+        setShareMessage("Link copiado.");
+        window.setTimeout(() => setShareMessage(""), 2500);
+      }
+    } catch { /* compartilhamento cancelado */ }
+  }
 
   async function sendLead(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,19 +114,19 @@ export default function PublicPropertyDetail() {
   const currentImage = imageUrls[activePhoto] || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80";
   const area = property.built_area_m2 || property.land_area_m2;
   const publicAddress = property.address_public && property.address ? property.address : `${property.neighborhood || ""}, ${property.city} - ${property.state_code}`;
+  const previousPhoto = () => setActivePhoto((current) => imageUrls.length ? (current - 1 + imageUrls.length) % imageUrls.length : 0);
+  const nextPhoto = () => setActivePhoto((current) => imageUrls.length ? (current + 1) % imageUrls.length : 0);
 
   return (
     <main>
       <header className="topbar"><div className="container nav"><a className="brand" href="../"><span className="brandMark">I</span><span>IMOBILIARIAS</span></a><nav className="navLinks"><a href="../#imoveis">Imóveis</a><a href="../#como-funciona">Como funciona</a><a href="../#contato">Contato</a></nav>{whatsappUrl ? <a className="button primary small" href={whatsappUrl} target="_blank" rel="noreferrer">Falar com corretor</a> : null}</div></header>
       <section className="container propertyDetail">
-        <a className="backLink" href="../#imoveis">← Voltar aos imóveis</a>
+        <div className="detailTopActions"><a className="backLink" href="../#imoveis">← Voltar aos imóveis</a><button className="miniShare" onClick={() => void shareProperty()}>Compartilhar</button>{shareMessage ? <span>{shareMessage}</span> : null}</div>
         <div className="detailHeader"><div><span className="eyebrow">{property.code} · {property.purpose === "rent" ? "LOCAÇÃO" : "VENDA"}</span><h1>{property.title}</h1><p className="location">📍 {publicAddress}</p></div><strong className="detailPrice">{money(Number(property.price), property.purpose)}</strong></div>
 
         <div className="gallery dynamicGallery">
-          <button className="galleryMain galleryButton" style={{ backgroundImage: `url(${currentImage})` }} aria-label="Foto principal" />
-          <div className="gallerySide">
-            {imageUrls.slice(0, 4).map((image, index) => <button key={image} className={`galleryThumb galleryButton ${activePhoto === index ? "activeThumb" : ""}`} style={{ backgroundImage: `url(${image})` }} onClick={() => setActivePhoto(index)} aria-label={`Ver foto ${index + 1}`} />)}
-          </div>
+          <div className="galleryMain galleryButton" style={{ backgroundImage: `url(${currentImage})` }} aria-label="Foto principal"><button className="galleryNav galleryPrev" onClick={previousPhoto} aria-label="Foto anterior">‹</button><button className="galleryNav galleryNext" onClick={nextPhoto} aria-label="Próxima foto">›</button><span className="galleryCounter">{imageUrls.length ? `${activePhoto + 1}/${imageUrls.length}` : "Sem fotos"}</span></div>
+          <div className="gallerySide">{imageUrls.slice(0, 4).map((image, index) => <button key={image} className={`galleryThumb galleryButton ${activePhoto === index ? "activeThumb" : ""}`} style={{ backgroundImage: `url(${image})` }} onClick={() => setActivePhoto(index)} aria-label={`Ver foto ${index + 1}`} />)}</div>
         </div>
         {imageUrls.length > 4 ? <div className="galleryPager">{imageUrls.map((_, index) => <button key={index} className={activePhoto === index ? "active" : ""} onClick={() => setActivePhoto(index)} aria-label={`Foto ${index + 1}`}>{index + 1}</button>)}</div> : null}
 
