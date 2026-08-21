@@ -47,11 +47,7 @@ export async function retryFailedJobs() {
   return processOfflineQueue();
 }
 
-function slugify(value: string) {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
-function numeric(value?: string) { return Number(String(value || "").replace(/[^0-9.,]/g, "").replace(/\./g, "").replace(",", ".")) || 0; }
+function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
 
 async function syncDraft(draft: PropertyDraft) {
   if (!mobileSupabase) throw new Error("Supabase não configurado.");
@@ -77,7 +73,12 @@ async function syncDraft(draft: PropertyDraft) {
   if (draft.neighborhood.trim()) {
     const neighborhood = await mobileSupabase.from("neighborhoods").select("id").eq("city_id", cityResult.data.id).ilike("name", draft.neighborhood.trim()).limit(1).maybeSingle();
     if (neighborhood.error) throw neighborhood.error;
-    neighborhoodId = neighborhood.data?.id ?? null;
+    if (neighborhood.data?.id) neighborhoodId = neighborhood.data.id;
+    else {
+      const created = await mobileSupabase.from("neighborhoods").insert({ city_id: cityResult.data.id, name: draft.neighborhood.trim() }).select("id").single();
+      if (created.error) throw created.error;
+      neighborhoodId = created.data.id;
+    }
   }
 
   const numericId = draft.id.replace(/\D/g, "").slice(-6).padStart(6, "0");
@@ -92,17 +93,17 @@ async function syncDraft(draft: PropertyDraft) {
     slug: `${slugify(draft.title)}-${code.toLowerCase()}`,
     description: draft.description.trim() || null,
     purpose: draft.purpose === "Venda" ? "sale" : "rent",
-    zone: (draft.zone || (draft.category === "Rural" ? "Rural" : "Urbana")) === "Rural" ? "rural" : "urban",
-    segment: (draft.segment || (draft.category === "Comercial" ? "Comercial" : "Residencial")) === "Comercial" ? "commercial" : "residential",
+    zone: draft.zone === "Rural" ? "rural" : "urban",
+    segment: draft.segment === "Comercial" ? "commercial" : "residential",
     publication_state: "published",
     status: "available",
-    price: numeric(draft.price),
-    bedrooms: numeric(draft.bedrooms),
-    suites: numeric(draft.suites),
-    bathrooms: numeric(draft.bathrooms),
-    parking_spaces: numeric(draft.parking),
-    built_area_m2: numeric(draft.builtArea) || null,
-    land_area_m2: numeric(draft.landArea) || null,
+    price: Number(draft.price.replace(/[^0-9.,]/g, "").replace(/\./g, "").replace(",", ".")) || 0,
+    bedrooms: Number(draft.bedrooms) || 0,
+    suites: Number(draft.suites) || 0,
+    bathrooms: Number(draft.bathrooms) || 0,
+    parking_spaces: Number(draft.parking) || 0,
+    built_area_m2: Number(String(draft.builtArea || "").replace(",", ".")) || null,
+    land_area_m2: Number(String(draft.landArea || "").replace(",", ".")) || null,
     address: draft.address?.trim() || null,
     address_public: Boolean(draft.addressPublic),
     published_at: new Date().toISOString(),
@@ -117,7 +118,7 @@ async function syncDraft(draft: PropertyDraft) {
     const blob = await response.blob();
     const extension = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
     const safeExtension = ["jpg", "jpeg", "png", "webp"].includes(extension) ? extension : "jpg";
-    const storagePath = `${brokerResult.data.id}/${propertyResult.data.id}/${draft.id}-${index}.${safeExtension}`;
+    const storagePath = `${propertyResult.data.id}/mobile/${draft.id}-${index}.${safeExtension}`;
     const upload = await mobileSupabase.storage.from("property-photos").upload(storagePath, blob, { upsert: true, contentType: blob.type || `image/${safeExtension === "jpg" ? "jpeg" : safeExtension}` });
     if (upload.error) throw upload.error;
     const photo = await mobileSupabase.from("property_photos").upsert({ property_id: propertyResult.data.id, storage_path: storagePath, position: index, is_cover: index === 0, alt_text: `${draft.title} - foto ${index + 1}` }, { onConflict: "property_id,storage_path" });
@@ -132,12 +133,9 @@ export async function processOfflineQueue() {
   if (!network.isConnected || !mobileSupabase) return { processed: 0, pending: (await readQueue()).length };
   const queue = await readQueue();
   let processed = 0;
-
   for (const job of queue) {
     if (job.state === "synced") continue;
-    job.state = "syncing";
-    job.attempts += 1;
-    await writeQueue(queue);
+    job.state = "syncing"; job.attempts += 1; await writeQueue(queue);
     try {
       if (job.entityType === "property_draft") await syncDraft(job.payload as unknown as PropertyDraft);
       else if (job.entityType === "property") {
@@ -147,16 +145,13 @@ export async function processOfflineQueue() {
         const { error } = await mobileSupabase.from("property_photos").upsert(job.payload);
         if (error) throw error;
       }
-      job.state = "synced";
-      job.lastError = undefined;
-      processed += 1;
+      job.state = "synced"; job.lastError = undefined; processed += 1;
     } catch (error) {
       job.state = "error";
       job.lastError = error instanceof Error ? error.message : String(error);
     }
     await writeQueue(queue);
   }
-
   const remaining = queue.filter((item) => item.state !== "synced");
   await writeQueue(remaining);
   return { processed, pending: remaining.length };
