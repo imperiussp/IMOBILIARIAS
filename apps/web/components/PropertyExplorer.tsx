@@ -99,12 +99,13 @@ export default function PropertyExplorer({ properties }: Props) {
       if (!active || !validBackend) return;
       const { data, error } = await supabaseBrowser
         .from("property_catalog")
-        .select("id,code,slug,title,purpose,zone,segment,status,price,bedrooms,bathrooms,parking_spaces,built_area_m2,land_area_m2,city,state_code,neighborhood,property_type,cover_path,featured,published_at")
+        .select("id,code,slug,title,purpose,zone,segment,status,price,bedrooms,bathrooms,parking_spaces,built_area_m2,land_area_m2,city,state_code,neighborhood,property_type,cover_path,cover_thumbnail_path,featured,published_at")
         .order("featured", { ascending: false })
         .order("published_at", { ascending: false });
       if (!active || error || !data || data.length === 0) return;
       const mapped: DisplayProperty[] = await Promise.all(data.map(async (item: any) => {
-        const image = (await getPropertyPhotoUrl(item.cover_path)) || fallbackImage;
+        const preferredPath = item.cover_thumbnail_path || item.cover_path;
+        const image = (await getPropertyPhotoUrl(preferredPath)) || (item.cover_path && preferredPath !== item.cover_path ? await getPropertyPhotoUrl(item.cover_path) : "") || fallbackImage;
         const areaValue = Number(item.built_area_m2 || item.land_area_m2 || 0);
         const numericPrice = Number(item.price || 0);
         return {
