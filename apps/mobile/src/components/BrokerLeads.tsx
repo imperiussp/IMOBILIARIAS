@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { getMobileAgencyContext } from "../lib/currentAgency";
 import { mobileSupabase } from "../lib/supabase";
 
 type Props = { onClose: () => void };
@@ -25,13 +26,31 @@ const labels: Record<LeadStatus, string> = {
 
 export default function BrokerLeads({ onClose }: Props) {
   const [items, setItems] = useState<Lead[]>([]);
+  const [agencyId, setAgencyId] = useState("");
+  const [brokerId, setBrokerId] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   async function load() {
     if (!mobileSupabase) return;
     setLoading(true);
-    const { data, error } = await mobileSupabase.from("leads").select("id,name,phone,email,message,status,created_at,properties(code,title)").order("created_at", { ascending: false }).limit(100);
+    setMessage("");
+    const context = await getMobileAgencyContext();
+    if (!context || context.role !== "broker" || !context.brokerId) {
+      setItems([]);
+      setLoading(false);
+      setMessage("Não foi possível identificar seu corretor dentro da imobiliária atual.");
+      return;
+    }
+    setAgencyId(context.agencyId);
+    setBrokerId(context.brokerId);
+    const { data, error } = await mobileSupabase
+      .from("leads")
+      .select("id,name,phone,email,message,status,created_at,properties(code,title)")
+      .eq("agency_id", context.agencyId)
+      .eq("broker_id", context.brokerId)
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (error) setMessage(error.message);
     else setItems((data || []) as unknown as Lead[]);
     setLoading(false);
@@ -40,8 +59,13 @@ export default function BrokerLeads({ onClose }: Props) {
   useEffect(() => { void load(); }, []);
 
   async function updateStatus(id: string, status: LeadStatus) {
-    if (!mobileSupabase) return;
-    const { error } = await mobileSupabase.from("leads").update({ status }).eq("id", id);
+    if (!mobileSupabase || !agencyId || !brokerId) return;
+    const { error } = await mobileSupabase
+      .from("leads")
+      .update({ status })
+      .eq("id", id)
+      .eq("agency_id", agencyId)
+      .eq("broker_id", brokerId);
     if (error) return setMessage(error.message);
     setItems((current) => current.map((item) => item.id === id ? { ...item, status } : item));
   }
