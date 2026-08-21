@@ -109,6 +109,10 @@ export default function AdminPropertyForm() {
     if (!supabaseBrowser) return setMessage("Supabase ainda não configurado. O formulário está pronto, mas precisa das chaves do projeto para gravar.");
     if (!agencyId) return setMessage("Não foi possível identificar a imobiliária desta conta.");
 
+    const limitResult = await supabaseBrowser.rpc("agency_can_create_property", { p_agency_id: agencyId });
+    if (limitResult.error) return setMessage(`Não foi possível validar o limite do plano: ${limitResult.error.message}`);
+    if (limitResult.data === false) return setMessage("Seu plano atingiu o limite de imóveis ativos. Arquive um imóvel ou altere o plano antes de cadastrar outro.");
+
     const form = new FormData(event.currentTarget);
     const title = String(form.get("title") || "").trim();
     const cityId = String(form.get("city_id") || "");
@@ -133,7 +137,7 @@ export default function AdminPropertyForm() {
         if (existing.error) throw existing.error;
         if (existing.data?.id) neighborhoodId = existing.data.id;
         else {
-          const created = await supabaseBrowser.from("neighborhoods").insert({ city_id: cityId, name: neighborhoodName }).select("id").single();
+          const created = await supabaseBrowser.from("neighborhoods").insert({ agency_id: agencyId, city_id: cityId, name: neighborhoodName }).select("id").single();
           if (created.error) throw created.error;
           neighborhoodId = created.data.id;
         }
@@ -175,7 +179,7 @@ export default function AdminPropertyForm() {
   return (
     <form className="propertyForm" onSubmit={submit}>
       {!isSupabaseConfigured && <div className="formNotice">Modo demonstração: configure o Supabase para ativar a gravação real.</div>}
-      {agencyName ? <div className="formNotice">Imobiliária: <strong>{agencyName}</strong></div> : null}
+      {agencyName ? <div className="formNotice">Imobiliária: <strong>{agencyName}</strong> · o limite do plano é validado antes de cada novo cadastro.</div> : null}
       <label>Título do imóvel<input name="title" placeholder="Ex.: Casa com 3 quartos no Centro" required /></label>
       <div className="formGrid three"><label>Finalidade<select name="purpose" defaultValue="sale"><option value="sale">Venda</option><option value="rent">Locação</option></select></label><label>Uso<select name="segment" defaultValue="residential"><option value="residential">Residencial</option><option value="commercial">Comercial</option></select></label><label>Zona<select name="zone" defaultValue="urban"><option value="urban">Urbana</option><option value="rural">Rural</option></select></label></div>
       <div className="formGrid"><label>Cidade<select name="city_id" required defaultValue=""><option value="">Selecione</option>{cities.map((city) => <option key={city.id} value={city.id}>{city.name}{city.state_code ? ` - ${city.state_code}` : ""}</option>)}</select></label><label>Bairro<input name="neighborhood" placeholder="Centro" /></label></div>
