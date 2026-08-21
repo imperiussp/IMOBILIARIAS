@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { mobileSupabase } from "../lib/supabase";
+import { preparePropertyPhoto } from "./imageProcessing";
 import type { PropertyDraft } from "./propertyDrafts";
 import { removePropertyDraft } from "./propertyDrafts";
 
@@ -56,6 +57,12 @@ export async function retryFailedJobs() {
 }
 
 function slugify(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+
+async function blobFromUri(uri: string) {
+  const response = await fetch(uri);
+  if (!response.ok) throw new Error("Não foi possível preparar a imagem para envio.");
+  return response.blob();
+}
 
 async function syncDraft(draft: PropertyDraft) {
   if (!mobileSupabase) throw new Error("Supabase não configurado.");
@@ -117,16 +124,37 @@ async function syncDraft(draft: PropertyDraft) {
   if (propertyResult.error) throw propertyResult.error;
 
   for (let index = 0; index < draft.photoUris.length; index += 1) {
-    const uri = draft.photoUris[index];
-    const response = await fetch(uri);
-    if (!response.ok) throw new Error(`Não foi possível ler a foto ${index + 1} no aparelho.`);
-    const blob = await response.blob();
-    const extension = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
-    const safeExtension = ["jpg", "jpeg", "png", "webp"].includes(extension) ? extension : "jpg";
-    const storagePath = `${propertyResult.data.id}/mobile/${draft.id}-${index}.${safeExtension}`;
-    const upload = await mobileSupabase.storage.from("property-photos").upload(storagePath, blob, { upsert: true, contentType: blob.type || `image/${safeExtension === "jpg" ? "jpeg" : safeExtension}` });
-    if (upload.error) throw upload.error;
-    const photo = await mobileSupabase.from("property_photos").upsert({ property_id: propertyResult.data.id, storage_path: storagePath, position: index, is_cover: index === 0, alt_text: `${draft.title} - foto ${index + 1}` }, { onConflict: "property_id,storage_path" });
+    const originalUri = draft.photoUris[index];
+    let prepared;
+    try {
+      prepared = await preparePropertyPhoto(originalUri);
+    } catch {
+      throw new Error(`Não foi possível otimizar a foto ${index + 1}.`);
+    }
+
+    const [fullBlob, thumbnailBlob] = await Promise.all([
+      blobFromUri(prepared.fullUri),
+      blobFromUri(prepared.thumbnailUri),
+    ]);
+
+    const baseName = `${draft.id}-${index}.jpg`;
+    const storagePath = `${propertyResult.data.id}/mobile/${baseName}`;
+    const thumbnailPath = `${propertyResult.data.id}/mobile/thumbs/${baseName}`;
+
+    const fullUpload = await mobileSupabase.storage.from("property-photos").upload(storagePath, fullBlob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
+    if (fullUpload.error) throw fullUpload.error;
+
+    const thumbUpload = await mobileSupabase.storage.from("property-photos").upload(thumbnailPath, thumbnailBlob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
+    if (thumbUpload.error) throw thumbUpload.error;
+
+    const photo = await mobileSupabase.from("property_photos").upsert({
+      property_id: propertyResult.data.id,
+      storage_path: storagePath,
+      thumbnail_path: thumbnailPath,
+      position: index,
+      is_cover: index === 0,
+      alt_text: `${draft.title} - foto ${index + 1}`,
+    }, { onConflict: "property_id,storage_path" });
     if (photo.error) throw photo.error;
   }
 
