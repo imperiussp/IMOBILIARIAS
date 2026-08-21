@@ -25,9 +25,7 @@ async function readQueue(): Promise<OfflineJob[]> {
   try { return JSON.parse(raw) as OfflineJob[]; } catch { return []; }
 }
 
-async function writeQueue(queue: OfflineJob[]) {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
-}
+async function writeQueue(queue: OfflineJob[]) { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(queue)); }
 
 export async function enqueueOfflineJob(job: Omit<OfflineJob, "state" | "attempts" | "createdAt">) {
   const queue = await readQueue();
@@ -36,9 +34,7 @@ export async function enqueueOfflineJob(job: Omit<OfflineJob, "state" | "attempt
     existing.payload = job.payload;
     existing.state = "waiting_network";
     existing.lastError = undefined;
-  } else {
-    queue.push({ ...job, state: "waiting_network", attempts: 0, createdAt: new Date().toISOString() });
-  }
+  } else queue.push({ ...job, state: "waiting_network", attempts: 0, createdAt: new Date().toISOString() });
   await writeQueue(queue);
 }
 
@@ -54,6 +50,8 @@ export async function retryFailedJobs() {
 function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
+
+function numeric(value?: string) { return Number(String(value || "").replace(/[^0-9.,]/g, "").replace(/\./g, "").replace(",", ".")) || 0; }
 
 async function syncDraft(draft: PropertyDraft) {
   if (!mobileSupabase) throw new Error("Supabase não configurado.");
@@ -94,14 +92,19 @@ async function syncDraft(draft: PropertyDraft) {
     slug: `${slugify(draft.title)}-${code.toLowerCase()}`,
     description: draft.description.trim() || null,
     purpose: draft.purpose === "Venda" ? "sale" : "rent",
-    zone: draft.category === "Rural" ? "rural" : "urban",
-    segment: draft.category === "Comercial" ? "commercial" : "residential",
+    zone: (draft.zone || (draft.category === "Rural" ? "Rural" : "Urbana")) === "Rural" ? "rural" : "urban",
+    segment: (draft.segment || (draft.category === "Comercial" ? "Comercial" : "Residencial")) === "Comercial" ? "commercial" : "residential",
     publication_state: "published",
     status: "available",
-    price: Number(draft.price.replace(/[^0-9.,]/g, "").replace(/\./g, "").replace(",", ".")) || 0,
-    bedrooms: Number(draft.bedrooms) || 0,
-    bathrooms: Number(draft.bathrooms) || 0,
-    parking_spaces: Number(draft.parking) || 0,
+    price: numeric(draft.price),
+    bedrooms: numeric(draft.bedrooms),
+    suites: numeric(draft.suites),
+    bathrooms: numeric(draft.bathrooms),
+    parking_spaces: numeric(draft.parking),
+    built_area_m2: numeric(draft.builtArea) || null,
+    land_area_m2: numeric(draft.landArea) || null,
+    address: draft.address?.trim() || null,
+    address_public: Boolean(draft.addressPublic),
     published_at: new Date().toISOString(),
   };
 
@@ -159,6 +162,4 @@ export async function processOfflineQueue() {
   return { processed, pending: remaining.length };
 }
 
-export function startNetworkSyncListener() {
-  return NetInfo.addEventListener((state) => { if (state.isConnected) void processOfflineQueue(); });
-}
+export function startNetworkSyncListener() { return NetInfo.addEventListener((state) => { if (state.isConnected) void processOfflineQueue(); }); }
