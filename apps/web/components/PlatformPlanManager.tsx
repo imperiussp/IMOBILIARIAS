@@ -54,6 +54,8 @@ export default function PlatformPlanManager() {
     const code = slug(String(form.get("code") || name));
     if (!name || !code) return setMessage("Informe nome e código do plano.");
 
+    const maxDocuments = nullableNumber(form.get("max_documents"));
+    const maxDocumentUploads = nullableNumber(form.get("max_document_uploads"));
     const features = {
       custom_domain: form.get("custom_domain") === "on",
       default_trial: form.get("default_trial") === "on",
@@ -63,6 +65,8 @@ export default function PlatformPlanManager() {
       email_leads: form.get("email_leads") === "on",
       ai_descriptions: form.get("ai_descriptions") === "on",
       documents: form.get("documents") === "on",
+      max_documents: maxDocuments,
+      max_document_uploads: maxDocumentUploads,
     };
 
     const payload = {
@@ -109,10 +113,11 @@ export default function PlatformPlanManager() {
       <div className="formGrid"><label>Preço mensal (R$)<input name="monthly_price" inputMode="decimal" defaultValue={editing?.monthly_price ?? ""} placeholder="Deixe vazio enquanto não decidir" /></label><label>Preço anual (R$)<input name="annual_price" inputMode="decimal" defaultValue={editing?.annual_price ?? ""} placeholder="Opcional" /></label></div>
       <div className="formGrid three"><label>Máx. imóveis<input name="max_properties" type="number" min="1" defaultValue={editing?.max_properties ?? ""} /></label><label>Máx. usuários<input name="max_users" type="number" min="1" defaultValue={editing?.max_users ?? ""} /></label><label>IA/mês<input name="max_ai_descriptions" type="number" min="0" defaultValue={editing?.max_ai_descriptions ?? ""} /></label></div>
       <fieldset className="featurePicker"><legend>Recursos</legend><div><label className="featureOption"><input type="checkbox" name="broker_app" defaultChecked={Boolean(editFeatures.broker_app)} /> Aplicativo do corretor</label><label className="featureOption"><input type="checkbox" name="custom_domain" defaultChecked={Boolean(editFeatures.custom_domain)} /> Domínio próprio</label><label className="featureOption"><input type="checkbox" name="push_notifications" defaultChecked={Boolean(editFeatures.push_notifications)} /> Push no aplicativo</label><label className="featureOption"><input type="checkbox" name="email_leads" defaultChecked={Boolean(editFeatures.email_leads)} /> Contatos por e-mail</label><label className="featureOption"><input type="checkbox" name="ai_descriptions" defaultChecked={Boolean(editFeatures.ai_descriptions)} /> Descrições com IA</label><label className="featureOption"><input type="checkbox" name="documents" defaultChecked={Boolean(editFeatures.documents)} /> Central de documentos</label><label className="featureOption"><input type="checkbox" name="default_trial" defaultChecked={Boolean(editFeatures.default_trial)} /> Plano padrão de teste</label></div></fieldset>
+      <div className="formGrid"><label>Máx. documentos ativos<input name="max_documents" type="number" min="0" defaultValue={editFeatures.max_documents == null ? "" : Number(editFeatures.max_documents)} placeholder="Ilimitado" /></label><label>Máx. anexos privados<input name="max_document_uploads" type="number" min="0" defaultValue={editFeatures.max_document_uploads == null ? "" : Number(editFeatures.max_document_uploads)} placeholder="Ilimitado" /></label></div>
       <div className="formGrid"><label>Dias do teste<input name="trial_days" type="number" min="1" max="90" defaultValue={Number(editFeatures.trial_days || 14)} /></label><label className="checkLabel"><input type="checkbox" name="active" defaultChecked={editing ? editing.active : true} /> Plano ativo para uso</label></div>
       <div className="formActions">{editing ? <button className="button secondary" type="button" onClick={() => setEditing(null)}>Cancelar edição</button> : null}<button className="button primary" disabled={saving}>{saving ? "Salvando..." : editing ? "Salvar plano" : "Criar plano"}</button></div>
     </form>
     {message ? <div className="formMessage">{message}</div> : null}
-    <div className="accessList">{plans.map((plan) => <article className="accessRow" key={plan.id}><div className="accessIdentity"><strong>{plan.name} · {plan.code}</strong><span>{plan.description || "Sem descrição"}</span><small>Mensal: {plan.monthly_price == null ? "não definido" : `R$ ${Number(plan.monthly_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} · imóveis {plan.max_properties ?? "∞"} · usuários {plan.max_users ?? "∞"} · IA {plan.max_ai_descriptions ?? "∞"} · documentos {plan.features?.documents ? "sim" : "não"}</small></div><div className="accessActions"><span className={`statusPill ${plan.active ? "" : "muted"}`}>{plan.active ? "Ativo" : "Inativo"}</span><button className="miniButton" onClick={() => setEditing(plan)}>Editar</button><button className="miniButton muted" onClick={() => void toggleActive(plan)}>{plan.active ? "Desativar" : "Ativar"}</button></div></article>)}</div>
+    <div className="accessList">{plans.map((plan) => <article className="accessRow" key={plan.id}><div className="accessIdentity"><strong>{plan.name} · {plan.code}</strong><span>{plan.description || "Sem descrição"}</span><small>Mensal: {plan.monthly_price == null ? "não definido" : `R$ ${Number(plan.monthly_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} · imóveis {plan.max_properties ?? "∞"} · usuários {plan.max_users ?? "∞"} · IA {plan.max_ai_descriptions ?? "∞"} · documentos {plan.features?.documents ? `${String(plan.features.max_documents ?? "∞")}` : "não"}</small></div><div className="accessActions"><span className={`statusPill ${plan.active ? "" : "muted"}`}>{plan.active ? "Ativo" : "Inativo"}</span><button className="miniButton" onClick={() => setEditing(plan)}>Editar</button><button className="miniButton muted" onClick={() => void toggleActive(plan)}>{plan.active ? "Desativar" : "Ativar"}</button></div></article>)}</div>
   </div>;
 }
