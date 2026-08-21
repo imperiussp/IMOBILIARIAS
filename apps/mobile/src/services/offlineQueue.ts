@@ -58,8 +58,14 @@ export async function removeOfflineJob(clientOperationId: string) {
 }
 
 export async function retryFailedJobs() {
+  const context = await getMobileAgencyContext();
   const queue = await readQueue();
-  queue.forEach((job) => { if (job.state === "error") { job.state = "waiting_network"; job.lastError = undefined; } });
+  queue.forEach((job) => {
+    if (job.state === "error" && (!context || !job.agencyId || job.agencyId === context.agencyId)) {
+      job.state = "waiting_network";
+      job.lastError = undefined;
+    }
+  });
   await writeQueue(queue);
   return processOfflineQueue();
 }
@@ -103,7 +109,7 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
 
   let neighborhoodId: string | null = null;
   if (draft.neighborhood.trim()) {
-    const neighborhood = await mobileSupabase.from("neighborhoods").select("id").eq("city_id", cityResult.data.id).ilike("name", draft.neighborhood.trim()).limit(1).maybeSingle();
+    const neighborhood = await mobileSupabase.from("neighborhoods").select("id").eq("city_id", cityResult.data.id).or(`agency_id.is.null,agency_id.eq.${context.agencyId}`).ilike("name", draft.neighborhood.trim()).limit(1).maybeSingle();
     if (neighborhood.error) throw neighborhood.error;
     if (neighborhood.data?.id) neighborhoodId = neighborhood.data.id;
     else throw new Error(`Bairro não cadastrado: ${draft.neighborhood}. Cadastre o bairro no painel administrativo e tente sincronizar novamente.`);
@@ -200,10 +206,10 @@ export async function processOfflineQueue() {
   let processed = 0;
   for (const job of queue) {
     if (job.state === "synced") continue;
+    if (job.agencyId && job.agencyId !== context.agencyId) continue;
     job.state = "syncing"; job.attempts += 1; await writeQueue(queue);
     try {
       if (!job.agencyId) throw new Error("Operação offline antiga sem identificação de imobiliária. Salve novamente este item antes de enviar.");
-      if (job.agencyId !== context.agencyId) throw new Error("Esta operação offline pertence a outra imobiliária.");
 
       if (job.entityType === "property_draft") await syncDraft(job.payload as unknown as PropertyDraft, job.agencyId);
       else if (job.entityType === "property") {
