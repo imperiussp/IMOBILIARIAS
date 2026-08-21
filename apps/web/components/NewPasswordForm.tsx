@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 export default function NewPasswordForm() {
@@ -16,6 +17,11 @@ export default function NewPasswordForm() {
     if (password.length < 8) return setStatus("Use uma senha com pelo menos 8 caracteres.");
     if (password !== confirm) return setStatus("As senhas não conferem.");
     setLoading(true);
+    const validBackend = await isImobiliariasBackend();
+    if (!validBackend) {
+      setLoading(false);
+      return setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
+    }
     const { error } = await supabaseBrowser.auth.updateUser({ password });
     setLoading(false);
     if (error) return setStatus(error.message);
@@ -26,7 +32,7 @@ export default function NewPasswordForm() {
     <span className="eyebrow">SEGURANÇA</span><h1>Criar nova senha</h1><p>Defina a nova senha da sua conta.</p>
     <label>Nova senha<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label>
     <label>Confirmar nova senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} required /></label>
-    <button className="button primary full" disabled={loading}>{loading ? "Salvando..." : "Salvar nova senha"}</button>
+    <button className="button primary full" disabled={loading}>{loading ? "Verificando..." : "Salvar nova senha"}</button>
     {status ? <p className="loginStatus">{status}</p> : null}
     <a className="backLink" href="../login/">Ir para o login</a>
   </form>;
