@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import BrokerAuthGate from "./src/components/BrokerAuthGate";
 import { enqueueOfflineJob, getOfflineQueue, processOfflineQueue, startNetworkSyncListener } from "./src/services/offlineQueue";
 import { getPropertyDrafts, PropertyDraft, removePropertyDraft, savePropertyDraft } from "./src/services/propertyDrafts";
 
@@ -11,7 +12,7 @@ const emptyDraft = (): Omit<PropertyDraft, "id" | "updatedAt"> => ({
   bedrooms: "0", bathrooms: "0", parking: "0", description: "", photoUris: [],
 });
 
-export default function App() {
+function BrokerApp() {
   const [screen, setScreen] = useState<Screen>("home");
   const [pending, setPending] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -30,6 +31,7 @@ export default function App() {
     await refreshAll();
     setSyncing(false);
     if (result.processed > 0) Alert.alert("Sincronização concluída", `${result.processed} item(ns) enviado(s).`);
+    else if (result.pending > 0) Alert.alert("Sincronização pendente", "Ainda existem itens aguardando conexão, vínculo do corretor ou correção de dados.");
   }
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function App() {
     const saved = await savePropertyDraft({ ...form, id: editingId });
     await enqueueOfflineJob({ clientOperationId: `publish-${saved.id}`, entityType: "property_draft", entityLocalId: saved.id, payload: saved as unknown as Record<string, unknown> });
     await refreshAll(); setScreen("home");
-    Alert.alert("Pronto para sincronizar", "O imóvel entrou na fila e será enviado quando houver internet e login válido.");
+    Alert.alert("Pronto para sincronizar", "O imóvel entrou na fila e será enviado quando houver internet.");
     void syncNow();
   }
 
@@ -118,6 +120,10 @@ export default function App() {
       <View style={styles.infoCard}><Text style={styles.infoTitle}>Offline de verdade</Text><Text style={styles.infoText}>Fotos e dados ficam no aparelho. Quando a conexão voltar, a fila resolve os vínculos do imóvel e envia tudo automaticamente.</Text></View>
     </ScrollView></SafeAreaView>
   );
+}
+
+export default function App() {
+  return <BrokerAuthGate><BrokerApp /></BrokerAuthGate>;
 }
 
 function Field(props: { label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; keyboardType?: "default" | "decimal-pad" }) { return <View><Text style={styles.label}>{props.label}</Text><TextInput style={styles.input} value={props.value} onChangeText={props.onChangeText} placeholder={props.placeholder} keyboardType={props.keyboardType || "default"} /></View>; }
