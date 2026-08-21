@@ -1,12 +1,15 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Props = { children: ReactNode };
 
+type GateState = "checking" | "allowed" | "blocked" | "demo" | "wrong_backend";
+
 export default function AdminGate({ children }: Props) {
-  const [state, setState] = useState<"checking" | "allowed" | "blocked" | "demo">("checking");
+  const [state, setState] = useState<GateState>("checking");
   const [role, setRole] = useState<"admin" | "broker" | "">("");
 
   useEffect(() => {
@@ -16,7 +19,11 @@ export default function AdminGate({ children }: Props) {
       return;
     }
     let active = true;
-    void supabaseBrowser.auth.getSession().then(async ({ data }) => {
+    void (async () => {
+      const validBackend = await isImobiliariasBackend();
+      if (!active) return;
+      if (!validBackend) { setState("wrong_backend"); return; }
+      const { data } = await supabaseBrowser.auth.getSession();
       if (!active) return;
       const user = data.session?.user;
       if (!user) { setState("blocked"); return; }
@@ -26,7 +33,7 @@ export default function AdminGate({ children }: Props) {
         setRole(roleRow.role);
         setState("allowed");
       } else setState("blocked");
-    });
+    })();
     const { data: listener } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
       if (!session) setState("blocked");
     });
@@ -38,7 +45,8 @@ export default function AdminGate({ children }: Props) {
     window.location.href = "../login/";
   }
 
-  if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso...</strong></div></div></main>;
+  if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso e projeto...</strong></div></div></main>;
+  if (state === "wrong_backend") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">PROTEÇÃO DE PROJETO</span><h1>Conexão bloqueada</h1><p>O backend configurado não se identificou como IMOBILIARIAS. Nenhum dado será acessado por este painel até a conexão correta ser configurada.</p><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
   if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login necessário</h1><p>Entre com uma conta autorizada para abrir o painel.</p><a className="button primary full" href="../login/">Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
 
   return <div data-access-role={role || "admin"}>
