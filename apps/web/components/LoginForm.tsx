@@ -35,7 +35,7 @@ export default function LoginForm() {
     const { data: roleRow, error: roleError } = await supabaseBrowser.from("user_roles").select("role").eq("user_id", authData.user.id).maybeSingle();
     if (roleError || !roleRow || !["admin", "broker"].includes(roleRow.role)) {
       await supabaseBrowser.auth.signOut();
-      setStatus("Esta conta não possui autorização para acessar o painel.");
+      setStatus("Sua conta existe, mas ainda aguarda liberação do administrador.");
       setLoading(false);
       return;
     }
@@ -53,6 +53,7 @@ export default function LoginForm() {
       <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></label>
       <button className="button primary full" type="submit" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
+      <div className="loginLinks"><a href="../recuperar-senha/">Esqueci minha senha</a><a href="../cadastro/">Criar conta da equipe</a></div>
       <a className="backLink" href="../">← Voltar ao site</a>
     </form>
   );
