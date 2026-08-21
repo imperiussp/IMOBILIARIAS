@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./property.css";
+import "./admin.css";
 
 export const metadata: Metadata = {
   title: "IMOBILIARIAS",
