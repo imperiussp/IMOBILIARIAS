@@ -1,17 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 export default function FirstAdminSetup() {
   const [status, setStatus] = useState("Verificando configuração...");
   const [available, setAvailable] = useState(false);
   const [logged, setLogged] = useState(false);
+  const [backendValid, setBackendValid] = useState(true);
   const [working, setWorking] = useState(false);
 
   async function check() {
     if (!isSupabaseConfigured || !supabaseBrowser) {
       setStatus("O Supabase exclusivo do IMOBILIARIAS ainda não está configurado.");
+      return;
+    }
+    const validBackend = await isImobiliariasBackend();
+    setBackendValid(validBackend);
+    if (!validBackend) {
+      setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
       return;
     }
     const session = await supabaseBrowser.auth.getSession();
@@ -30,8 +38,15 @@ export default function FirstAdminSetup() {
   useEffect(() => { void check(); }, []);
 
   async function claim() {
-    if (!supabaseBrowser) return;
+    if (!supabaseBrowser || !backendValid) return;
     setWorking(true);
+    const validBackend = await isImobiliariasBackend();
+    if (!validBackend) {
+      setWorking(false);
+      setBackendValid(false);
+      setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
+      return;
+    }
     const { error } = await supabaseBrowser.rpc("claim_initial_admin");
     setWorking(false);
     if (error) return setStatus(error.message);
@@ -44,9 +59,9 @@ export default function FirstAdminSetup() {
     <h1>Primeiro administrador</h1>
     <p>Esta etapa só funciona uma única vez, quando o IMOBILIARIAS ainda não possui nenhum administrador cadastrado.</p>
     <p className="loginStatus">{status}</p>
-    {!logged && isSupabaseConfigured ? <a className="button primary full" href="../login/">Entrar primeiro</a> : null}
-    {logged && available ? <button className="button primary full" onClick={() => void claim()} disabled={working}>{working ? "Configurando..." : "Definir esta conta como administrador"}</button> : null}
-    {logged && !available ? <a className="button primary full" href="../admin/">Abrir painel</a> : null}
+    {!logged && backendValid && isSupabaseConfigured ? <a className="button primary full" href="../login/">Entrar primeiro</a> : null}
+    {logged && available && backendValid ? <button className="button primary full" onClick={() => void claim()} disabled={working}>{working ? "Configurando..." : "Definir esta conta como administrador"}</button> : null}
+    {logged && !available && backendValid ? <a className="button primary full" href="../admin/">Abrir painel</a> : null}
     <a className="backLink" href="../">← Voltar ao site</a>
   </div>;
 }
