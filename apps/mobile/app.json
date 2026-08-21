@@ -12,9 +12,23 @@
           "photosPermission": "Permita que o IMOBILIARIAS acesse suas fotos para anexar imagens aos imóveis.",
           "cameraPermission": "Permita que o IMOBILIARIAS use a câmera para fotografar os imóveis."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": []
+        }
       ]
     ],
-    "ios": { "supportsTablet": true },
-    "android": { "adaptiveIcon": { "backgroundColor": "#ffffff" } }
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Permita notificações para receber novos contatos e mensagens de clientes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#ffffff" },
+      "permissions": ["POST_NOTIFICATIONS"]
+    }
   }
 }
