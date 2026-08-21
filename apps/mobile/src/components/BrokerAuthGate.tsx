@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { getMobileAgencyContext } from "../lib/currentAgency";
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { mobileSupabase, mobileSupabaseConfigured } from "../lib/supabase";
 
@@ -10,6 +11,7 @@ export default function BrokerAuthGate({ children }: Props) {
   const [checking, setChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [backendValid, setBackendValid] = useState(true);
+  const [agencyName, setAgencyName] = useState("");
   const [mode, setMode] = useState<Mode>("login");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,12 +23,18 @@ export default function BrokerAuthGate({ children }: Props) {
     if (!mobileSupabase) { setChecking(false); return; }
     const validBackend = await isImobiliariasBackend();
     setBackendValid(validBackend);
-    if (!validBackend) { setAuthorized(false); setChecking(false); return; }
-    const { data } = await mobileSupabase.auth.getSession();
-    const user = data.session?.user;
-    if (!user) { setAuthorized(false); setChecking(false); return; }
-    const { data: broker } = await mobileSupabase.from("brokers").select("id,active").eq("user_id", user.id).eq("active", true).maybeSingle();
-    setAuthorized(Boolean(broker));
+    if (!validBackend) { setAuthorized(false); setAgencyName(""); setChecking(false); return; }
+
+    const context = await getMobileAgencyContext();
+    if (!context || context.role !== "broker" || !context.brokerId) {
+      setAuthorized(false);
+      setAgencyName(context?.agencyName || "");
+      setChecking(false);
+      return;
+    }
+
+    setAgencyName(context.agencyName);
+    setAuthorized(true);
     setChecking(false);
   }
 
@@ -47,12 +55,15 @@ export default function BrokerAuthGate({ children }: Props) {
       setLoading(false);
       return Alert.alert("Não foi possível entrar", "Confira o e-mail e a senha.");
     }
-    const { data: broker } = await mobileSupabase.from("brokers").select("id,active").eq("user_id", data.user.id).eq("active", true).maybeSingle();
-    if (!broker) {
+
+    const context = await getMobileAgencyContext();
+    if (!context || context.role !== "broker" || !context.brokerId) {
       await mobileSupabase.auth.signOut();
       setLoading(false);
-      return Alert.alert("Aguardando liberação", "Sua conta existe, mas ainda precisa ser vinculada a um corretor ativo pelo administrador.");
+      return Alert.alert("Aguardando liberação", "Sua conta precisa estar ativa como corretor de uma imobiliária antes de usar o aplicativo.");
     }
+
+    setAgencyName(context.agencyName);
     setAuthorized(true);
     setLoading(false);
   }
@@ -68,21 +79,21 @@ export default function BrokerAuthGate({ children }: Props) {
     setLoading(false);
     if (error) return Alert.alert("Não foi possível criar a conta", error.message);
     setPassword(""); setConfirm(""); setMode("login");
-    Alert.alert("Conta criada", "Confirme seu e-mail, se solicitado. Depois o administrador precisa vincular esta conta ao seu cadastro de corretor.");
+    Alert.alert("Conta criada", "Confirme seu e-mail, se solicitado. Depois o administrador da sua imobiliária precisa vincular esta conta ao cadastro de corretor.");
   }
 
   if (!mobileSupabaseConfigured) return <>{children}</>;
-  if (checking) return <SafeAreaView style={styles.screen}><ActivityIndicator size="large" /><Text style={styles.checking}>Verificando acesso e projeto...</Text></SafeAreaView>;
+  if (checking) return <SafeAreaView style={styles.screen}><ActivityIndicator size="large" /><Text style={styles.checking}>Verificando imobiliária e acesso...</Text></SafeAreaView>;
   if (!backendValid) return <SafeAreaView style={styles.screen}><View style={styles.card}><Text style={styles.kicker}>PROTEÇÃO DE PROJETO</Text><Text style={styles.title}>Conexão bloqueada</Text><Text style={styles.text}>O servidor configurado não se identificou como IMOBILIARIAS. O aplicativo não acessará nem enviará dados até a configuração correta ser instalada.</Text></View></SafeAreaView>;
-  if (authorized) return <>{children}</>;
+  if (authorized) return <View style={styles.authorizedShell}>{agencyName ? <View style={styles.tenantBar}><Text style={styles.tenantText}>Imobiliária: {agencyName}</Text></View> : null}{children}</View>;
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
-          <Text style={styles.kicker}>IMOBILIARIAS</Text>
+          <Text style={styles.kicker}>LENOY IMÓVEIS</Text>
           <Text style={styles.title}>{mode === "login" ? "Acesso do corretor" : "Criar conta"}</Text>
-          <Text style={styles.text}>{mode === "login" ? "Entre com a conta vinculada ao seu cadastro de corretor." : "A conta será criada sem permissão. O administrador fará o vínculo com o corretor correto."}</Text>
+          <Text style={styles.text}>{mode === "login" ? "Entre com a conta vinculada à sua imobiliária e ao seu cadastro de corretor." : "A conta será criada sem permissão. O administrador da imobiliária fará o vínculo com o corretor correto."}</Text>
           {mode === "register" ? <><Text style={styles.label}>Nome completo</Text><TextInput style={styles.input} value={fullName} onChangeText={setFullName} autoComplete="name" placeholder="Seu nome" /></> : null}
           <Text style={styles.label}>E-mail</Text>
           <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" placeholder="corretor@imobiliaria.com.br" />
@@ -98,6 +109,9 @@ export default function BrokerAuthGate({ children }: Props) {
 }
 
 const styles = StyleSheet.create({
+  authorizedShell:{flex:1},
+  tenantBar:{backgroundColor:"#17202a",paddingHorizontal:16,paddingVertical:8},
+  tenantText:{color:"#fff",fontSize:11,fontWeight:"800"},
   screen:{flex:1,backgroundColor:"#f4f6f8",alignItems:"center",justifyContent:"center",padding:22},
   scroll:{flexGrow:1,alignItems:"center",justifyContent:"center",padding:0,width:"100%"},
   card:{width:"100%",maxWidth:460,backgroundColor:"#fff",borderRadius:24,padding:24},
