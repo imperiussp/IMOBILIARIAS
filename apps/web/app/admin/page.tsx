@@ -1,7 +1,8 @@
+import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
-import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
 import AdminLiveData from "../../components/AdminLiveData";
+import AdminLocations from "../../components/AdminLocations";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 
 export default function AdminPage() {
@@ -21,23 +22,26 @@ export default function AdminPage() {
             <a className="active" href="#visao-geral">Visão geral</a>
             <a href="#imoveis">Imóveis</a>
             <a href="#novo-imovel">Novo imóvel</a>
+            <a href="#localidades">Localidades</a>
             <a href="#corretores">Corretores</a>
             <a href="#contatos">Contatos</a>
-            <a href="#exportar">Exportar</a>
+            <a href="#historico">Histórico</a>
+            <a href="#exportacoes">Exportações</a>
           </aside>
 
           <section className="adminContent" id="visao-geral">
-            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Gerencie catálogo, equipe e atendimento em um só lugar.</p></div><a className="button primary" href="#novo-imovel">+ Cadastrar imóvel</a></div>
+            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Gerencie catálogo, localidades, equipe, atendimento e histórico em um só lugar.</p></div><a className="button primary" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
 
             <div className="adminPanel" id="novo-imovel">
-              <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>O formulário grava no Supabase e envia as fotos para o storage quando as chaves do projeto estiverem configuradas.</p></div></div>
+              <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>Cadastro completo com corretor, características, privacidade de endereço e fotos.</p></div></div>
               <AdminPropertyForm />
             </div>
 
+            <AdminLocations />
             <AdminBrokers />
-            <AdminExportTools />
+            <AdminAuditLog />
           </section>
         </div>
       </main>
