@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+import { resolveCurrentTenant } from "../lib/tenantResolver";
 import { useSiteSettings } from "../lib/useSiteSettings";
 
 export default function GeneralContactForm() {
@@ -34,13 +34,20 @@ export default function GeneralContactForm() {
       return;
     }
     setSending(true);
-    const validBackend = await isImobiliariasBackend();
-    if (!validBackend) {
+    const tenant = await resolveCurrentTenant();
+    if (!tenant) {
       setSending(false);
-      setStatus("O envio foi bloqueado porque o backend configurado não pertence ao IMOBILIARIAS.");
+      setStatus("Não foi possível identificar a imobiliária deste endereço. Use o WhatsApp para atendimento.");
       return;
     }
-    const { error } = await supabaseBrowser.from("leads").insert({ name, phone: phone || null, email: email || null, message, source: "web-general-contact" });
+    const { error } = await supabaseBrowser.from("leads").insert({
+      agency_id: tenant.agency_id,
+      name,
+      phone: phone || null,
+      email: email || null,
+      message,
+      source: "web-general-contact",
+    });
     setSending(false);
     if (error) return setStatus("Não foi possível enviar agora. Tente pelo WhatsApp.");
     form.reset();
