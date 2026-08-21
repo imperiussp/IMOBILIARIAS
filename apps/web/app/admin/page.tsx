@@ -5,6 +5,7 @@ import AdminBrokers from "../../components/AdminBrokers";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
 import AdminDocuments from "../../components/AdminDocuments";
 import AdminDocumentUploads from "../../components/AdminDocumentUploads";
+import AdminDocumentUsage from "../../components/AdminDocumentUsage";
 import AdminDomains from "../../components/AdminDomains";
 import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
@@ -75,6 +76,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminUsers /></div>
             <div className="adminOnly"><AdminInvitations /></div>
             <div className="adminOnly"><AdminDocuments /></div>
+            <div className="adminOnly"><AdminDocumentUsage /></div>
             <div className="adminOnly"><AdminDocumentUploads /></div>
             <AdminStorageOverview />
             <div className="adminOnly"><AdminPlan /></div>
