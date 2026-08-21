@@ -13,6 +13,12 @@ function slugify(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+function propertyCode() {
+  const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
+  const random = crypto.getRandomValues(new Uint32Array(1))[0].toString(36).toUpperCase().padStart(6, "0").slice(-6);
+  return `IM-${timestamp}${random}`;
+}
+
 export default function AdminPropertyForm() {
   const [agencyId, setAgencyId] = useState("");
   const [agencyName, setAgencyName] = useState("");
@@ -143,7 +149,7 @@ export default function AdminPropertyForm() {
         }
       }
 
-      const code = `IM-${Date.now().toString().slice(-6)}`;
+      const code = propertyCode();
       const slug = `${slugify(title)}-${code.toLowerCase()}`;
       const payload = {
         agency_id: agencyId,
