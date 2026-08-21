@@ -6,6 +6,7 @@ import AdminCatalogSettings from "../../components/AdminCatalogSettings";
 import AdminDomains from "../../components/AdminDomains";
 import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
+import AdminInfinitePayCheckout from "../../components/AdminInfinitePayCheckout";
 import AdminInvitations from "../../components/AdminInvitations";
 import AdminLeadQualificationBoard from "../../components/AdminLeadQualificationBoard";
 import AdminLiveData from "../../components/AdminLiveData";
@@ -39,6 +40,7 @@ export default function AdminPage() {
             <a className="adminOnly" href="#usuarios">Usuários</a>
             <a className="adminOnly" href="#convites">Convites</a>
             <a className="adminOnly" href="#meu-plano">Meu plano</a>
+            <a className="adminOnly" href="#pagamento-infinitepay">Pagamento</a>
             <a className="adminOnly" href="#configuracoes">Imobiliária</a>
             <a className="adminOnly" href="#dominios">Domínios</a>
             <a href="#contatos">Contatos</a>
@@ -65,6 +67,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminUsers /></div>
             <div className="adminOnly"><AdminInvitations /></div>
             <div className="adminOnly"><AdminPlan /></div>
+            <div className="adminOnly"><AdminInfinitePayCheckout /></div>
             <div className="adminOnly"><AdminSiteSettings /></div>
             <div className="adminOnly"><AdminDomains /></div>
             <div className="adminOnly"><AdminAuditLog /></div>
