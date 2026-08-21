@@ -9,21 +9,22 @@ import "./admin-extra.css";
 import "./access.css";
 import "./branding.css";
 import "./contact.css";
+import "./platform.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imperiussp.github.io/IMOBILIARIAS";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "IMOBILIARIAS | Venda e locação de imóveis",
-    template: "%s | IMOBILIARIAS",
+    default: "LENOY IMÓVEIS | Plataforma para imobiliárias",
+    template: "%s | LENOY IMÓVEIS",
   },
-  description: "Encontre imóveis para venda e locação com filtros por cidade, bairro, tipo, finalidade, zona, preço e características.",
-  keywords: ["imóveis", "imobiliária", "casas", "apartamentos", "venda", "locação", "imóveis rurais", "imóveis comerciais"],
+  description: "Plataforma SaaS para imobiliárias com site próprio, catálogo de imóveis, corretores, leads, domínio personalizado e recursos de inteligência artificial.",
+  keywords: ["imobiliária", "site para imobiliária", "sistema imobiliário", "imóveis", "corretores", "leads", "SaaS imobiliário"],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "IMOBILIARIAS",
-    description: "Busca de imóveis para venda e locação com atendimento direto ao corretor.",
+    title: "LENOY IMÓVEIS",
+    description: "Plataforma completa para imobiliárias criarem seu site, publicarem imóveis e gerenciarem equipe e contatos.",
     type: "website",
     locale: "pt_BR",
     url: "/",
