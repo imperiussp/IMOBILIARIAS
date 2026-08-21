@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getPropertyPhotoUrls } from "../lib/propertyPhotos";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+import { useSiteSettings } from "../lib/useSiteSettings";
+import PublicHeader from "./PublicHeader";
 
 type CatalogRow = {
   id: string; code: string; title: string; description: string | null; purpose: "sale" | "rent"; zone: "urban" | "rural";
@@ -21,6 +23,7 @@ function money(value: number, purpose: string) {
 }
 
 export default function PublicPropertyDetail() {
+  const site = useSiteSettings();
   const [property, setProperty] = useState<CatalogRow | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -65,7 +68,7 @@ export default function PublicPropertyDetail() {
 
   useEffect(() => {
     if (!property) return;
-    document.title = `${property.title} · ${property.code} | IMOBILIARIAS`;
+    document.title = `${property.title} · ${property.code} | ${site.agency_name}`;
     const existing = document.getElementById("property-jsonld");
     if (existing) existing.remove();
     const script = document.createElement("script");
@@ -79,19 +82,20 @@ export default function PublicPropertyDetail() {
       address: { "@type": "PostalAddress", addressLocality: property.city, addressRegion: property.state_code },
       amenityFeature: features.map((name) => ({ "@type": "LocationFeatureSpecification", name, value: true })),
       offers: { "@type": "Offer", priceCurrency: "BRL", price: Number(property.price || 0), availability: "https://schema.org/InStock" },
+      provider: { "@type": "RealEstateAgent", name: site.agency_name, telephone: site.phone || undefined, email: site.email || undefined },
     });
     document.head.appendChild(script);
     return () => script.remove();
-  }, [property, features]);
+  }, [property, features, site.agency_name, site.email, site.phone]);
 
   const whatsappUrl = useMemo(() => {
     if (!property) return "";
-    const raw = property.broker_whatsapp || process.env.NEXT_PUBLIC_WHATSAPP_DEFAULT || "";
+    const raw = property.broker_whatsapp || site.whatsapp || process.env.NEXT_PUBLIC_WHATSAPP_DEFAULT || "";
     const number = raw.replace(/\D/g, "");
     if (!number) return "";
     const message = encodeURIComponent(`Olá, gostaria de informações sobre o imóvel código ${property.code}.`);
     return `https://wa.me/${number}?text=${message}`;
-  }, [property]);
+  }, [property, site.whatsapp]);
 
   async function shareProperty() {
     if (!property) return;
@@ -135,13 +139,13 @@ export default function PublicPropertyDetail() {
 
   return (
     <main>
-      <header className="topbar"><div className="container nav"><a className="brand" href="../"><span className="brandMark">I</span><span>IMOBILIARIAS</span></a><nav className="navLinks"><a href="../#imoveis">Imóveis</a><a href="../#como-funciona">Como funciona</a><a href="../#contato">Contato</a></nav>{whatsappUrl ? <a className="button primary small" href={whatsappUrl} target="_blank" rel="noreferrer">Falar com corretor</a> : null}</div></header>
+      <PublicHeader nested />
       <section className="container propertyDetail">
         <div className="detailTopActions"><a className="backLink" href="../#imoveis">← Voltar aos imóveis</a><button className="miniShare" onClick={() => void shareProperty()}>Compartilhar</button>{shareMessage ? <span>{shareMessage}</span> : null}</div>
         <div className="detailHeader"><div><span className="eyebrow">{property.code} · {property.purpose === "rent" ? "LOCAÇÃO" : "VENDA"}</span><h1>{property.title}</h1><p className="location">📍 {publicAddress}</p></div><strong className="detailPrice">{money(Number(property.price), property.purpose)}</strong></div>
         <div className="gallery dynamicGallery"><div className="galleryMain galleryButton" style={{ backgroundImage: `url(${currentImage})` }} aria-label="Foto principal"><button className="galleryNav galleryPrev" onClick={previousPhoto} aria-label="Foto anterior">‹</button><button className="galleryNav galleryNext" onClick={nextPhoto} aria-label="Próxima foto">›</button><span className="galleryCounter">{imageUrls.length ? `${activePhoto + 1}/${imageUrls.length}` : "Sem fotos"}</span></div><div className="gallerySide">{imageUrls.slice(0, 4).map((image, index) => <button key={image} className={`galleryThumb galleryButton ${activePhoto === index ? "activeThumb" : ""}`} style={{ backgroundImage: `url(${image})` }} onClick={() => setActivePhoto(index)} aria-label={`Ver foto ${index + 1}`} />)}</div></div>
         {imageUrls.length > 4 ? <div className="galleryPager">{imageUrls.map((_, index) => <button key={index} className={activePhoto === index ? "active" : ""} onClick={() => setActivePhoto(index)} aria-label={`Foto ${index + 1}`}>{index + 1}</button>)}</div> : null}
-        <div className="detailGrid"><section><div className="facts"><span><strong>{property.bedrooms || 0}</strong> quartos</span><span><strong>{property.suites || 0}</strong> suítes</span><span><strong>{property.bathrooms || 0}</strong> banheiros</span><span><strong>{property.parking_spaces || 0}</strong> vagas</span></div><div className="facts secondaryFacts"><span><strong>{area ? Number(area).toLocaleString("pt-BR") : "—"}</strong> m²</span><span><strong>{property.property_type || "Imóvel"}</strong> tipo</span><span><strong>{property.segment === "commercial" ? "Comercial" : "Residencial"}</strong> uso</span><span><strong>{property.zone === "rural" ? "Rural" : "Urbana"}</strong> zona</span></div>{features.length > 0 ? <div className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature) => <span key={feature}>✓ {feature}</span>)}</div></div> : null}<div className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description || "Entre em contato para receber mais informações sobre este imóvel."}</p></div><div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required /></label><label>Telefone<input name="phone" required /></label></div><label>E-mail<input name="email" type="email" /></label><label>Mensagem<textarea name="message" rows={4} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`} /></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage ? <div className="formMessage">{leadMessage}</div> : null}</form></div></section><aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name || "Atendimento da imobiliária"}</h3><p>{property.broker_creci || "CRECI a informar"}</p>{property.broker_area_of_operation ? <p>Atuação: {property.broker_area_of_operation}</p> : null}<p>O código <strong>{property.code}</strong> já identifica este imóvel no atendimento.</p>{whatsappUrl ? <a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a> : <p>WhatsApp ainda não configurado para este imóvel.</p>}</aside></div>
+        <div className="detailGrid"><section><div className="facts"><span><strong>{property.bedrooms || 0}</strong> quartos</span><span><strong>{property.suites || 0}</strong> suítes</span><span><strong>{property.bathrooms || 0}</strong> banheiros</span><span><strong>{property.parking_spaces || 0}</strong> vagas</span></div><div className="facts secondaryFacts"><span><strong>{area ? Number(area).toLocaleString("pt-BR") : "—"}</strong> m²</span><span><strong>{property.property_type || "Imóvel"}</strong> tipo</span><span><strong>{property.segment === "commercial" ? "Comercial" : "Residencial"}</strong> uso</span><span><strong>{property.zone === "rural" ? "Rural" : "Urbana"}</strong> zona</span></div>{features.length > 0 ? <div className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature) => <span key={feature}>✓ {feature}</span>)}</div></div> : null}<div className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description || "Entre em contato para receber mais informações sobre este imóvel."}</p></div><div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required /></label><label>Telefone<input name="phone" required /></label></div><label>E-mail<input name="email" type="email" /></label><label>Mensagem<textarea name="message" rows={4} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`} /></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage ? <div className="formMessage">{leadMessage}</div> : null}</form></div></section><aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name || site.agency_name}</h3><p>{property.broker_creci || site.company_creci || "CRECI a informar"}</p>{property.broker_area_of_operation ? <p>Atuação: {property.broker_area_of_operation}</p> : null}<p>O código <strong>{property.code}</strong> já identifica este imóvel no atendimento.</p>{whatsappUrl ? <a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a> : <p>WhatsApp ainda não configurado para este imóvel.</p>}</aside></div>
       </section>
     </main>
   );
