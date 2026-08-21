@@ -1,7 +1,3 @@
-create unique index if not exists property_photos_single_cover_idx
-on public.property_photos (property_id)
-where is_cover = true;
-
 create or replace function public.normalize_property_photo_cover(target_property_id uuid)
 returns void
 language plpgsql
@@ -28,34 +24,47 @@ begin
 end;
 $$;
 
+-- Corrige dados antigos antes de criar a restrição de uma única capa.
+do $$
+declare r record;
+begin
+  for r in select distinct property_id from public.property_photos loop
+    perform public.normalize_property_photo_cover(r.property_id);
+  end loop;
+end $$;
+
+create unique index if not exists property_photos_single_cover_idx
+on public.property_photos (property_id)
+where is_cover = true;
+
 create or replace function public.ensure_property_photo_cover()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
-declare
-  target_id uuid;
 begin
-  target_id := coalesce(new.property_id, old.property_id);
-
   if tg_op = 'INSERT' then
-    if not exists (select 1 from public.property_photos where property_id = new.property_id and id <> new.id and is_cover = true) then
-      new.is_cover := true;
-    elsif new.is_cover then
-      update public.property_photos set is_cover = false where property_id = new.property_id and id <> new.id and is_cover = true;
-    end if;
-    return new;
-  end if;
-
-  if tg_op = 'UPDATE' then
     if new.is_cover then
-      update public.property_photos set is_cover = false where property_id = new.property_id and id <> new.id and is_cover = true;
+      update public.property_photos
+      set is_cover = false
+      where property_id = new.property_id and is_cover = true;
+    elsif not exists (
+      select 1 from public.property_photos
+      where property_id = new.property_id and is_cover = true
+    ) then
+      new.is_cover := true;
     end if;
     return new;
   end if;
 
-  return old;
+  if tg_op = 'UPDATE' and new.is_cover and old.is_cover is distinct from new.is_cover then
+    update public.property_photos
+    set is_cover = false
+    where property_id = new.property_id and id <> new.id and is_cover = true;
+  end if;
+
+  return new;
 end;
 $$;
 
@@ -82,12 +91,3 @@ drop trigger if exists property_photo_cover_after_delete on public.property_phot
 create trigger property_photo_cover_after_delete
 after delete on public.property_photos
 for each row execute function public.restore_property_photo_cover_after_delete();
-
--- Normaliza dados existentes antes de uso em produção.
-do $$
-declare r record;
-begin
-  for r in select distinct property_id from public.property_photos loop
-    perform public.normalize_property_photo_cover(r.property_id);
-  end loop;
-end $$;
