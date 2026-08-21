@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
+import { getCurrentAgency } from "../lib/currentAgency";
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
@@ -40,54 +41,32 @@ export default function AdminGate({ children }: Props) {
       const user = data.session?.user;
       if (!user) { setState("blocked"); return; }
 
-      // Administrador global da plataforma continua tendo acesso operacional.
-      const { data: globalRole } = await supabaseBrowser
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const platformCheck = await supabaseBrowser.rpc("is_platform_admin");
       if (!active) return;
-      if (globalRole?.role === "admin") {
+      if (!platformCheck.error && platformCheck.data === true) {
         setRole("platform_admin");
         setState("allowed");
         return;
       }
 
-      // No SaaS, o acesso normal nasce do vínculo com uma imobiliária.
-      const { data: memberships, error: membershipError } = await supabaseBrowser
-        .from("agency_memberships")
-        .select("agency_id,role,active")
-        .eq("user_id", user.id)
-        .eq("active", true)
-        .limit(1);
+      const currentAgency = await getCurrentAgency();
       if (!active) return;
-      const membership = memberships?.[0];
-      if (membershipError || !membership) { setState("blocked"); return; }
+      if (!currentAgency) { setState("blocked"); return; }
 
-      const tenantRole = membership.role as TenantRole;
+      const tenantRole = currentAgency.role as TenantRole;
       if (!["owner", "admin", "broker", "staff"].includes(tenantRole)) {
         setState("blocked");
         return;
       }
 
-      const { data: agency } = await supabaseBrowser
-        .from("agencies")
-        .select("name,status")
-        .eq("id", membership.agency_id)
-        .maybeSingle();
-      if (!active) return;
-      if (!agency || !["trial", "active", "past_due"].includes(agency.status)) {
-        setState("blocked");
-        return;
-      }
-      setAgencyName(agency.name || "");
+      setAgencyName(currentAgency.agencyName);
 
       if (tenantRole === "broker") {
         const { data: brokerRow, error: brokerError } = await supabaseBrowser
           .from("brokers")
           .select("id,active,agency_id")
           .eq("user_id", user.id)
-          .eq("agency_id", membership.agency_id)
+          .eq("agency_id", currentAgency.agencyId)
           .maybeSingle();
         if (!active) return;
         if (brokerError || !brokerRow?.active) {
@@ -114,14 +93,14 @@ export default function AdminGate({ children }: Props) {
 
   if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso e imobiliária...</strong></div></div></main>;
   if (state === "wrong_backend") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">PROTEÇÃO DE PROJETO</span><h1>Conexão bloqueada</h1><p>O backend configurado não se identificou como IMOBILIARIAS. Nenhum dado será acessado por este painel até a conexão correta ser configurada.</p><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
-  if (state === "inactive_broker") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO DO CORRETOR</span><h1>Perfil não liberado</h1><p>Sua conta está vinculada à imobiliária, mas o perfil de corretor ainda não está ativo.</p><button className="button secondary full" onClick={() => void signOut()}>Sair</button><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
+  if (state === "inactive_broker") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO DO CORRETOR</span><h1>Perfil não liberado</h1><p>Sua conta está vinculada à imobiliária selecionada, mas o perfil de corretor ainda não está ativo nela.</p><button className="button secondary full" onClick={() => void signOut()}>Sair</button><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
   if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login ou vínculo necessário</h1><p>Entre com uma conta vinculada a uma imobiliária ativa.</p><a className="button primary full" href="../login/">Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
 
   const accessRole = role === "broker" || role === "staff" ? "broker" : "admin";
   return <div data-access-role={accessRole} data-tenant-role={role}>
     {state === "demo"
       ? <div className="demoAdminBanner">Modo demonstração: o Supabase ainda não está configurado neste ambiente.</div>
-      : <div className="sessionBar"><span>{agencyName ? <><strong>{agencyName}</strong> · </> : null}Acesso: <strong>{roleLabel(role)}</strong></span><button onClick={() => void signOut()}>Sair</button></div>}
+      : <div className="sessionBar"><span>{role === "platform_admin" ? <><strong>LENOY IMÓVEIS</strong> · </> : agencyName ? <><strong>{agencyName}</strong> · </> : null}Acesso: <strong>{roleLabel(role)}</strong></span>{role === "platform_admin" ? <a href="../plataforma/">Painel da plataforma</a> : null}<button onClick={() => void signOut()}>Sair</button></div>}
     {children}
   </div>;
 }
