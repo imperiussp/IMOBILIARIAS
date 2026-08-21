@@ -8,7 +8,14 @@ immutable
 set search_path = public
 as $$
   select trim(both '-' from regexp_replace(
-    regexp_replace(lower(unaccent(coalesce(p_value, ''))), '[^a-z0-9]+', '-', 'g'),
+    regexp_replace(
+      lower(translate(
+        coalesce(p_value, ''),
+        'áàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ',
+        'aaaaaeeeeiiiiooooouuuucnAAAAAEEEEIIIIOOOOOUUUUCN'
+      )),
+      '[^a-z0-9]+', '-', 'g'
+    ),
     '-+', '-', 'g'
   ))
 $$;
@@ -44,7 +51,6 @@ begin
     return new;
   end if;
 
-  -- Idempotência: não cria uma segunda imobiliária se o trigger rodar em update do Auth.
   if exists (
     select 1 from public.agency_memberships am
     where am.user_id = new.id and am.role = 'owner'
@@ -100,7 +106,6 @@ create trigger on_auth_user_created_agency_owner
 after insert on auth.users
 for each row execute function public.handle_new_agency_owner();
 
--- Consulta pública apenas para informar disponibilidade do subdomínio durante o cadastro.
 create or replace function public.agency_slug_available(p_slug text)
 returns boolean
 language plpgsql
