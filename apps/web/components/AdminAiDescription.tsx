@@ -8,6 +8,8 @@ export default function AdminAiDescription() {
   const [agencyId, setAgencyId] = useState("");
   const [agencyName, setAgencyName] = useState("");
   const [canUse, setCanUse] = useState(true);
+  const [featureEnabled, setFeatureEnabled] = useState(true);
+  const [planName, setPlanName] = useState("");
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
@@ -19,14 +21,23 @@ export default function AdminAiDescription() {
       if (!current) return setMessage("Não foi possível identificar a imobiliária ativa.");
       setAgencyId(current.agencyId);
       setAgencyName(current.agencyName);
-      const quota = await supabaseBrowser.rpc("agency_can_use_ai_description", { p_agency_id: current.agencyId });
+      const [quota, featureResult] = await Promise.all([
+        supabaseBrowser.rpc("agency_can_use_ai_description", { p_agency_id: current.agencyId }),
+        supabaseBrowser.rpc("agency_plan_feature_snapshot", { p_agency_id: current.agencyId }),
+      ]);
       if (!quota.error) setCanUse(quota.data !== false);
+      const feature = Array.isArray(featureResult.data) ? featureResult.data[0] : null;
+      if (!featureResult.error && feature) {
+        setFeatureEnabled(feature.ai_descriptions !== false);
+        setPlanName(String(feature.plan_name || ""));
+      }
     })();
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabaseBrowser || !agencyId) return setMessage("Conecte o Supabase para usar a geração de descrições.");
+    if (!featureEnabled) return setMessage("A geração de descrições com IA não está incluída no plano atual.");
     if (!canUse) return setMessage("O limite mensal de descrições com IA foi atingido para este plano.");
     const form = new FormData(event.currentTarget);
     const payload = {
@@ -66,16 +77,20 @@ export default function AdminAiDescription() {
     } catch { setMessage("Selecione o texto e copie manualmente."); }
   }
 
+  const available = featureEnabled && canUse;
+
   return <div className="adminPanel" id="descricao-ia">
-    <div className="adminPanelHeader"><div><span className="eyebrow">ASSISTENTE</span><h2>Descrição de imóvel com IA</h2><p>Gere um texto a partir apenas dos dados confirmados do imóvel de {agencyName || "sua imobiliária"}.</p></div><span>{canUse ? "Disponível no plano" : "Limite atingido"}</span></div>
+    <div className="adminPanelHeader"><div><span className="eyebrow">ASSISTENTE</span><h2>Descrição de imóvel com IA</h2><p>Gere um texto a partir apenas dos dados confirmados do imóvel de {agencyName || "sua imobiliária"}.</p></div><span>{!featureEnabled ? "Não incluída no plano" : canUse ? "Disponível" : "Limite atingido"}</span></div>
+    {planName ? <div className="formNotice">Plano identificado: <strong>{planName}</strong>. O consumo é contabilizado por imobiliária e por mês.</div> : null}
     {!isSupabaseConfigured ? <div className="formNotice">A ferramenta fica pronta para uso quando o backend de produção e o provedor de IA forem configurados.</div> : null}
+    {!featureEnabled ? <div className="formNotice">Este recurso está desativado para o plano atual. Nenhuma geração será cobrada ou contabilizada.</div> : null}
     <form className="propertyForm" onSubmit={submit}>
       <div className="formGrid"><label>Título<input name="title" placeholder="Casa com 3 quartos no Centro" /></label><label>Tipo<input name="property_type" placeholder="Casa, apartamento, terreno..." /></label></div>
       <div className="formGrid three"><label>Finalidade<select name="purpose" defaultValue="Venda"><option>Venda</option><option>Locação</option></select></label><label>Cidade<input name="city" /></label><label>Bairro<input name="neighborhood" /></label></div>
       <div className="formGrid three"><label>Valor<input name="price" placeholder="R$ 485.000" /></label><label>Área<input name="area" placeholder="120 m²" /></label><label>Tom<select name="tone" defaultValue="profissional"><option value="profissional">Profissional</option><option value="acolhedor">Acolhedor</option><option value="objetivo">Objetivo</option><option value="sofisticado">Sofisticado</option></select></label></div>
       <div className="formGrid three"><label>Quartos<input name="bedrooms" inputMode="numeric" /></label><label>Suítes<input name="suites" inputMode="numeric" /></label><label>Banheiros<input name="bathrooms" inputMode="numeric" /></label></div>
       <label>Informações confirmadas<textarea name="notes" rows={4} placeholder="Ex.: cozinha planejada, quintal, duas vagas cobertas, próximo ao centro. Não informe nada que não esteja confirmado." /></label>
-      <div className="formActions"><button className="button primary" type="submit" disabled={loading || !agencyId || !canUse}>{loading ? "Gerando..." : "Gerar descrição"}</button></div>
+      <div className="formActions"><button className="button primary" type="submit" disabled={loading || !agencyId || !available}>{loading ? "Gerando..." : "Gerar descrição"}</button></div>
     </form>
     {message ? <div className="formMessage">{message}</div> : null}
     {description ? <div className="domainPrimaryCard"><div style={{ flex: 1 }}><span className="eyebrow">TEXTO GERADO</span><p style={{ whiteSpace: "pre-wrap", lineHeight: 1.65 }}>{description}</p></div><button className="miniButton" type="button" onClick={() => void copy()}>Copiar</button></div> : null}
