@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getPropertyPhotoUrl } from "../lib/propertyPhotos";
 import { supabaseBrowser } from "../lib/supabaseBrowser";
 
-type Photo = { id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string | null };
-
+type Photo = { id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string | null; signed_url?: string };
 type Props = { propertyId: string; propertyTitle: string };
-
-function publicUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  return base ? `${base}/storage/v1/object/public/property-photos/${path}` : "";
-}
 
 export default function AdminPropertyPhotos({ propertyId, propertyTitle }: Props) {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -19,8 +14,10 @@ export default function AdminPropertyPhotos({ propertyId, propertyTitle }: Props
   async function load() {
     if (!supabaseBrowser) return;
     const { data, error } = await supabaseBrowser.from("property_photos").select("id,storage_path,position,is_cover,alt_text").eq("property_id", propertyId).order("position");
-    if (error) setMessage(error.message);
-    else setPhotos((data || []) as Photo[]);
+    if (error) return setMessage(error.message);
+    const rows = (data || []) as Photo[];
+    const withUrls = await Promise.all(rows.map(async (photo) => ({ ...photo, signed_url: await getPropertyPhotoUrl(photo.storage_path) })));
+    setPhotos(withUrls);
   }
 
   useEffect(() => { void load(); }, [propertyId]);
@@ -64,10 +61,7 @@ export default function AdminPropertyPhotos({ propertyId, propertyTitle }: Props
     <div className="photoManager">
       <div className="adminPanelHeader"><div><span className="eyebrow">FOTOS</span><h3>{propertyTitle}</h3></div><span>{photos.length} foto(s)</span></div>
       {message ? <div className="formMessage">{message}</div> : null}
-      {photos.length === 0 ? <div className="emptyMini">Nenhuma foto cadastrada.</div> : <div className="adminPhotoGrid">{photos.map((photo, index) => <article className="adminPhotoCard" key={photo.id}>
-        <div className="adminPhotoImage" style={{ backgroundImage: `url(${publicUrl(photo.storage_path)})` }}>{photo.is_cover ? <span>CAPA</span> : null}</div>
-        <div className="adminPhotoActions"><button className="miniButton" onClick={() => void move(index, -1)} disabled={index === 0}>↑</button><button className="miniButton" onClick={() => void move(index, 1)} disabled={index === photos.length - 1}>↓</button><button className="miniButton" onClick={() => void setCover(photo.id)} disabled={photo.is_cover}>Capa</button><button className="miniButton danger" onClick={() => void remove(photo)}>Excluir</button></div>
-      </article>)}</div>}
+      {photos.length === 0 ? <div className="emptyMini">Nenhuma foto cadastrada.</div> : <div className="adminPhotoGrid">{photos.map((photo, index) => <article className="adminPhotoCard" key={photo.id}><div className="adminPhotoImage" style={{ backgroundImage: photo.signed_url ? `url(${photo.signed_url})` : undefined }}>{photo.is_cover ? <span>CAPA</span> : null}</div><div className="adminPhotoActions"><button className="miniButton" onClick={() => void move(index, -1)} disabled={index === 0}>↑</button><button className="miniButton" onClick={() => void move(index, 1)} disabled={index === photos.length - 1}>↓</button><button className="miniButton" onClick={() => void setCover(photo.id)} disabled={photo.is_cover}>Capa</button><button className="miniButton danger" onClick={() => void remove(photo)}>Excluir</button></div></article>)}</div>}
     </div>
   );
 }
