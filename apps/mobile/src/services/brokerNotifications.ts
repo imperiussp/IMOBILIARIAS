@@ -16,30 +16,77 @@ export type BrokerNotification = {
 let configured = false;
 let lastPresentedId = "";
 
-export async function configureBrokerNotifications() {
-  if (configured) return;
-  configured = true;
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
+async function registerDevicePushToken() {
+  if (!mobileSupabase || (Platform.OS !== "android" && Platform.OS !== "ios")) return;
+  const permission = await Notifications.getPermissionsAsync();
+  if (permission.status !== "granted") return;
 
-  const current = await Notifications.getPermissionsAsync();
-  if (current.status !== "granted") await Notifications.requestPermissionsAsync();
+  const context = await getMobileAgencyContext();
+  if (!context || context.role !== "broker" || !context.brokerId) return;
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("clientes", {
-      name: "Clientes e contatos",
-      importance: Notifications.AndroidImportance.HIGH,
-      sound: "default",
-      vibrationPattern: [0, 250, 150, 250],
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    });
+  const { data: authData } = await mobileSupabase.auth.getUser();
+  const userId = authData.user?.id;
+  if (!userId) return;
+
+  try {
+    const pushToken = await Notifications.getExpoPushTokenAsync();
+    const token = pushToken.data?.trim();
+    if (!token) return;
+
+    await mobileSupabase.from("device_push_tokens").upsert({
+      agency_id: context.agencyId,
+      user_id: userId,
+      platform: Platform.OS,
+      token,
+      enabled: true,
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: "user_id,token" });
+  } catch {
+    // Em Expo Go/build sem projectId de push, o app continua funcionando com notificações locais.
   }
+}
+
+export async function configureBrokerNotifications() {
+  if (!configured) {
+    configured = true;
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+
+    const current = await Notifications.getPermissionsAsync();
+    if (current.status !== "granted") await Notifications.requestPermissionsAsync();
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("clientes", {
+        name: "Clientes e contatos",
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: "default",
+        vibrationPattern: [0, 250, 150, 250],
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      });
+    }
+  }
+
+  // Roda em toda validação/troca de imobiliária para manter o token associado ao tenant ativo.
+  await registerDevicePushToken();
+}
+
+export async function disableCurrentDevicePushToken() {
+  if (!mobileSupabase || (Platform.OS !== "android" && Platform.OS !== "ios")) return;
+  try {
+    const pushToken = await Notifications.getExpoPushTokenAsync();
+    const token = pushToken.data?.trim();
+    if (!token) return;
+    const { data: authData } = await mobileSupabase.auth.getUser();
+    const userId = authData.user?.id;
+    if (!userId) return;
+    await mobileSupabase.from("device_push_tokens").update({ enabled: false, last_seen_at: new Date().toISOString() }).eq("user_id", userId).eq("token", token);
+  } catch { /* sem token remoto neste build */ }
 }
 
 export async function loadBrokerNotifications(limit = 30): Promise<BrokerNotification[]> {
