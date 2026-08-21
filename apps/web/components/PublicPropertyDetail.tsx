@@ -1,0 +1,111 @@
+"use client";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+
+type CatalogRow = {
+  id: string; code: string; title: string; description: string | null; purpose: "sale" | "rent"; zone: "urban" | "rural";
+  segment?: "residential" | "commercial"; status: string; price: number; bedrooms: number | null; suites: number | null;
+  bathrooms: number | null; parking_spaces: number | null; built_area_m2: number | null; land_area_m2: number | null;
+  city: string; state_code: string; neighborhood: string | null; property_type: string | null; broker_name: string | null;
+  broker_whatsapp: string | null; broker_creci: string | null; address: string | null; address_public: boolean;
+};
+
+type Photo = { id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string | null };
+
+function money(value: number, purpose: string) {
+  const formatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
+  return purpose === "rent" ? `${formatted}/mês` : formatted;
+}
+
+function photoUrl(path: string) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return base ? `${base}/storage/v1/object/public/property-photos/${path}` : "";
+}
+
+export default function PublicPropertyDetail() {
+  const [property, setProperty] = useState<CatalogRow | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activePhoto, setActivePhoto] = useState(0);
+  const [leadMessage, setLeadMessage] = useState("");
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (!id) { setError("Imóvel não informado."); setLoading(false); return; }
+    if (!isSupabaseConfigured || !supabaseBrowser) { setError("Catálogo online ainda não configurado."); setLoading(false); return; }
+    let active = true;
+    void Promise.all([
+      supabaseBrowser.from("property_catalog").select("*").eq("id", id).maybeSingle(),
+      supabaseBrowser.from("property_photos").select("id,storage_path,position,is_cover,alt_text").eq("property_id", id).order("is_cover", { ascending: false }).order("position"),
+    ]).then(([propertyResult, photoResult]) => {
+      if (!active) return;
+      if (propertyResult.error || !propertyResult.data) setError("Este imóvel não está disponível no catálogo.");
+      else setProperty(propertyResult.data as CatalogRow);
+      if (photoResult.data) setPhotos(photoResult.data as Photo[]);
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const whatsappUrl = useMemo(() => {
+    if (!property?.broker_whatsapp) return "";
+    const number = property.broker_whatsapp.replace(/\D/g, "");
+    const message = encodeURIComponent(`Olá, gostaria de informações sobre o imóvel código ${property.code}.`);
+    return `https://wa.me/${number}?text=${message}`;
+  }, [property]);
+
+  async function sendLead(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!property || !supabaseBrowser) return;
+    const data = new FormData(event.currentTarget);
+    const payload = {
+      property_id: property.id,
+      name: String(data.get("name") || "").trim() || null,
+      phone: String(data.get("phone") || "").trim() || null,
+      email: String(data.get("email") || "").trim() || null,
+      message: String(data.get("message") || "").trim() || `Interesse no imóvel ${property.code}`,
+      source: "web-property-detail",
+    };
+    const { error: leadError } = await supabaseBrowser.from("leads").insert(payload);
+    setLeadMessage(leadError ? "Não foi possível enviar agora. Use o WhatsApp do corretor." : "Contato enviado. O corretor poderá retornar pelo telefone ou e-mail informado.");
+    if (!leadError) event.currentTarget.reset();
+  }
+
+  if (loading) return <main className="container propertyDetail"><div className="emptyState"><strong>Carregando imóvel...</strong></div></main>;
+  if (error || !property) return <main className="container propertyDetail"><a className="backLink" href="../">← Voltar ao catálogo</a><div className="emptyState"><strong>{error || "Imóvel não encontrado."}</strong></div></main>;
+
+  const imageUrls = photos.map((photo) => photoUrl(photo.storage_path)).filter(Boolean);
+  const currentImage = imageUrls[activePhoto] || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80";
+  const area = property.built_area_m2 || property.land_area_m2;
+  const publicAddress = property.address_public && property.address ? property.address : `${property.neighborhood || ""}, ${property.city} - ${property.state_code}`;
+
+  return (
+    <main>
+      <header className="topbar"><div className="container nav"><a className="brand" href="../"><span className="brandMark">I</span><span>IMOBILIARIAS</span></a><nav className="navLinks"><a href="../#imoveis">Imóveis</a><a href="../#como-funciona">Como funciona</a><a href="../#contato">Contato</a></nav>{whatsappUrl ? <a className="button primary small" href={whatsappUrl} target="_blank" rel="noreferrer">Falar com corretor</a> : null}</div></header>
+      <section className="container propertyDetail">
+        <a className="backLink" href="../#imoveis">← Voltar aos imóveis</a>
+        <div className="detailHeader"><div><span className="eyebrow">{property.code} · {property.purpose === "rent" ? "LOCAÇÃO" : "VENDA"}</span><h1>{property.title}</h1><p className="location">📍 {publicAddress}</p></div><strong className="detailPrice">{money(Number(property.price), property.purpose)}</strong></div>
+
+        <div className="gallery dynamicGallery">
+          <button className="galleryMain galleryButton" style={{ backgroundImage: `url(${currentImage})` }} aria-label="Foto principal" />
+          <div className="gallerySide">
+            {imageUrls.slice(0, 4).map((image, index) => <button key={image} className={`galleryThumb galleryButton ${activePhoto === index ? "activeThumb" : ""}`} style={{ backgroundImage: `url(${image})` }} onClick={() => setActivePhoto(index)} aria-label={`Ver foto ${index + 1}`} />)}
+          </div>
+        </div>
+        {imageUrls.length > 4 ? <div className="galleryPager">{imageUrls.map((_, index) => <button key={index} className={activePhoto === index ? "active" : ""} onClick={() => setActivePhoto(index)} aria-label={`Foto ${index + 1}`}>{index + 1}</button>)}</div> : null}
+
+        <div className="detailGrid">
+          <section>
+            <div className="facts"><span><strong>{property.bedrooms || 0}</strong> quartos</span><span><strong>{property.suites || 0}</strong> suítes</span><span><strong>{property.bathrooms || 0}</strong> banheiros</span><span><strong>{property.parking_spaces || 0}</strong> vagas</span></div>
+            <div className="facts secondaryFacts"><span><strong>{area ? Number(area).toLocaleString("pt-BR") : "—"}</strong> m²</span><span><strong>{property.property_type || "Imóvel"}</strong> tipo</span><span><strong>{property.segment === "commercial" ? "Comercial" : "Residencial"}</strong> uso</span><span><strong>{property.zone === "rural" ? "Rural" : "Urbana"}</strong> zona</span></div>
+            <div className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description || "Entre em contato para receber mais informações sobre este imóvel."}</p></div>
+            <div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required /></label><label>Telefone<input name="phone" required /></label></div><label>E-mail<input name="email" type="email" /></label><label>Mensagem<textarea name="message" rows={4} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`} /></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage ? <div className="formMessage">{leadMessage}</div> : null}</form></div>
+          </section>
+          <aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name || "Atendimento da imobiliária"}</h3><p>{property.broker_creci || "CRECI a informar"}</p><p>O código <strong>{property.code}</strong> já identifica este imóvel no atendimento.</p>{whatsappUrl ? <a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a> : <p>WhatsApp ainda não configurado para este imóvel.</p>}</aside>
+        </div>
+      </section>
+    </main>
+  );
+}
