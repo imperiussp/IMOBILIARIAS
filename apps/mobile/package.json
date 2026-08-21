@@ -15,8 +15,10 @@
     "@react-native-community/netinfo": "latest",
     "@supabase/supabase-js": "latest",
     "expo": "latest",
+    "expo-image-picker": "latest",
     "react": "latest",
-    "react-native": "latest"
+    "react-native": "latest",
+    "react-native-url-polyfill": "latest"
   },
   "devDependencies": {
     "@types/react": "latest",
