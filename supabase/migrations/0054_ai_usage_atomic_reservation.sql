@@ -1,5 +1,6 @@
 -- Reserva atômica de uso da IA por imobiliária.
--- Impede duas gerações simultâneas de ultrapassarem o limite mensal do plano.
+-- Impede duas gerações simultâneas de ultrapassarem o limite mensal do plano
+-- e bloqueia o backend quando o plano desativar o recurso de IA.
 
 create or replace function public.reserve_ai_description_usage(
   p_agency_id uuid,
@@ -14,6 +15,8 @@ declare
   max_allowed integer;
   used_count bigint;
   event_id uuid;
+  feature_enabled boolean := true;
+  has_current_plan boolean := false;
 begin
   if not public.is_agency_member(p_agency_id) and not public.is_platform_admin() then
     raise exception 'Acesso negado';
@@ -21,8 +24,11 @@ begin
 
   perform pg_advisory_xact_lock(hashtext(p_agency_id::text || ':ai-description'));
 
-  select p.max_ai_descriptions
-  into max_allowed
+  select
+    p.max_ai_descriptions,
+    lower(coalesce(p.features ->> 'ai_descriptions', 'true')) in ('true','1','yes','on'),
+    true
+  into max_allowed, feature_enabled, has_current_plan
   from public.agency_subscriptions s
   join public.subscription_plans p on p.id = s.plan_id
   where s.agency_id = p_agency_id
@@ -30,6 +36,12 @@ begin
     and p.active = true
   order by s.starts_at desc
   limit 1;
+
+  -- Compatibilidade: enquanto nenhum plano for configurado, preserva a função existente.
+  -- Assim que houver plano ativo, a flag do plano passa a ser obrigatória.
+  if has_current_plan and not feature_enabled then
+    raise exception 'A geração de descrições com IA não está incluída no plano atual.';
+  end if;
 
   select count(*) into used_count
   from public.ai_usage_events au
