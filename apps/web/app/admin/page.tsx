@@ -1,4 +1,5 @@
 import AdminBrokers from "../../components/AdminBrokers";
+import AdminExportTools from "../../components/AdminExportTools";
 import AdminGate from "../../components/AdminGate";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
@@ -22,6 +23,7 @@ export default function AdminPage() {
             <a href="#novo-imovel">Novo imóvel</a>
             <a href="#corretores">Corretores</a>
             <a href="#contatos">Contatos</a>
+            <a href="#exportar">Exportar</a>
           </aside>
 
           <section className="adminContent" id="visao-geral">
@@ -35,6 +37,7 @@ export default function AdminPage() {
             </div>
 
             <AdminBrokers />
+            <AdminExportTools />
           </section>
         </div>
       </main>
