@@ -3,18 +3,19 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getPropertyPhotoUrls } from "../lib/propertyPhotos";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+import { currentHostname, resolveCurrentTenant } from "../lib/tenantResolver";
 import { useSiteSettings } from "../lib/useSiteSettings";
 import PublicHeader from "./PublicHeader";
 
 type CatalogRow = {
-  id: string; code: string; title: string; description: string | null; purpose: "sale" | "rent"; zone: "urban" | "rural";
+  id: string; agency_id: string; code: string; title: string; description: string | null; purpose: "sale" | "rent"; zone: "urban" | "rural";
   segment?: "residential" | "commercial"; status: string; price: number; bedrooms: number | null; suites: number | null;
   bathrooms: number | null; parking_spaces: number | null; built_area_m2: number | null; land_area_m2: number | null;
   city: string; state_code: string; neighborhood: string | null; property_type: string | null; broker_name: string | null;
   broker_whatsapp: string | null; broker_creci: string | null; broker_area_of_operation?: string | null; address: string | null; address_public: boolean;
 };
 
-type Photo = { id: string; storage_path: string; position: number; is_cover: boolean; alt_text: string | null };
+type Photo = { id: string; storage_path: string; thumbnail_path?: string | null; position: number; is_cover: boolean; alt_text: string | null };
 type FeatureLink = { property_features: { name: string } | { name: string }[] | null };
 
 function money(value: number, purpose: string) {
@@ -39,30 +40,43 @@ export default function PublicPropertyDetail() {
     if (!id) { setError("Imóvel não informado."); setLoading(false); return; }
     if (!isSupabaseConfigured || !supabaseBrowser) { setError("Catálogo online ainda não configurado."); setLoading(false); return; }
     let active = true;
-    void Promise.all([
-      supabaseBrowser.from("property_catalog").select("*").eq("id", id).maybeSingle(),
-      supabaseBrowser.from("property_photos").select("id,storage_path,position,is_cover,alt_text").eq("property_id", id).order("is_cover", { ascending: false }).order("position"),
-      supabaseBrowser.from("property_feature_links").select("property_features(name)").eq("property_id", id),
-    ]).then(async ([propertyResult, photoResult, featureResult]) => {
+    void (async () => {
+      const tenant = await resolveCurrentTenant();
+      const host = currentHostname();
       if (!active) return;
-      if (propertyResult.error || !propertyResult.data) setError("Este imóvel não está disponível no catálogo.");
-      else setProperty(propertyResult.data as CatalogRow);
-      if (photoResult.data) {
+      if (!tenant || !host) { setError("Imobiliária não identificada para este endereço."); setLoading(false); return; }
+
+      const [propertyResult, photoResult] = await Promise.all([
+        supabaseBrowser.rpc("public_property_for_host", { p_hostname: host, p_property_id: id }),
+        supabaseBrowser.rpc("public_property_photos_for_host", { p_hostname: host, p_property_id: id }),
+      ]);
+      if (!active) return;
+      const row = Array.isArray(propertyResult.data) ? propertyResult.data[0] : null;
+      if (propertyResult.error || !row || row.agency_id !== tenant.agency_id) {
+        setError("Este imóvel não está disponível neste site.");
+        setLoading(false);
+        return;
+      }
+      setProperty(row as CatalogRow);
+
+      if (Array.isArray(photoResult.data)) {
         const rows = photoResult.data as Photo[];
         setPhotos(rows);
         const urls = (await getPropertyPhotoUrls(rows.map((photo) => photo.storage_path))).filter(Boolean);
         if (active) setImageUrls(urls);
       }
-      if (featureResult.data) {
-        const names = (featureResult.data as unknown as FeatureLink[]).flatMap((row) => {
-          const value = row.property_features;
+
+      const featureResult = await supabaseBrowser.from("property_feature_links").select("property_features(name)").eq("property_id", id);
+      if (active && featureResult.data) {
+        const names = (featureResult.data as unknown as FeatureLink[]).flatMap((featureRow) => {
+          const value = featureRow.property_features;
           if (Array.isArray(value)) return value.map((item) => item.name);
           return value?.name ? [value.name] : [];
         });
         setFeatures(names);
       }
-      setLoading(false);
-    });
+      if (active) setLoading(false);
+    })();
     return () => { active = false; };
   }, []);
 
@@ -115,6 +129,7 @@ export default function PublicPropertyDetail() {
     if (!property || !supabaseBrowser) return;
     const data = new FormData(event.currentTarget);
     const payload = {
+      agency_id: property.agency_id,
       property_id: property.id,
       name: String(data.get("name") || "").trim() || null,
       phone: String(data.get("phone") || "").trim() || null,
