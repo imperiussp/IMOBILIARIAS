@@ -82,11 +82,7 @@ async function syncDraft(draft: PropertyDraft) {
     const neighborhood = await mobileSupabase.from("neighborhoods").select("id").eq("city_id", cityResult.data.id).ilike("name", draft.neighborhood.trim()).limit(1).maybeSingle();
     if (neighborhood.error) throw neighborhood.error;
     if (neighborhood.data?.id) neighborhoodId = neighborhood.data.id;
-    else {
-      const created = await mobileSupabase.from("neighborhoods").insert({ city_id: cityResult.data.id, name: draft.neighborhood.trim() }).select("id").single();
-      if (created.error) throw created.error;
-      neighborhoodId = created.data.id;
-    }
+    else throw new Error(`Bairro não cadastrado: ${draft.neighborhood}. Cadastre o bairro no painel administrativo e tente sincronizar novamente.`);
   }
 
   const numericId = draft.id.replace(/\D/g, "").slice(-6).padStart(6, "0");
