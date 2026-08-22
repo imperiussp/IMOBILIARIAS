@@ -13,6 +13,7 @@ import AdminGate from "../../components/AdminGate";
 import AdminInfinitePayCheckout from "../../components/AdminInfinitePayCheckout";
 import AdminInvitations from "../../components/AdminInvitations";
 import AdminLeadQualificationBoard from "../../components/AdminLeadQualificationBoard";
+import AdminLeadTimeline from "../../components/AdminLeadTimeline";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminPlan from "../../components/AdminPlan";
@@ -51,6 +52,7 @@ export default function AdminPage() {
             <a href="#contatos">Contatos</a>
             <a href="#qualificacao-contatos">Classificação</a>
             <a href="#acompanhamentos">Acompanhamentos</a>
+            <a href="#historico-contato">Histórico do contato</a>
             <a className="adminOnly" href="#documentos">Documentos</a>
             <a className="adminOnly" href="#arquivos-documentos">Anexos</a>
             <a className="adminOnly" href="#arquivos">Arquivos</a>
@@ -68,6 +70,7 @@ export default function AdminPage() {
             <AdminLiveData />
             <AdminLeadQualificationBoard />
             <AdminFollowups />
+            <AdminLeadTimeline />
             <AdminPropertyQuality />
 
             <div className="adminPanel adminOnly" id="novo-imovel">
