@@ -8,6 +8,7 @@ import PlatformPlanManager from "../../components/PlatformPlanManager";
 import PlatformReleaseControls from "../../components/PlatformReleaseControls";
 import PlatformReleaseHistory from "../../components/PlatformReleaseHistory";
 import PlatformSubscriptionManager from "../../components/PlatformSubscriptionManager";
+import PlatformTenantSecurityAudit from "../../components/PlatformTenantSecurityAudit";
 
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 
@@ -27,6 +28,7 @@ export default function PlatformAdminPage() {
             <div className="adminHeading"><div><span className="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</span><h1>Visão global do SaaS</h1><p>Imobiliárias, assinaturas, cobrança, domínios, usuários, documentos, volume de imóveis e configuração comercial em um único painel da LENOY IMOBILIÁRIAS.</p></div></div>
             <PlatformReleaseControls />
             <PlatformHomologationReadiness />
+            <PlatformTenantSecurityAudit />
             <PlatformReleaseHistory />
             <PlatformAdminDashboard />
             <PlatformOperationsDashboard />
