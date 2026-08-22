@@ -38,6 +38,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
+      - name: Validate migration safety
+        run: pnpm migration:safety
       - name: Validate privileged Edge Function guards
         run: pnpm edge:guards
       - run: pnpm --filter @imobiliarias/web typecheck
