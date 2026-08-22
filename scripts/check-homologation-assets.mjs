@@ -16,6 +16,8 @@ const requiredFiles=[
   "docs/DEPLOYMENT-RUNBOOK.md",
   "docs/ROLLBACK-PLAN.md",
   "apps/web/app/api/health/route.ts",
+  "apps/web/components/PlatformTechnicalHealth.tsx",
+  "apps/web/components/PlatformDeploymentReleases.tsx",
   "apps/web/components/PlatformHomologationReadiness.tsx",
   "apps/web/components/PlatformDeploymentCheckpoints.tsx",
   "apps/web/components/PlatformTenantSecurityAudit.tsx",
@@ -30,7 +32,7 @@ if(!migrations.length)errors.push("nenhuma migration encontrada");
 else{
   const latest=migrations.at(-1);
   const n=Number(latest.slice(0,4));
-  if(n<127)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
+  if(n<129)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
   const requiredMigrationNames=[
     "0109_platform_release_controls.sql",
     "0116_runtime_action_gate.sql",
@@ -40,6 +42,8 @@ else{
     "0125_deployment_readiness_in_release_gate.sql",
     "0126_deployment_checkpoint_history.sql",
     "0127_deployment_rollback_and_smoke_checks.sql",
+    "0128_platform_deployment_releases.sql",
+    "0129_production_requires_smoke_validated_release.sql",
   ];
   for(const file of requiredMigrationNames){if(!migrations.includes(file))errors.push(`migration de homologação ausente: ${file}`);}
 }
