@@ -5,24 +5,9 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const signingSecret = Deno.env.get("RESEND_WEBHOOK_SIGNING_SECRET") || "";
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
-}
-
-function clean(value: unknown, max = 1200) {
-  return String(value ?? "").trim().slice(0, max);
-}
-
-function statusFromEvent(type: string) {
-  if (type === "email.sent") return "sent";
-  if (type === "email.delivered") return "delivered";
-  if (type === "email.opened") return "read";
-  if (["email.failed", "email.bounced", "email.complained", "email.suppressed"].includes(type)) return "failed";
-  return null;
-}
+function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } }); }
+function clean(value: unknown, max = 1200) { return String(value ?? "").trim().slice(0, max); }
+function statusFromEvent(type: string) { if (type === "email.sent") return "sent"; if (type === "email.delivered") return "delivered"; if (type === "email.opened") return "read"; if (["email.failed", "email.bounced", "email.complained", "email.suppressed"].includes(type)) return "failed"; return null; }
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -37,23 +22,23 @@ Deno.serve(async (request) => {
       "svix-timestamp": request.headers.get("svix-timestamp") || "",
       "svix-signature": request.headers.get("svix-signature") || "",
     });
-  } catch {
-    return json({ error: "invalid_signature" }, 401);
-  }
+  } catch { return json({ error: "invalid_signature" }, 401); }
 
   const type = clean(event?.type, 80);
   const providerMessageId = clean(event?.data?.email_id, 240);
+  const providerEventId = clean(request.headers.get("svix-id"), 240) || `${providerMessageId}:${type}:${clean(event?.created_at,80)}`;
   if (!providerMessageId) return json({ ignored: true, reason: "missing_email_id" });
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const attemptResult = await admin.from("buyer_outreach_delivery_attempts")
     .select("id,agency_id,lead_id,opportunity_id,status")
-    .eq("provider_message_id", providerMessageId)
-    .order("attempted_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq("provider_message_id", providerMessageId).order("attempted_at", { ascending: false }).limit(1).maybeSingle();
   if (attemptResult.error) return json({ error: attemptResult.error.message }, 500);
-  if (!attemptResult.data) return json({ ignored: true, reason: "attempt_not_found" });
+  if (!attemptResult.data) {
+    const saved=await admin.from("outreach_provider_event_inbox").upsert({provider:"resend",provider_event_id:providerEventId,provider_message_id:providerMessageId,event_type:type,payload:event},{onConflict:"provider,provider_event_id",ignoreDuplicates:true});
+    if(saved.error)return json({error:saved.error.message},500);
+    return json({ ok:true, deferred:true, reason:"attempt_not_yet_correlated" });
+  }
 
   const nextStatus = statusFromEvent(type);
   const current = clean((attemptResult.data as any).status, 40);
@@ -65,10 +50,7 @@ Deno.serve(async (request) => {
   if (nextStatus === "failed") {
     if (!["delivered", "read"].includes(current)) {
       patch.status = "failed";
-      patch.error_message = clean(
-        event?.data?.bounce?.message || event?.data?.reason || event?.data?.error || `Falha Resend: ${type}`,
-        1200,
-      );
+      patch.error_message = clean(event?.data?.bounce?.message || event?.data?.reason || event?.data?.error || `Falha Resend: ${type}`, 1200);
       updateAttempt = true;
     }
   } else if (nextStatus && (rank[nextStatus] ?? -1) > (rank[current] ?? -1)) {
@@ -79,29 +61,9 @@ Deno.serve(async (request) => {
     updateAttempt = true;
   }
 
-  if (updateAttempt) {
-    const updated = await admin.from("buyer_outreach_delivery_attempts").update(patch).eq("id", (attemptResult.data as any).id);
-    if (updated.error) return json({ error: updated.error.message }, 500);
-  }
-
-  if (nextStatus === "failed" && !["delivered", "read"].includes(current)) {
-    const opportunity = await admin.from("buyer_property_opportunities").update({
-      status: "failed",
-      last_error: patch.error_message || `Falha Resend: ${type}`,
-      updated_at: new Date().toISOString(),
-    }).eq("id", (attemptResult.data as any).opportunity_id);
-    if (opportunity.error) return json({ error: opportunity.error.message }, 500);
-  }
-
-  if (["email.bounced", "email.complained", "email.suppressed"].includes(type)) {
-    const permission = await admin.from("lead_contact_permissions").update({
-      email_allowed: false,
-      automated_property_alerts_allowed: false,
-      revoked_at: now,
-      updated_at: now,
-    }).eq("agency_id", (attemptResult.data as any).agency_id).eq("lead_id", (attemptResult.data as any).lead_id);
-    if (permission.error) return json({ error: permission.error.message }, 500);
-  }
+  if (updateAttempt) { const updated = await admin.from("buyer_outreach_delivery_attempts").update(patch).eq("id", (attemptResult.data as any).id); if (updated.error) return json({ error: updated.error.message }, 500); }
+  if (nextStatus === "failed" && !["delivered", "read"].includes(current)) { const opportunity = await admin.from("buyer_property_opportunities").update({ status: "failed", last_error: patch.error_message || `Falha Resend: ${type}`, updated_at: new Date().toISOString() }).eq("id", (attemptResult.data as any).opportunity_id); if (opportunity.error) return json({ error: opportunity.error.message }, 500); }
+  if (["email.bounced", "email.complained", "email.suppressed"].includes(type)) { const permission = await admin.from("lead_contact_permissions").update({ email_allowed: false, automated_property_alerts_allowed: false, revoked_at: now, updated_at: now }).eq("agency_id", (attemptResult.data as any).agency_id).eq("lead_id", (attemptResult.data as any).lead_id); if (permission.error) return json({ error: permission.error.message }, 500); }
 
   return json({ ok: true, type, updated: updateAttempt });
 });
