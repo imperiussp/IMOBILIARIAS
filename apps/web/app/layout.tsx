@@ -15,32 +15,34 @@ import "./platform-plans.css";
 import "./preview-live.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
-const assetBase = process.env.GITHUB_ACTIONS === "true" ? "/IMOBILIARIAS" : "";
-const lenoyLogo = `${assetBase}/logo-lenoy.svg`;
+const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
+const allowIndexing = ["true", "1", "yes", "on"].includes(String(process.env.NEXT_PUBLIC_ALLOW_INDEXING || "").toLowerCase());
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "LENOY IMÓVEIS | Plataforma para imobiliárias",
-    template: "%s | LENOY IMÓVEIS",
+    default: "LENOY IMOBILIÁRIAS | Plataforma para imobiliárias",
+    template: "%s | LENOY IMOBILIÁRIAS",
   },
   description: "Plataforma SaaS para imobiliárias com site próprio, catálogo de imóveis, corretores, leads, domínio personalizado e recursos de inteligência artificial.",
   keywords: ["imobiliária", "site para imobiliária", "sistema imobiliário", "imóveis", "corretores", "leads", "SaaS imobiliário"],
   alternates: { canonical: "/" },
   icons: {
-    icon: [{ url: lenoyLogo, type: "image/svg+xml" }],
-    shortcut: [{ url: lenoyLogo, type: "image/svg+xml" }],
+    icon: [{ url: lenoyLogo, type: "image/png" }],
+    shortcut: [{ url: lenoyLogo, type: "image/png" }],
     apple: [{ url: lenoyLogo }],
   },
   openGraph: {
-    title: "LENOY IMÓVEIS",
+    title: "LENOY IMOBILIÁRIAS",
     description: "Plataforma completa para imobiliárias criarem seu site, publicarem imóveis e gerenciarem equipe e contatos.",
     type: "website",
     locale: "pt_BR",
     url: "/",
-    images: [{ url: lenoyLogo, width: 256, height: 256, alt: "LENOY" }],
+    images: [{ url: lenoyLogo, width: 512, height: 512, alt: "LENOY IMOBILIÁRIAS" }],
   },
-  robots: { index: true, follow: true },
+  robots: allowIndexing
+    ? { index: true, follow: true }
+    : { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false, noimageindex: true } },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
