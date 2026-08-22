@@ -21,6 +21,7 @@ Deno.serve((request) => {
     access_token: has("META_WHATSAPP_ACCESS_TOKEN"),
     phone_number_id: has("META_WHATSAPP_PHONE_NUMBER_ID"),
     graph_version: has("META_GRAPH_API_VERSION"),
+    webhook_configured: has("META_WHATSAPP_WEBHOOK_VERIFY_TOKEN") && has("META_APP_SECRET"),
     webhook_verify_token: has("META_WHATSAPP_WEBHOOK_VERIFY_TOKEN"),
     app_secret: has("META_APP_SECRET"),
   };
@@ -29,6 +30,9 @@ Deno.serve((request) => {
     configured: has("RESEND_API_KEY") && has("RESEND_FROM_EMAIL"),
     api_key: has("RESEND_API_KEY"),
     from_email: has("RESEND_FROM_EMAIL"),
+    webhook_configured: has("RESEND_WEBHOOK_SIGNING_SECRET"),
+    webhook_signing_secret: has("RESEND_WEBHOOK_SIGNING_SECRET"),
+    inbound_configured: has("INBOUND_EMAIL_SECRET"),
   };
 
   const processing = {
@@ -37,6 +41,7 @@ Deno.serve((request) => {
     delivery_url: has("BUYER_OUTREACH_WEBHOOK_URL"),
     delivery_token: has("BUYER_OUTREACH_WEBHOOK_TOKEN"),
     provider_webhook_secret: has("BUYER_OUTREACH_PROVIDER_WEBHOOK_SECRET"),
+    platform_maintenance_secret: has("PLATFORM_MAINTENANCE_SECRET"),
   };
 
   return json({
@@ -44,7 +49,7 @@ Deno.serve((request) => {
     whatsapp,
     email,
     processing,
-    ready_for_whatsapp: whatsapp.configured && processing.configured,
-    ready_for_email: email.configured && processing.configured,
+    ready_for_whatsapp: whatsapp.configured && whatsapp.webhook_configured && processing.configured,
+    ready_for_email: email.configured && email.webhook_configured && email.inbound_configured && processing.configured,
   });
 });
