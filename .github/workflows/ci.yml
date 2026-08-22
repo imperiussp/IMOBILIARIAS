@@ -20,6 +20,8 @@ jobs:
     timeout-minutes: 20
     env:
       NEXT_PUBLIC_ALLOW_INDEXING: "false"
+      NEXT_PUBLIC_COMMIT_SHA: ${{ github.sha }}
+      NEXT_PUBLIC_BUILD_LABEL: ci-${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate migration numbering
@@ -38,16 +40,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
-      - name: Validate environment contract
-        run: pnpm env:contract
-      - name: Validate homologation safety assets
-        run: pnpm homologation:assets
       - name: Validate smoke script syntax
         run: node --check scripts/post-deploy-smoke.mjs
-      - name: Validate migration safety
-        run: pnpm migration:safety
-      - name: Validate privileged Edge Function guards
-        run: pnpm edge:guards
-      - run: pnpm --filter @imobiliarias/web typecheck
-      - run: pnpm --filter @imobiliarias/web build
-      - run: pnpm --filter @imobiliarias/mobile typecheck
+      - name: Run release validation suite
+        run: pnpm release:validate
