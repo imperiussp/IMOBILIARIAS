@@ -25,6 +25,14 @@ Deno.serve(async (request) => {
   if (!maintenanceSecret || supplied !== maintenanceSecret) return json({ error: "unauthorized" }, 401);
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const release = await admin.from("platform_release_controls")
+    .select("environment_mode,maintenance_mode,external_messaging_enabled,ai_generation_enabled")
+    .eq("id",1).maybeSingle();
+  if (release.error) return json({ error: `release_controls_unavailable: ${release.error.message}` }, 503);
+  if (release.data?.maintenance_mode) return json({ processed:0,sent:0,reviewed:0,skipped:0,deferred:0,failed:0,blocked:true,reason:"platform_maintenance_mode" });
+  if (!release.data?.external_messaging_enabled) return json({ processed:0,sent:0,reviewed:0,skipped:0,deferred:0,failed:0,blocked:true,reason:"external_messaging_disabled",environment_mode:release.data?.environment_mode||"unknown" });
+  const aiGenerationEnabled = release.data?.ai_generation_enabled === true;
+
   const queue = await admin.from("buyer_property_opportunities")
     .select("id,agency_id,lead_id,property_id,match_score,status,channel,ai_message,leads(name,phone,email),properties(code,title,price,description,purpose,zone,bedrooms,bathrooms,parking_spaces,built_area_m2),agencies(name)")
     .in("status", ["queued","approved"])
@@ -105,6 +113,10 @@ Deno.serve(async (request) => {
 
       let aiMessage = String(item.ai_message || "").trim();
       if (!aiMessage) {
+        if (!aiGenerationEnabled) {
+          await admin.from("buyer_property_opportunities").update({ status:"review", skip_reason:"Geração real por IA bloqueada pelo controle global de ambiente.", updated_at:new Date().toISOString() }).eq("id",item.id);
+          reviewed++; continue;
+        }
         if (!aiUrl || !aiKey || !aiModel) throw new Error("Provedor de IA não configurado.");
         const property = item.properties || {};
         const agency = item.agencies || {};
