@@ -15,9 +15,9 @@ Deno.serve(async (request) => {
   if (request.headers.get("x-dispatch-secret") !== internalSecret) return json({ error: "unauthorized" }, 401);
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-  const gate = await supabase.rpc("platform_runtime_flag", { p_flag: "push_notifications_enabled" });
+  const gate = await supabase.rpc("platform_runtime_action_allowed", { p_action: "push" });
   if (gate.error) return json({ error: gate.error.message }, 500);
-  if (gate.data !== true) return json({ processed: 0, delivered: 0, skipped: true, reason: "push_notifications_disabled_by_release_control" });
+  if (gate.data !== true) return json({ processed: 0, delivered: 0, skipped: true, reason: "push_blocked_by_release_or_maintenance_control" });
 
   const { data: notifications, error: notificationError } = await supabase
     .from("app_notifications")
