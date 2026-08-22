@@ -2,6 +2,7 @@ import PlatformAdminDashboard from "../../components/PlatformAdminDashboard";
 import PlatformAdminGate from "../../components/PlatformAdminGate";
 import PlatformBillingOverview from "../../components/PlatformBillingOverview";
 import PlatformDeploymentCheckpoints from "../../components/PlatformDeploymentCheckpoints";
+import PlatformDeploymentReleases from "../../components/PlatformDeploymentReleases";
 import PlatformDocumentTemplateManager from "../../components/PlatformDocumentTemplateManager";
 import PlatformHomologationReadiness from "../../components/PlatformHomologationReadiness";
 import PlatformOperationsDashboard from "../../components/PlatformOperationsDashboard";
@@ -33,6 +34,7 @@ export default function PlatformAdminPage() {
             <PlatformHomologationReadiness />
             <PlatformTechnicalHealth />
             <PlatformDeploymentCheckpoints />
+            <PlatformDeploymentReleases />
             <PlatformTenantSecurityAudit />
             <PlatformReleaseValidations />
             <PlatformReleaseHistory />
