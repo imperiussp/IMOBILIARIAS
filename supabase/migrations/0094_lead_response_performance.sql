@@ -1,7 +1,10 @@
 -- Indicadores de velocidade de atendimento dos leads.
 -- EXCLUSIVO do Supabase IMOBILIARIAS. Não aplicar no Moto Connect.
 
-create or replace view public.agency_lead_response_performance as
+drop view if exists public.agency_lead_response_performance;
+create view public.agency_lead_response_performance
+with (security_invoker = true)
+as
 with first_response as (
   select
     l.agency_id,
@@ -35,7 +38,10 @@ group by agency_id;
 revoke all on public.agency_lead_response_performance from public,anon;
 grant select on public.agency_lead_response_performance to authenticated;
 
-create or replace view public.agency_unanswered_leads as
+drop view if exists public.agency_unanswered_leads;
+create view public.agency_unanswered_leads
+with (security_invoker = true)
+as
 select
   l.agency_id,
   l.id as lead_id,
