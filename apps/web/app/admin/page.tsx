@@ -1,8 +1,10 @@
 import AdminAgencySwitcher from "../../components/AdminAgencySwitcher";
 import AdminAiDescription from "../../components/AdminAiDescription";
 import AdminAuditLog from "../../components/AdminAuditLog";
+import AdminBrokerGoals from "../../components/AdminBrokerGoals";
 import AdminBrokerPerformance from "../../components/AdminBrokerPerformance";
 import AdminBrokers from "../../components/AdminBrokers";
+import AdminBuyerPreferences from "../../components/AdminBuyerPreferences";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
 import AdminCommercialFunnel from "../../components/AdminCommercialFunnel";
 import AdminDocuments from "../../components/AdminDocuments";
@@ -20,9 +22,11 @@ import AdminLeadTimeline from "../../components/AdminLeadTimeline";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminPlan from "../../components/AdminPlan";
+import AdminPropertyDocumentChecklist from "../../components/AdminPropertyDocumentChecklist";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 import AdminPropertyLifecycle from "../../components/AdminPropertyLifecycle";
 import AdminPropertyPerformance from "../../components/AdminPropertyPerformance";
+import AdminPropertyPriceHistory from "../../components/AdminPropertyPriceHistory";
 import AdminPropertyQuality from "../../components/AdminPropertyQuality";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
 import AdminStorageOverview from "../../components/AdminStorageOverview";
@@ -49,9 +53,12 @@ export default function AdminPage() {
             <a href="#funil-comercial">Funil comercial</a>
             <a href="#tempo-resposta">Tempo de resposta</a>
             <a href="#agenda-visitas">Agenda de visitas</a>
+            <a href="#perfil-compra">Perfil de compra</a>
             <a href="#imoveis">Imóveis</a>
             <a className="adminOnly" href="#desempenho-imoveis">Desempenho dos imóveis</a>
             <a className="adminOnly" href="#ciclo-imoveis">Ciclo dos imóveis</a>
+            <a className="adminOnly" href="#historico-precos">Histórico de preços</a>
+            <a className="adminOnly" href="#documentacao-imovel">Documentação dos imóveis</a>
             <a className="adminOnly" href="#qualidade-imoveis">Qualidade dos anúncios</a>
             <a className="adminOnly" href="#novo-imovel">Novo imóvel</a>
             <a className="adminOnly" href="#descricao-ia">Descrição com IA</a>
@@ -59,6 +66,7 @@ export default function AdminPage() {
             <a className="adminOnly" href="#catalogo-config">Tipos e recursos</a>
             <a className="adminOnly" href="#corretores">Corretores</a>
             <a className="adminOnly" href="#desempenho-corretores">Desempenho dos corretores</a>
+            <a className="adminOnly" href="#metas-corretores">Metas dos corretores</a>
             <a className="adminOnly" href="#usuarios">Usuários</a>
             <a className="adminOnly" href="#convites">Convites</a>
             <a href="#contatos">Contatos</a>
@@ -83,13 +91,17 @@ export default function AdminPage() {
             <AdminCommercialFunnel />
             <AdminLeadResponseMetrics />
             <AdminLeadQualificationBoard />
+            <AdminBuyerPreferences />
             <AdminFollowups />
             <AdminVisitSchedule />
             <AdminLeadTimeline />
             <AdminPropertyPerformance />
             <AdminPropertyLifecycle />
+            <div className="adminOnly"><AdminPropertyPriceHistory /></div>
+            <div className="adminOnly"><AdminPropertyDocumentChecklist /></div>
             <AdminPropertyQuality />
             <AdminBrokerPerformance />
+            <div className="adminOnly"><AdminBrokerGoals /></div>
 
             <div className="adminPanel adminOnly" id="novo-imovel">
               <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>Cadastro completo com corretor, características, privacidade de endereço e fotos.</p></div></div>
