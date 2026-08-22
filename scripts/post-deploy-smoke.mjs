@@ -1,4 +1,5 @@
 const base=String(process.env.DEPLOYMENT_URL||process.env.NEXT_PUBLIC_SITE_URL||'').trim().replace(/\/$/,'');
+const expectedSha=String(process.env.EXPECT_COMMIT_SHA||'').trim().toLowerCase();
 if(!base){console.error('BLOQUEADO: defina DEPLOYMENT_URL ou NEXT_PUBLIC_SITE_URL.');process.exit(2);}
 if(!base.startsWith('https://')){console.error('BLOQUEADO: smoke test exige HTTPS.');process.exit(2);}
 
@@ -24,6 +25,11 @@ if(health){
     if(data?.service!=='LENOY IMOBILIÁRIAS')failures.push('/api/health: service inesperado');
     if(data?.status!=='ok')failures.push(`/api/health: status ${data?.status||'ausente'}`);
     if(data?.identity!=='IMOBILIARIAS')failures.push('/api/health: project_identity inválida');
+    if(expectedSha){
+      const deployedSha=String(data?.build?.commit_sha||'').toLowerCase();
+      if(!deployedSha)failures.push('/api/health: commit_sha ausente');
+      else if(!(deployedSha===expectedSha||deployedSha.startsWith(expectedSha)||expectedSha.startsWith(deployedSha)))failures.push(`/api/health: commit ${deployedSha} diferente do esperado ${expectedSha}`);
+    }
   }catch{failures.push('/api/health: resposta JSON inválida');}
 }
 
@@ -39,4 +45,4 @@ if(failures.length){
   for(const item of failures)console.error(`- ${item}`);
   process.exit(1);
 }
-console.log(`OK: smoke test pós-deploy aprovado em ${base}`);
+console.log(`OK: smoke test pós-deploy aprovado em ${base}${expectedSha?` para commit ${expectedSha}`:''}`);
