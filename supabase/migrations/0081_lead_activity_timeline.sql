@@ -27,23 +27,29 @@ create index if not exists lead_activity_agency_lead_created_idx on public.lead_
 alter table public.lead_notes enable row level security;
 alter table public.lead_activity_events enable row level security;
 
+-- A mesma regra de acesso do CRM é aplicada às notas e à linha do tempo.
+-- Owner/admin/staff podem trabalhar os contatos da imobiliária; corretor só recebe
+-- dados dos contatos atribuídos ao seu próprio cadastro de corretor.
 drop policy if exists "tenant members read lead notes" on public.lead_notes;
 create policy "tenant members read lead notes" on public.lead_notes for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 
 drop policy if exists "tenant members add lead notes" on public.lead_notes;
 create policy "tenant members add lead notes" on public.lead_notes for insert to authenticated
-with check (public.is_agency_member(agency_id) or public.is_platform_admin());
+with check (public.can_access_lead_crm(agency_id,lead_id));
 
 drop policy if exists "tenant members read lead activity" on public.lead_activity_events;
 create policy "tenant members read lead activity" on public.lead_activity_events for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 
 create or replace function public.validate_lead_note_tenant()
 returns trigger language plpgsql set search_path=public as $$
 begin
   if not exists(select 1 from public.leads l where l.id=new.lead_id and l.agency_id=new.agency_id) then
     raise exception 'Contato fora da imobiliária atual.';
+  end if;
+  if not public.can_access_lead_crm(new.agency_id,new.lead_id) then
+    raise exception 'Sem permissão para este contato.';
   end if;
   new.body := trim(new.body);
   new.created_by := coalesce(new.created_by,auth.uid());
@@ -59,8 +65,10 @@ for each row execute function public.validate_lead_note_tenant();
 create or replace function public.log_lead_note_activity()
 returns trigger language plpgsql security definer set search_path=public as $$
 begin
+  -- O texto completo permanece somente em lead_notes. A timeline guarda apenas a
+  -- referência da nota, evitando duplicação desnecessária de conteúdo interno.
   insert into public.lead_activity_events(agency_id,lead_id,event_type,title,detail,actor_user_id)
-  values(new.agency_id,new.lead_id,'note_added','Nota interna adicionada',jsonb_build_object('note_id',new.id,'body',new.body),coalesce(new.created_by,auth.uid()));
+  values(new.agency_id,new.lead_id,'note_added','Nota interna adicionada',jsonb_build_object('note_id',new.id),coalesce(new.created_by,auth.uid()));
   return new;
 end;
 $$;
