@@ -38,7 +38,7 @@ import AdminStorageOverview from "../../components/AdminStorageOverview";
 import AdminUsers from "../../components/AdminUsers";
 import AdminVisitSchedule from "../../components/AdminVisitSchedule";
 
-const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/LENOY.jpg";
+const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 
 export default function AdminPage() {
   return (
@@ -46,7 +46,7 @@ export default function AdminPage() {
       <main className="adminPage">
         <header className="adminTopbar">
           <div className="container adminNav">
-            <a className="brand" href="../"><img src={lenoyLogo} alt="LENOY" style={{ width: 88, maxWidth: "24vw", height: "auto", display: "block", borderRadius: 8 }} /></a>
+            <a className="brand" href="../"><img src={lenoyLogo} alt="LENOY IMOBILIÁRIAS" style={{ width: 88, maxWidth: "24vw", height: "auto", display: "block" }} /></a>
             <div className="adminNavActions"><AdminAgencySwitcher /><a className="button primary small" href="../">Ver site</a></div>
           </div>
         </header>
