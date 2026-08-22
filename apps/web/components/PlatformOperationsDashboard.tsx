@@ -14,7 +14,7 @@ export default function PlatformOperationsDashboard(){
     supabaseBrowser.from("agency_invitations").select("id",{count:"exact",head:true}).eq("status","pending"),
     supabaseBrowser.from("lead_followups").select("id",{count:"exact",head:true}).is("completed_at",null).lt("due_at",now),
     supabaseBrowser.from("agency_assets").select("id,agency_id,property_id,kind,storage_path").limit(500),
-    supabaseBrowser.from("billing_webhook_events").select("id",{count:"exact",head:true}).eq("processing_status","failed"),
+    supabaseBrowser.from("billing_events").select("id",{count:"exact",head:true}).eq("processing_status","failed"),
   ]);
   const hardError=queries.find(q=>q.error&&!["42P01","42703"].includes(q.error.code||"")); if(hardError?.error) setMessage(hardError.error.message);
   const assets=(queries[4].data||[]) as {agency_id:string;property_id:string|null;kind:string;storage_path:string}[];
