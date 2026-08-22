@@ -33,6 +33,9 @@ export default function RegisterForm() {
   const [agencySlug, setAgencySlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugState, setSlugState] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
+  const [registrationOpen,setRegistrationOpen]=useState(false);
+  const [registrationChecked,setRegistrationChecked]=useState(false);
+  const [releaseLabel,setReleaseLabel]=useState("Homologação interna");
   const redirect = typeof window !== "undefined" ? safeRedirectTarget() : "";
   const invitationMode = redirect.startsWith("/convite/");
 
@@ -40,8 +43,23 @@ export default function RegisterForm() {
     if (!invitationMode && !slugTouched) setAgencySlug(slugify(agencyName));
   }, [agencyName, slugTouched, invitationMode]);
 
+  useEffect(()=>{
+    if(invitationMode){setRegistrationOpen(true);setRegistrationChecked(true);return;}
+    if(!isSupabaseConfigured||!supabaseBrowser){setRegistrationOpen(false);setRegistrationChecked(true);return;}
+    let active=true;
+    void supabaseBrowser.rpc("platform_registration_status").then(({data,error})=>{
+      if(!active)return;
+      if(error){setRegistrationOpen(false);setRegistrationChecked(true);return;}
+      const row=Array.isArray(data)?data[0]:data as any;
+      setRegistrationOpen(row?.enabled===true);
+      setReleaseLabel(String(row?.release_label||"Homologação interna"));
+      setRegistrationChecked(true);
+    });
+    return()=>{active=false;};
+  },[invitationMode]);
+
   useEffect(() => {
-    if (invitationMode) { setSlugState("idle"); return; }
+    if (invitationMode || !registrationOpen) { setSlugState("idle"); return; }
     const slug = slugify(agencySlug);
     if (!slug || slug.length < 3 || !isSupabaseConfigured || !supabaseBrowser) {
       setSlugState("idle");
@@ -55,7 +73,7 @@ export default function RegisterForm() {
       });
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [agencySlug, invitationMode]);
+  }, [agencySlug, invitationMode, registrationOpen]);
 
   const publicAddress = useMemo(() => `${agencySlug || "sua-imobiliaria"}.imoveis.lenoy.com.br`, [agencySlug]);
 
@@ -72,6 +90,16 @@ export default function RegisterForm() {
       setLoading(false);
       setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
       return;
+    }
+    if(!invitationMode){
+      const gate=await supabaseBrowser.rpc("platform_registration_status");
+      const row=Array.isArray(gate.data)?gate.data[0]:gate.data as any;
+      if(gate.error||row?.enabled!==true){
+        setLoading(false);
+        setRegistrationOpen(false);
+        setStatus("Novos cadastros de imobiliárias estão temporariamente fechados durante a homologação.");
+        return;
+      }
     }
     const form = new FormData(event.currentTarget);
     const fullName = String(form.get("full_name") || "").trim();
@@ -132,26 +160,27 @@ export default function RegisterForm() {
   }
 
   const loginHref = redirect ? `../login/?redirect=${encodeURIComponent(redirect)}` : "../login/";
+  const blocked=!invitationMode&&registrationChecked&&!registrationOpen;
 
   return (
     <form className="loginCard" onSubmit={submit}>
       <span className="eyebrow">{invitationMode ? "CONVITE PARA EQUIPE" : "COMECE SUA IMOBILIÁRIA DIGITAL"}</span>
       <h1>{invitationMode ? "Criar conta para aceitar convite" : "Criar minha imobiliária"}</h1>
-      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : "Crie sua conta e receba automaticamente um site exclusivo dentro da plataforma."}</p>
+      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Crie sua conta e receba automaticamente um site exclusivo dentro da plataforma."}</p>
 
-      <label>Seu nome completo<input name="full_name" autoComplete="name" required maxLength={160} /></label>
+      <label>Seu nome completo<input name="full_name" autoComplete="name" required maxLength={160} disabled={blocked} /></label>
       {!invitationMode ? <>
-        <label>Nome da imobiliária<input name="agency_name" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder="Ex.: João Imobiliária" required /></label>
+        <label>Nome da imobiliária<input name="agency_name" value={agencyName} onChange={(event) => setAgencyName(event.target.value)} placeholder="Ex.: João Imobiliária" required disabled={blocked} /></label>
         <label>Endereço do site
-          <div className="slugField"><input name="agency_slug" value={agencySlug} onChange={(event) => { setSlugTouched(true); setAgencySlug(slugify(event.target.value)); }} placeholder="joao" required /><span>.imoveis.lenoy.com.br</span></div>
+          <div className="slugField"><input name="agency_slug" value={agencySlug} onChange={(event) => { setSlugTouched(true); setAgencySlug(slugify(event.target.value)); }} placeholder="joao" required disabled={blocked} /><span>.imoveis.lenoy.com.br</span></div>
         </label>
-        <small className={`slugHint ${slugState}`}>{slugState === "checking" ? "Verificando disponibilidade..." : slugState === "available" ? `Disponível: ${publicAddress}` : slugState === "unavailable" ? "Este endereço não está disponível." : `Seu site ficará em ${publicAddress}`}</small>
+        <small className={`slugHint ${slugState}`}>{blocked?"Cadastro público bloqueado pelo controle de homologação.":slugState === "checking" ? "Verificando disponibilidade..." : slugState === "available" ? `Disponível: ${publicAddress}` : slugState === "unavailable" ? "Este endereço não está disponível." : `Seu site ficará em ${publicAddress}`}</small>
       </> : null}
 
-      <label>E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} /></label>
-      <label>Senha<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label>
-      <label>Confirmar senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} required /></label>
-      <button className="button primary full" type="submit" disabled={loading || (!invitationMode && slugState === "unavailable")}>{loading ? "Criando conta..." : invitationMode ? "Criar conta e continuar" : "Criar minha imobiliária"}</button>
+      <label>E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} disabled={blocked} /></label>
+      <label>Senha<input name="password" type="password" autoComplete="new-password" minLength={8} required disabled={blocked} /></label>
+      <label>Confirmar senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} required disabled={blocked} /></label>
+      <button className="button primary full" type="submit" disabled={loading || blocked || (!invitationMode && slugState === "unavailable")}>{loading ? "Criando conta..." : blocked?"Cadastros temporariamente fechados":invitationMode ? "Criar conta e continuar" : "Criar minha imobiliária"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
       <a className="backLink" href={loginHref}>← Já tenho acesso</a>
     </form>
