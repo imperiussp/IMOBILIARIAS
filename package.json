@@ -11,6 +11,7 @@
     "supabase:guard": "node scripts/verify-supabase-target.mjs",
     "edge:guards": "node scripts/check-edge-function-guards.mjs",
     "migration:safety": "node scripts/check-migration-safety.mjs",
-    "env:contract": "node scripts/check-env-contract.mjs"
+    "env:contract": "node scripts/check-env-contract.mjs",
+    "homologation:assets": "node scripts/check-homologation-assets.mjs"
   }
 }
