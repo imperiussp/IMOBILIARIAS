@@ -39,7 +39,7 @@ A estrutura funcional já está preparada no repositório:
 - [x] Controlar disponibilidade e limites por plano (`ai_buyer_outreach`).
 - [x] Processar fila com consentimento, cooldown, limite mensal, plano e horário silencioso.
 - [x] Possuir adaptador próprio de entrega para WhatsApp Cloud API e e-mail via Resend.
-- [x] Registrar IDs de mensagem e estados enviado/entregue/lido/falha.
+- [x] Registrar IDs de mensagem, provedor real e estados enviado/entregue/lido/falha.
 - [x] Receber webhook direto da Meta com validação de assinatura.
 - [x] Receber webhook direto e assinado do Resend.
 - [x] Mapear `email.opened` para leitura no monitor de entrega.
@@ -51,15 +51,20 @@ A estrutura funcional já está preparada no repositório:
 - [x] Criar follow-up automático para respostas positivas.
 - [x] Notificar o corretor responsável sobre respostas positivas.
 - [x] Exibir métricas, respostas e monitor de entrega no painel da imobiliária.
+- [x] Exibir taxa de entrega, leitura e falha por canal/provedor nos últimos 30 dias.
 - [x] Evitar fallback ambíguo de telefone entre imobiliárias diferentes.
 - [x] Evitar correlação ambígua de resposta de e-mail; associação só ocorre dentro da imobiliária e para um contato inequívoco.
+- [x] Detectar tentativa parada em `sending` e transformar em falha controlada após 20 minutos, sem reenvio automático.
+- [x] Preservar eventos da Meta/Resend que cheguem antes da gravação do `provider_message_id`.
+- [x] Reconciliar posteriormente eventos precoces e respostas WhatsApp referenciadas.
+- [x] Indexar buscas por `provider_message_id` para manter correlação eficiente com crescimento do volume.
 - [ ] Configurar credenciais reais do provedor de IA no Supabase exclusivo do IMOBILIARIAS.
 - [ ] Configurar credenciais reais da Meta e/ou Resend.
 - [ ] Cadastrar o webhook `meta-whatsapp-webhook` na Meta e concluir a verificação.
 - [ ] Cadastrar `resend-outreach-webhook` no Resend e salvar `RESEND_WEBHOOK_SIGNING_SECRET`.
 - [ ] Configurar o recebimento normalizado de e-mail para `ingest-inbound-email`.
 - [ ] Fazer deploy das Edge Functions no projeto Supabase exclusivo do IMOBILIARIAS.
-- [ ] Executar testes reais de consentimento, opt-out, duplicidade, limites do plano, entrega, leitura e respostas antes de habilitar envio automático.
+- [ ] Executar testes reais de consentimento, opt-out, duplicidade, limites do plano, entrega, leitura, respostas e reconciliação antes de habilitar envio automático.
 
 ## Manutenção automática da plataforma
 
@@ -67,6 +72,8 @@ A função `platform-maintenance` concentra as rotinas recorrentes para reduzir 
 
 Ela aciona:
 
+- recuperação conservadora de tentativas de mensageria presas;
+- reconciliação de eventos precoces da Meta/Resend;
 - expiração/manutenção de assinaturas;
 - verificação de domínios próprios;
 - dispatcher de push;
@@ -76,10 +83,11 @@ Antes da produção:
 
 - [ ] Configurar `PLATFORM_MAINTENANCE_SECRET`.
 - [ ] Configurar os secrets específicos de cada rotina.
-- [ ] Fazer deploy da função `platform-maintenance`.
-- [ ] Criar um cron seguro apontando para essa função.
+- [ ] Fazer deploy de `platform-maintenance` e `reconcile-outreach-provider-events`.
+- [ ] Criar um cron seguro apontando somente para `platform-maintenance`.
 - [ ] Confirmar que `platform_maintenance_runs` registra as execuções.
 - [ ] Conferir a área **Saúde da plataforma** após as primeiras execuções.
+- [ ] Confirmar que a contagem de eventos aguardando correlação volta a zero em operação normal.
 
 ## Verificações antes de produção
 
@@ -98,6 +106,9 @@ Antes da produção:
 - Um opt-out interrompe novos alertas automáticos do canal.
 - Bounce, complaint e suppression interrompem o canal de e-mail automático até revisão da permissão.
 - Falhas de mensageria aparecem no monitor do painel e podem voltar para revisão sem reenvio automático.
+- Uma tentativa parada em `sending` não é reenviada sozinha; após o timeout fica como falha para revisão.
+- Eventos precoces de provedor ficam em `outreach_provider_event_inbox` e são reconciliados pela manutenção.
+- Eventos pendentes por mais de 30 minutos aparecem na Saúde da plataforma.
 - Eventos do Resend alteram o monitor somente após validação da assinatura do webhook.
 - Webhooks externos alcançam as Edge Functions sem JWT do Supabase, mas continuam protegidos por assinatura/segredo próprio.
 - A manutenção automática registra histórico e não deixa uma rotina impedir as demais de serem processadas.
