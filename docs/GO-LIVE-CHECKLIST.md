@@ -11,7 +11,7 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
 
 1. Criar um novo projeto no Supabase com nome identificável como `IMOBILIARIAS`.
 2. Conferir o nome do projeto antes de copiar qualquer chave.
-3. Aplicar as migrations deste repositório em ordem.
+3. Aplicar as migrations deste repositório em ordem, incluindo `0102` a `0106`, antes de publicar as Edge Functions que dependem delas.
 4. Preencher apenas no ambiente do IMOBILIARIAS:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -41,6 +41,7 @@ A estrutura funcional já está preparada no repositório:
 - [x] Possuir adaptador próprio de entrega para WhatsApp Cloud API e e-mail via Resend.
 - [x] Registrar IDs de mensagem, provedor real e estados enviado/entregue/lido/falha.
 - [x] Receber webhook direto da Meta com validação de assinatura.
+- [x] Registrar timestamps reais informados pela Meta para envio, entrega, leitura e respostas quando disponíveis.
 - [x] Receber webhook direto e assinado do Resend.
 - [x] Mapear `email.opened` para leitura no monitor de entrega.
 - [x] Desativar alertas de e-mail após bounce, complaint ou suppression.
@@ -58,6 +59,8 @@ A estrutura funcional já está preparada no repositório:
 - [x] Preservar eventos da Meta/Resend que cheguem antes da gravação do `provider_message_id`.
 - [x] Reconciliar posteriormente eventos precoces e respostas WhatsApp referenciadas.
 - [x] Indexar buscas por `provider_message_id` para manter correlação eficiente com crescimento do volume.
+- [x] Retirar da fila ativa eventos não correlacionados por mais de 7 dias sem apagar o payload de auditoria.
+- [x] Separar no painel eventos pendentes, atrasados e abandonados/preservados.
 - [ ] Configurar credenciais reais do provedor de IA no Supabase exclusivo do IMOBILIARIAS.
 - [ ] Configurar credenciais reais da Meta e/ou Resend.
 - [ ] Cadastrar o webhook `meta-whatsapp-webhook` na Meta e concluir a verificação.
@@ -70,10 +73,11 @@ A estrutura funcional já está preparada no repositório:
 
 A função `platform-maintenance` concentra as rotinas recorrentes para reduzir a quantidade de crons independentes.
 
-Ela aciona:
+Ela aciona, nesta ordem operacional:
 
 - recuperação conservadora de tentativas de mensageria presas;
-- reconciliação de eventos precoces da Meta/Resend;
+- marcação como abandonados, sem exclusão, de eventos de provedor órfãos por mais de 7 dias;
+- reconciliação de eventos precoces da Meta/Resend ainda ativos;
 - expiração/manutenção de assinaturas;
 - verificação de domínios próprios;
 - dispatcher de push;
@@ -83,11 +87,13 @@ Antes da produção:
 
 - [ ] Configurar `PLATFORM_MAINTENANCE_SECRET`.
 - [ ] Configurar os secrets específicos de cada rotina.
+- [ ] Aplicar a migration `0106_outreach_provider_event_retention.sql` antes do deploy da versão atual de `reconcile-outreach-provider-events`.
 - [ ] Fazer deploy de `platform-maintenance` e `reconcile-outreach-provider-events`.
 - [ ] Criar um cron seguro apontando somente para `platform-maintenance`.
 - [ ] Confirmar que `platform_maintenance_runs` registra as execuções.
 - [ ] Conferir a área **Saúde da plataforma** após as primeiras execuções.
 - [ ] Confirmar que a contagem de eventos aguardando correlação volta a zero em operação normal.
+- [ ] Confirmar que eventos abandonados permanecem disponíveis para auditoria e não retornam à fila ativa.
 
 ## Verificações antes de produção
 
@@ -109,6 +115,7 @@ Antes da produção:
 - Uma tentativa parada em `sending` não é reenviada sozinha; após o timeout fica como falha para revisão.
 - Eventos precoces de provedor ficam em `outreach_provider_event_inbox` e são reconciliados pela manutenção.
 - Eventos pendentes por mais de 30 minutos aparecem na Saúde da plataforma.
+- Eventos sem correlação por mais de 7 dias são marcados como abandonados, preservados e deixam de contar como fila ativa.
 - Eventos do Resend alteram o monitor somente após validação da assinatura do webhook.
 - Webhooks externos alcançam as Edge Functions sem JWT do Supabase, mas continuam protegidos por assinatura/segredo próprio.
 - A manutenção automática registra histórico e não deixa uma rotina impedir as demais de serem processadas.
