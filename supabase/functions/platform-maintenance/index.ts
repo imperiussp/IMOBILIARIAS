@@ -29,6 +29,25 @@ Deno.serve(async(request)=>{
   if(request.headers.get("x-platform-maintenance-secret")!==maintenanceSecret)return json({error:"unauthorized"},401);
 
   const startedAt=new Date().toISOString();
+  const results:any[]=[];
+
+  if(serviceRoleKey){
+    const recoveryStarted=Date.now();
+    try{
+      const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
+      const recovery=await admin.rpc("recover_stale_buyer_outreach_attempts",{p_timeout_minutes:20});
+      if(recovery.error){
+        results.push({name:"recover-stale-outreach",ok:false,status:500,duration_ms:Date.now()-recoveryStarted,error:recovery.error.message});
+      }else{
+        results.push({name:"recover-stale-outreach",ok:true,status:200,duration_ms:Date.now()-recoveryStarted,body:{recovered:Number(recovery.data||0)}});
+      }
+    }catch(error){
+      results.push({name:"recover-stale-outreach",ok:false,status:0,duration_ms:Date.now()-recoveryStarted,error:error instanceof Error?error.message:String(error)});
+    }
+  }else{
+    results.push({name:"recover-stale-outreach",ok:false,skipped:true,error:"service_role_not_configured"});
+  }
+
   const tasks:[string,Record<string,string>,boolean][]=[
     ["process-subscription-expiry",{"x-billing-maintenance-secret":billingSecret},Boolean(billingSecret)],
     ["verify-custom-domains",{"x-domain-verify-secret":domainSecret},Boolean(domainSecret)],
@@ -36,7 +55,6 @@ Deno.serve(async(request)=>{
     ["process-buyer-opportunities",{"x-maintenance-secret":buyerSecret},Boolean(buyerSecret)],
   ];
 
-  const results=[];
   for(const [name,headers,enabled] of tasks){
     if(!enabled){results.push({name,ok:false,skipped:true,error:"secret_not_configured"});continue;}
     results.push(await callFunction(name,headers));
