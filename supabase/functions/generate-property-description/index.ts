@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const aiUrl = Deno.env.get("AI_API_URL") || "";
 const aiKey = Deno.env.get("AI_API_KEY") || "";
 const aiModel = Deno.env.get("AI_MODEL") || "";
@@ -18,14 +19,20 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const authHeader = request.headers.get("authorization") || "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) return json({ error: "unauthorized" }, 401);
-  if (!supabaseUrl || !anonKey) return json({ error: "supabase_not_configured" }, 500);
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "supabase_not_configured" }, 500);
 
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
+  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
   const { data: userData, error: userError } = await userClient.auth.getUser();
   if (userError || !userData.user) return json({ error: "unauthorized" }, 401);
+
+  const release = await admin.from("platform_release_controls").select("environment_mode,maintenance_mode,ai_generation_enabled").eq("id",1).maybeSingle();
+  if (release.error) return json({ error: "release_controls_unavailable" }, 503);
+  if (release.data?.maintenance_mode) return json({ error: "platform_maintenance_mode" }, 423);
+  if (release.data?.ai_generation_enabled !== true) return json({ error: "ai_generation_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
 
   let payload: Record<string, unknown>;
   try { payload = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
