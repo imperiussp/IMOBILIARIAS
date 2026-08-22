@@ -1,6 +1,7 @@
 import PlatformAdminDashboard from "../../components/PlatformAdminDashboard";
 import PlatformAdminGate from "../../components/PlatformAdminGate";
 import PlatformBillingOverview from "../../components/PlatformBillingOverview";
+import PlatformDeploymentCheckpoints from "../../components/PlatformDeploymentCheckpoints";
 import PlatformDocumentTemplateManager from "../../components/PlatformDocumentTemplateManager";
 import PlatformHomologationReadiness from "../../components/PlatformHomologationReadiness";
 import PlatformOperationsDashboard from "../../components/PlatformOperationsDashboard";
@@ -29,6 +30,7 @@ export default function PlatformAdminPage() {
             <div className="adminHeading"><div><span className="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</span><h1>Visão global do SaaS</h1><p>Imobiliárias, assinaturas, cobrança, domínios, usuários, documentos, volume de imóveis e configuração comercial em um único painel da LENOY IMOBILIÁRIAS.</p></div></div>
             <PlatformReleaseControls />
             <PlatformHomologationReadiness />
+            <PlatformDeploymentCheckpoints />
             <PlatformTenantSecurityAudit />
             <PlatformReleaseValidations />
             <PlatformReleaseHistory />
