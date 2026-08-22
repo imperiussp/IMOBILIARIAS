@@ -51,14 +51,18 @@ Deno.serve(async(request)=>{
   };
 
   if(serviceRoleKey){
-    const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
-    await admin.from("platform_maintenance_runs").insert({
-      started_at:startedAt,
-      finished_at:payload.processed_at,
-      success:payload.ok,
-      failed_tasks:failed,
-      result:payload,
-    }).then(()=>undefined).catch(()=>undefined);
+    try {
+      const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
+      await admin.from("platform_maintenance_runs").insert({
+        started_at:startedAt,
+        finished_at:payload.processed_at,
+        success:payload.ok,
+        failed_tasks:failed,
+        result:payload,
+      });
+    } catch {
+      // O log nunca deve impedir as rotinas principais nem alterar seu resultado.
+    }
   }
 
   return json(payload,failed?207:200);
