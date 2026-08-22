@@ -9,10 +9,13 @@ const requiredFiles=[
   "scripts/check-env-contract.mjs",
   "scripts/check-edge-function-guards.mjs",
   "scripts/check-migration-safety.mjs",
+  "scripts/post-deploy-smoke.mjs",
   "supabase/tests/tenant-isolation-regression.sql",
   "docs/HOMOLOGATION-GO-LIVE.md",
   "docs/GO-LIVE-CHECKLIST.md",
   "docs/DEPLOYMENT-RUNBOOK.md",
+  "docs/ROLLBACK-PLAN.md",
+  "apps/web/app/api/health/route.ts",
   "apps/web/components/PlatformHomologationReadiness.tsx",
   "apps/web/components/PlatformDeploymentCheckpoints.tsx",
   "apps/web/components/PlatformTenantSecurityAudit.tsx",
@@ -27,7 +30,7 @@ if(!migrations.length)errors.push("nenhuma migration encontrada");
 else{
   const latest=migrations.at(-1);
   const n=Number(latest.slice(0,4));
-  if(n<126)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
+  if(n<127)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
   const requiredMigrationNames=[
     "0109_platform_release_controls.sql",
     "0116_runtime_action_gate.sql",
@@ -36,6 +39,7 @@ else{
     "0124_platform_deployment_checkpoints.sql",
     "0125_deployment_readiness_in_release_gate.sql",
     "0126_deployment_checkpoint_history.sql",
+    "0127_deployment_rollback_and_smoke_checks.sql",
   ];
   for(const file of requiredMigrationNames){if(!migrations.includes(file))errors.push(`migration de homologação ausente: ${file}`);}
 }
