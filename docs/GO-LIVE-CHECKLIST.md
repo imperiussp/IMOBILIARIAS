@@ -26,16 +26,20 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
 
 ## Recursos pendentes / roadmap
 
-- [ ] **IA de oportunidade para compradores:** quando um imóvel disponível atingir a compatibilidade mínima com as preferências registradas de um comprador, a IA deve preparar e disparar um contato comercial personalizado nos canais autorizados pela imobiliária e pelo cliente.
-  - Deve funcionar tanto para imóveis que já estejam no catálogo quanto para **novos imóveis assim que forem cadastrados/publicados**.
-  - Usar o perfil de compra e a pontuação de matching já existente, respeitando sempre `agency_id` para não misturar compradores e imóveis de imobiliárias diferentes.
-  - Permitir definir uma pontuação mínima de compatibilidade antes do contato automático.
-  - Evitar envio duplicado do mesmo imóvel para o mesmo comprador e aplicar período de espera entre contatos.
-  - Registrar no CRM qual imóvel gerou o contato, a pontuação de compatibilidade, canal utilizado, data/hora, resultado e eventual resposta do comprador.
-  - Permitir ligar/desligar automação por imobiliária e, futuramente, controlar o recurso por plano.
-  - Priorizar WhatsApp e permitir outros canais compatíveis, sempre respeitando consentimento, opt-out e regras do provedor utilizado.
-  - A IA não pode inventar características do imóvel: a mensagem deve usar somente dados confirmados no cadastro.
-  - O corretor responsável deve receber aviso da oportunidade e do contato efetuado.
+- [ ] **IA de oportunidade para compradores — fundação preparada:** quando um imóvel disponível atingir a compatibilidade mínima com as preferências registradas de um comprador, a IA deve preparar e disparar um contato comercial personalizado nos canais autorizados pela imobiliária e pelo cliente.
+  - [x] Detectar oportunidades tanto para imóveis existentes reprocessados quanto para **novos imóveis assim que forem cadastrados/publicados**.
+  - [x] Usar perfil de compra e pontuação de matching por `agency_id`.
+  - [x] Permitir configurar pontuação mínima, canais, intervalo entre contatos e ativação da automação por imobiliária.
+  - [x] Criar fila deduplicada por comprador + imóvel e estados de revisão, aprovação, envio, falha e descarte.
+  - [x] Registrar consentimento/opt-out separado por canal e permissão específica para alertas automáticos.
+  - [x] Preparar geração da mensagem com IA sem inventar características do imóvel.
+  - [x] Preparar controle comercial por plano (`ai_buyer_outreach`).
+  - [x] Preparar processador backend com intervalo mínimo e adaptador genérico de entrega.
+  - [ ] Configurar credenciais reais do provedor de IA no Supabase exclusivo do IMOBILIARIAS.
+  - [ ] Conectar o adaptador de entrega ao provedor real de WhatsApp/e-mail escolhido para produção.
+  - [ ] Implementar aviso automático ao corretor responsável após geração/envio da oportunidade.
+  - [ ] Registrar resposta do comprador retornada pelo provedor e incorporar o resultado ao CRM.
+  - [ ] Executar testes reais de consentimento, opt-out, duplicidade, limites do plano e entrega antes de habilitar envio automático.
 
 ## Verificações antes de produção
 
@@ -48,6 +52,7 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
 - Fotos de rascunhos não ficam acessíveis publicamente.
 - O fluxo offline do aplicativo cria apenas um imóvel após novas tentativas.
 - Imóveis vendidos/alugados permanecem no histórico.
+- A IA de oportunidades não envia contatos sem consentimento, canal autorizado e plano elegível.
 
 ## Publicação web
 
