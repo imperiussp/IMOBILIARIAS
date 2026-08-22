@@ -51,7 +51,11 @@ create trigger lead_followups_validate_tenant
 before insert or update on public.lead_followups
 for each row execute function public.validate_lead_followup_tenant();
 
-create or replace view public.agency_followup_summary as
+-- security_invoker faz a view respeitar o RLS de lead_followups.
+drop view if exists public.agency_followup_summary;
+create view public.agency_followup_summary
+with (security_invoker = true)
+as
 select
   agency_id,
   count(*) filter (where completed_at is null)::bigint as pending,
