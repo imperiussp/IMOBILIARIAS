@@ -16,7 +16,6 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "supabase_not_configured" }, 500);
-  if (!handle || !webhookSecret) return json({ error: "infinitepay_not_configured" }, 503);
 
   const authHeader = request.headers.get("authorization") || "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) return json({ error: "unauthorized" }, 401);
@@ -24,6 +23,12 @@ Deno.serve(async (request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
   const { data: userData, error: userError } = await userClient.auth.getUser();
   if (userError || !userData.user) return json({ error: "unauthorized" }, 401);
+
+  const release = await admin.from("platform_release_controls").select("environment_mode,maintenance_mode,real_billing_enabled").eq("id",1).maybeSingle();
+  if (release.error) return json({ error: "release_controls_unavailable" }, 503);
+  if (release.data?.maintenance_mode) return json({ error: "platform_maintenance_mode" }, 423);
+  if (release.data?.real_billing_enabled !== true) return json({ error: "real_billing_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
+  if (!handle || !webhookSecret) return json({ error: "infinitepay_not_configured" }, 503);
 
   let payload: Record<string, unknown>;
   try { payload = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
@@ -46,7 +51,6 @@ Deno.serve(async (request) => {
   const amount = Number(billingCycle === "annual" ? plan.annual_price : plan.monthly_price);
   if (!Number.isFinite(amount) || amount <= 0) return json({ error: "plan_price_not_configured" }, 409);
 
-  // Evita gerar vários links para o mesmo plano/ciclo por cliques repetidos.
   const reuseAfter = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const { data: reusable } = await admin.from("billing_checkout_sessions")
     .select("id,order_nsu,checkout_url,created_at")
@@ -65,7 +69,6 @@ Deno.serve(async (request) => {
     return json({ checkout_url: reusable.checkout_url, checkout_id: reusable.id, order_nsu: reusable.order_nsu, reused: true });
   }
 
-  // Links pendentes antigos deixam de aparecer como cobrança atual.
   await admin.from("billing_checkout_sessions").update({ status: "expired", updated_at: new Date().toISOString() })
     .eq("agency_id", agencyId)
     .eq("plan_id", planId)
@@ -84,7 +87,7 @@ Deno.serve(async (request) => {
     redirect_url: redirectUrl,
     webhook_url: webhookUrl,
     order_nsu: orderNsu,
-    items: [{ quantity: 1, price: amountCents, description: `LENOY IMÓVEIS — ${plan.name} (${billingCycle === "annual" ? "anual" : "mensal"})` }],
+    items: [{ quantity: 1, price: amountCents, description: `LENOY IMOBILIÁRIAS — ${plan.name} (${billingCycle === "annual" ? "anual" : "mensal"})` }],
     customer: { name: agency.name, email: userData.user.email || agency.email || undefined },
   };
 
