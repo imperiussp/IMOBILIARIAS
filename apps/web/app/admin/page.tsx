@@ -5,6 +5,7 @@ import AdminBrokerGoals from "../../components/AdminBrokerGoals";
 import AdminBrokerPerformance from "../../components/AdminBrokerPerformance";
 import AdminBrokers from "../../components/AdminBrokers";
 import AdminBuyerConsent from "../../components/AdminBuyerConsent";
+import AdminBuyerDeliveryMonitor from "../../components/AdminBuyerDeliveryMonitor";
 import AdminBuyerOutreach from "../../components/AdminBuyerOutreach";
 import AdminBuyerOutreachResponses from "../../components/AdminBuyerOutreachResponses";
 import AdminBuyerPreferences from "../../components/AdminBuyerPreferences";
@@ -24,6 +25,7 @@ import AdminLeadResponseMetrics from "../../components/AdminLeadResponseMetrics"
 import AdminLeadTimeline from "../../components/AdminLeadTimeline";
 import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
+import AdminOperationalAlerts from "../../components/AdminOperationalAlerts";
 import AdminPlan from "../../components/AdminPlan";
 import AdminPropertyDocumentChecklist from "../../components/AdminPropertyDocumentChecklist";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
@@ -53,12 +55,14 @@ export default function AdminPage() {
           <aside className="adminSidebar">
             <strong>Gestão</strong>
             <a className="active" href="#visao-geral">Visão geral</a>
+            <a href="#alertas-operacionais">Alertas operacionais</a>
             <a href="#funil-comercial">Funil comercial</a>
             <a href="#tempo-resposta">Tempo de resposta</a>
             <a href="#agenda-visitas">Agenda de visitas</a>
             <a href="#perfil-compra">Perfil de compra</a>
             <a href="#consentimento-compradores">Consentimentos</a>
             <a className="adminOnly" href="#oportunidades-ia">Oportunidades IA</a>
+            <a className="adminOnly" href="#entregas-oportunidades">Entregas IA</a>
             <a href="#respostas-oportunidades">Respostas IA</a>
             <a href="#imoveis">Imóveis</a>
             <a className="adminOnly" href="#desempenho-imoveis">Desempenho dos imóveis</a>
@@ -94,12 +98,14 @@ export default function AdminPage() {
             <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos, documentos, arquivos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
+            <AdminOperationalAlerts />
             <AdminCommercialFunnel />
             <AdminLeadResponseMetrics />
             <AdminLeadQualificationBoard />
             <AdminBuyerPreferences />
             <AdminBuyerConsent />
             <AdminBuyerOutreach />
+            <AdminBuyerDeliveryMonitor />
             <AdminBuyerOutreachResponses />
             <AdminFollowups />
             <AdminVisitSchedule />
