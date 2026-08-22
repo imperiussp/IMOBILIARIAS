@@ -12,6 +12,7 @@ import "./contact.css";
 import "./platform.css";
 import "./platform-showcase.css";
 import "./platform-plans.css";
+import "./preview-live.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const assetBase = process.env.GITHUB_ACTIONS === "true" ? "/IMOBILIARIAS" : "";
