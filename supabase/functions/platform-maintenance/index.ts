@@ -1,4 +1,7 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const maintenanceSecret = Deno.env.get("PLATFORM_MAINTENANCE_SECRET") || "";
 const billingSecret = Deno.env.get("BILLING_MAINTENANCE_SECRET") || "";
 const domainSecret = Deno.env.get("DOMAIN_VERIFY_SECRET") || "";
@@ -25,6 +28,7 @@ Deno.serve(async(request)=>{
   if(!supabaseUrl||!maintenanceSecret)return json({error:"server_not_configured"},503);
   if(request.headers.get("x-platform-maintenance-secret")!==maintenanceSecret)return json({error:"unauthorized"},401);
 
+  const startedAt=new Date().toISOString();
   const tasks:[string,Record<string,string>,boolean][]=[
     ["process-subscription-expiry",{"x-billing-maintenance-secret":billingSecret},Boolean(billingSecret)],
     ["verify-custom-domains",{"x-domain-verify-secret":domainSecret},Boolean(domainSecret)],
@@ -39,10 +43,23 @@ Deno.serve(async(request)=>{
   }
 
   const failed=results.filter((item:any)=>!item.ok&&!item.skipped).length;
-  return json({
+  const payload={
     ok:failed===0,
     processed_at:new Date().toISOString(),
     failed,
     results,
-  },failed?207:200);
+  };
+
+  if(serviceRoleKey){
+    const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
+    await admin.from("platform_maintenance_runs").insert({
+      started_at:startedAt,
+      finished_at:payload.processed_at,
+      success:payload.ok,
+      failed_tasks:failed,
+      result:payload,
+    }).then(()=>undefined).catch(()=>undefined);
+  }
+
+  return json(payload,failed?207:200);
 });
