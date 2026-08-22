@@ -90,8 +90,12 @@ begin
   end if;
   new.updated_by := coalesce(auth.uid(),new.updated_by);
   new.updated_at := now();
-  if new.automated_property_alerts_allowed and new.consent_at is null then new.consent_at := now(); end if;
-  if not new.automated_property_alerts_allowed then new.revoked_at := coalesce(new.revoked_at,now()); end if;
+  if new.automated_property_alerts_allowed then
+    new.consent_at := coalesce(new.consent_at,now());
+    new.revoked_at := null;
+  else
+    new.revoked_at := coalesce(new.revoked_at,now());
+  end if;
   return new;
 end; $$;
 revoke all on function public.validate_lead_contact_permission_tenant() from public,anon,authenticated;
@@ -155,10 +159,22 @@ grant execute on function public.queue_property_buyer_matches(uuid,text) to auth
 create or replace function public.queue_matches_when_property_published()
 returns trigger language plpgsql security definer set search_path=public as $$
 begin
+  if tg_op='INSERT' then
+    if new.publication_state='published' and new.status='available' then
+      perform public.queue_property_buyer_matches(new.id,'property_published');
+    end if;
+    return new;
+  end if;
+
   if new.publication_state='published' and new.status='available' and (
-    tg_op='INSERT' or old.publication_state is distinct from new.publication_state or old.status is distinct from new.status or old.price is distinct from new.price
+    old.publication_state is distinct from new.publication_state or
+    old.status is distinct from new.status or
+    old.price is distinct from new.price
   ) then
-    perform public.queue_property_buyer_matches(new.id,case when tg_op='INSERT' or old.publication_state is distinct from new.publication_state then 'property_published' else 'property_updated' end);
+    perform public.queue_property_buyer_matches(
+      new.id,
+      case when old.publication_state is distinct from new.publication_state then 'property_published' else 'property_updated' end
+    );
   end if;
   return new;
 end; $$;
