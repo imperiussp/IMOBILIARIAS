@@ -1,7 +1,11 @@
 -- Indicadores de qualidade cadastral dos imóveis por imobiliária.
 -- EXCLUSIVO do Supabase IMOBILIARIAS.
 
-create or replace view public.agency_property_quality as
+-- security_invoker garante que a view respeite o RLS de properties/property_photos.
+drop view if exists public.agency_property_quality;
+create view public.agency_property_quality
+with (security_invoker = true)
+as
 select
   p.agency_id,
   p.id as property_id,
