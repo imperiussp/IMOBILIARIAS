@@ -62,7 +62,7 @@ O status público de catálogo permite pausar todas as vitrines de tenants sem a
 
 ### Inteligência artificial
 
-`process-buyer-opportunities`, `generate-property-description` e `generate-buyer-opportunity-message` recusam chamadas reais a provedores quando IA não está liberada. Em manutenção, ações externas devem permanecer bloqueadas.
+`process-buyer-opportunities`, `generate-property-description` e `generate-buyer-opportunity-message` recusam chamadas reais a provedores quando IA não está liberada. Em manutenção, ações externas permanecem bloqueadas.
 
 ### Push do aplicativo
 
@@ -78,81 +78,111 @@ Além disso:
 
 A migration `0117_push_operational_health.sql` cria métricas globais de dispositivos ativos, fila pendente, atrasos, tentativas esgotadas e último envio.
 
+## Segurança multi-imobiliária
+
+A migration `0118_platform_tenant_security_audit.sql` cria `platform_tenant_security_audit()`.
+
+Ela verifica estruturalmente tabelas críticas do SaaS e identifica:
+
+- tabela esperada ausente;
+- ausência de `agency_id` em tabela tenant;
+- RLS desligado;
+- RLS ligado sem nenhuma policy;
+- quantidade de policies encontradas.
+
+A auditoria é restrita ao super-admin e aparece na administração global em **Auditoria de isolamento entre clientes**.
+
+Ela não substitui o teste funcional. O arquivo `supabase/tests/tenant-isolation-regression.sql` documenta o cenário obrigatório com duas imobiliárias e duas contas independentes para provar que leitura, INSERT, UPDATE e DELETE não atravessam tenants.
+
+## Evidências persistentes de homologação
+
+A migration `0120_release_validation_evidence.sql` cria `platform_release_validations`.
+
+A administração global passa a guardar, com data e usuário, se testes importantes foram realmente executados. Entre os itens obrigatórios para produção estão:
+
+- login, sessão e recuperação de acesso;
+- teste funcional entre duas imobiliárias;
+- CRUD de imóvel;
+- upload, capa, ordem e isolamento de fotos;
+- fluxo de lead e CRM;
+- permissões de corretor/admin;
+- DNS e HTTPS;
+- cron de manutenção;
+- backup e procedimento de recuperação.
+
+Outros itens, como sincronização offline, cobrança controlada e mensageria controlada, também ficam registrados e podem ser exigidos conforme o escopo do lançamento.
+
+Marcar uma validação como concluída significa que o teste foi realmente executado no ambiente correto; a checklist não deve ser preenchida apenas para liberar produção.
+
 ## Promoção protegida para produção
 
-A migration `0114_production_promotion_guard_and_push_gate.sql` adiciona um trigger no banco. A primeira mudança de qualquer ambiente para `production` é recusada se faltar algum dos requisitos mínimos:
+As migrations `0114`, `0119` e `0121` endurecem progressivamente `guard_platform_production_promotion()`.
+
+A mudança para `production` é recusada se faltar qualquer requisito obrigatório:
 
 - modo manutenção desligado;
 - catálogo público ligado;
 - identificação da release com pelo menos 4 caracteres;
 - observações da release com pelo menos 20 caracteres;
-- execução de manutenção registrada nas últimas 24 horas;
-- nenhuma ocorrência de provedor não correlacionada e atrasada há mais de 30 minutos.
+- **uma manutenção bem-sucedida** nas últimas 24 horas;
+- nenhuma ocorrência de provedor não correlacionada e atrasada há mais de 30 minutos;
+- nenhuma falha crítica na auditoria estrutural multi-imobiliária;
+- nenhum teste marcado como obrigatório em `platform_release_validations` pendente de validação.
 
 A promoção registra `production_activated_at` e `production_activated_by`.
 
-O painel também mostra os requisitos antes da tentativa, mas a proteção real está no banco e não depende da interface.
+O painel mostra os requisitos antes da tentativa, mas a proteção real está no banco e não depende da interface.
 
-## Diagnóstico pré-voo v2
+## Diagnóstico pré-voo
 
-A migration `0115_release_readiness_v2.sql` substitui o diagnóstico inicial e cria:
+A migration `0115_release_readiness_v2.sql` cria/substitui:
 
 - `platform_homologation_readiness`;
 - `platform_release_readiness_summary`.
 
-O painel global mostra:
+O painel global mostra percentual de prontidão, bloqueios obrigatórios, recomendações, documentação da release, estado dos freios, manutenção, fila de provedores, falhas financeiras, domínios e auditoria da promoção.
 
-- percentual de prontidão;
-- quantidade de verificações aprovadas;
-- bloqueios obrigatórios;
-- recomendações;
-- itens opcionais;
-- identificação/documentação da release;
-- coerência dos freios com o ambiente;
-- modo manutenção;
-- manutenção recente;
-- **sucesso real da última manutenção**;
-- eventos de provedores atrasados;
-- falhas financeiras;
-- domínios personalizados pendentes;
-- auditoria da promoção para produção.
+As migrations posteriores adicionam controles complementares que também devem ser consultados no mesmo painel global:
 
-Em produção, catálogo, manutenção recente, sucesso da manutenção, saúde da fila técnica e registro da promoção passam a ser critérios obrigatórios.
+- `0118`: segurança estrutural entre tenants;
+- `0120`: evidências persistentes de homologação;
+- `0121`: obrigatoriedade das evidências na promoção para produção.
 
 O diagnóstico não executa deploy, não aplica migrations e não ativa serviços.
 
 ## Manutenção automática
 
-`platform-maintenance` agora é consciente do estado de release e falha fechada:
+`platform-maintenance` é consciente do estado de release e falha fechada:
 
 - exige `SUPABASE_SERVICE_ROLE_KEY`;
 - exige `PLATFORM_MAINTENANCE_SECRET`;
 - ausência de secret necessário para uma tarefa que realmente precisa rodar conta como falha de configuração;
 - push não é chamado quando o gate de push está desligado;
 - oportunidades não são processadas quando mensageria e IA estão bloqueadas;
-- verificação de domínio é pulada sem erro quando não existe domínio personalizado pendente;
-- uma execução incompleta por configuração ausente não é mais registrada como sucesso.
+- uma execução incompleta por configuração ausente não é registrada como sucesso.
+
+Para promover a produção, não basta ter uma execução recente: pelo menos uma execução com `success=true` deve existir nas últimas 24 horas.
+
+## Validações estáticas no CI
+
+O workflow de CI executa proteções adicionais antes do build:
+
+- numeração duplicada de migrations;
+- `migration:safety`, que procura `SECURITY DEFINER` sem `SET search_path`, operações destrutivas de alto risco e novas tabelas tenant sem RLS encontrado;
+- `edge:guards`, que verifica os 13 endpoints privilegiados com `verify_jwt=false` e rejeita padrões de segredo opcional/fail-open;
+- typecheck e build web;
+- typecheck mobile.
+
+Essas verificações reduzem regressões, mas não substituem o teste no Supabase real de homologação.
 
 ## Histórico de alterações
 
-`platform_release_control_history` guarda alterações dos controles globais. O painel **Histórico do ambiente** mostra:
-
-- ambiente;
-- manutenção;
-- catálogo;
-- novos cadastros;
-- cobrança;
-- WhatsApp/e-mail;
-- push;
-- IA;
-- identificação e observações da release.
-
-A migration `0112_release_control_history_indexes.sql` mantém essa consulta eficiente conforme o histórico cresce.
+`platform_release_control_history` guarda alterações dos controles globais. O painel **Histórico do ambiente** mostra ambiente, manutenção, catálogo, novos cadastros, cobrança, WhatsApp/e-mail, push, IA, identificação e observações da release.
 
 ## Ordem recomendada para primeira homologação online
 
 1. Criar e confirmar um Supabase exclusivo para IMOBILIARIAS.
-2. Aplicar todas as migrations em ordem, **até `0117` inclusive**.
+2. Aplicar todas as migrations em ordem, **até `0121` inclusive**.
 3. Confirmar que o ambiente continua como `homologation`.
 4. Confirmar no painel global que cobrança, mensageria externa, IA, push e novos cadastros estão bloqueados.
 5. Configurar URL e anon key do Supabase no web e app.
@@ -163,12 +193,15 @@ A migration `0112_release_control_history_indexes.sql` mantém essa consulta efi
 10. Publicar o web no domínio escolhido.
 11. Manter `NEXT_PUBLIC_ALLOW_INDEXING=false` durante homologação.
 12. Configurar DNS/TLS.
-13. Criar ou vincular uma imobiliária de teste administrativamente.
-14. Testar login, tenant, isolamento, cadastro de corretor, imóvel, fotos, catálogo, lead, CRM, documentos e fluxo offline.
-15. Ativar manutenção automática/cron e exigir uma execução sem falhas.
-16. Rever **Pré-voo** e **Saúde da plataforma**.
-17. Somente depois, testar individualmente IA, mensageria, push e cobrança, ligando um controle global por vez.
-18. Após cada teste externo, voltar o respectivo gate para OFF se o lançamento ainda não ocorrer.
+13. Criar duas imobiliárias de teste controladas e usuários separados.
+14. Executar o teste funcional de isolamento entre tenants.
+15. Testar login, recuperação de senha, corretor/admin, imóvel, fotos, catálogo, lead, CRM, documentos e fluxo offline.
+16. Ativar manutenção automática/cron e exigir uma execução com `success=true`.
+17. Validar backup e procedimento de recuperação.
+18. Registrar as evidências concluídas no painel **Checklist real de homologação**.
+19. Rever **Pré-voo**, **Auditoria de isolamento**, **Checklist real de homologação** e **Saúde da plataforma**.
+20. Somente depois, testar individualmente IA, mensageria, push e cobrança, ligando um controle global por vez.
+21. Após cada teste externo, voltar o respectivo gate para OFF se o lançamento ainda não ocorrer.
 
 ## Antes do lançamento comercial
 
@@ -176,19 +209,22 @@ Não mudar diretamente de homologação para tudo ligado. A sequência recomenda
 
 1. manter `environment_mode=homologation`;
 2. registrar identificação e notas completas da release;
-3. validar IA com dados de teste;
-4. validar mensageria somente com números/e-mails autorizados de teste;
-5. validar push somente em dispositivos controlados de teste;
-6. validar checkout com uma operação controlada;
-7. validar webhooks e retornos;
-8. voltar recursos externos para OFF se ainda estiver em homologação;
-9. executar a manutenção e confirmar `success=true`;
-10. verificar que não há eventos de provedores atrasados;
-11. conferir o Pré-voo;
-12. tentar a promoção para `production` — o próprio banco recusará se os critérios obrigatórios não estiverem satisfeitos;
-13. em produção, liberar cada recurso comercial deliberadamente conforme necessidade;
-14. habilitar `NEXT_PUBLIC_ALLOW_INDEXING=true` somente quando o lançamento público realmente ocorrer.
+3. executar novamente o teste entre duas imobiliárias;
+4. confirmar zero falhas críticas na auditoria estrutural;
+5. confirmar todos os itens `required_for_production` validados;
+6. validar IA com dados de teste, se fizer parte do lançamento inicial;
+7. validar mensageria somente com números/e-mails autorizados de teste, se fizer parte do lançamento inicial;
+8. validar push somente em dispositivos controlados de teste, se fizer parte do lançamento inicial;
+9. validar checkout com uma operação controlada, se fizer parte do lançamento inicial;
+10. validar webhooks e retornos;
+11. voltar recursos externos para OFF se ainda estiver em homologação;
+12. executar a manutenção e confirmar `success=true`;
+13. verificar que não há eventos de provedores atrasados;
+14. conferir Pré-voo, auditoria multi-tenant e evidências;
+15. tentar a promoção para `production` — o próprio banco recusará se algum requisito obrigatório estiver faltando;
+16. em produção, liberar cada recurso comercial deliberadamente conforme necessidade;
+17. habilitar `NEXT_PUBLIC_ALLOW_INDEXING=true` somente quando o lançamento público realmente ocorrer.
 
 ## O que este repositório não faz sozinho
 
-Ter o código pronto não significa que o ambiente esteja implantado. Ainda são ações externas deliberadas: criar Supabase, aplicar migrations, configurar secrets, fazer deploy das funções/web, apontar DNS, configurar provedores e executar testes reais.
+Ter o código pronto não significa que o ambiente esteja implantado. Ainda são ações externas deliberadas: criar Supabase, aplicar migrations, configurar secrets, fazer deploy das funções/web, apontar DNS, configurar provedores, validar backup e executar testes reais.
