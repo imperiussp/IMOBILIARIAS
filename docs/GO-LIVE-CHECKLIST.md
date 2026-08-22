@@ -17,29 +17,61 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `EXPO_PUBLIC_SUPABASE_URL`
    - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-5. Criar a primeira conta da equipe em `/cadastro/`.
-6. Confirmar o e-mail, caso a confirmação esteja habilitada no Supabase.
-7. Entrar nessa conta e abrir `/primeiro-acesso/` para definir o administrador inicial.
-8. Depois disso, todos os novos usuários devem ser liberados pelo menu **Usuários** do painel.
-9. Cadastrar corretores e vincular cada conta ao corretor correto.
-10. Testar cadastro de imóvel, upload de fotos, catálogo público, WhatsApp, lead e aplicativo antes de publicar para clientes.
+5. Configurar os secrets das Edge Functions conforme `.env.example` e nunca expô-los no navegador/app.
+6. Criar a primeira conta da equipe em `/cadastro/`.
+7. Confirmar o e-mail, caso a confirmação esteja habilitada no Supabase.
+8. Entrar nessa conta e abrir `/primeiro-acesso/` para definir o administrador inicial.
+9. Depois disso, todos os novos usuários devem ser liberados pelo menu **Usuários** do painel.
+10. Cadastrar corretores e vincular cada conta ao corretor correto.
+11. Testar cadastro de imóvel, upload de fotos, catálogo público, WhatsApp, lead e aplicativo antes de publicar para clientes.
 
-## Recursos pendentes / roadmap
+## IA de oportunidades para compradores
 
-- [ ] **IA de oportunidade para compradores — fundação preparada:** quando um imóvel disponível atingir a compatibilidade mínima com as preferências registradas de um comprador, a IA deve preparar e disparar um contato comercial personalizado nos canais autorizados pela imobiliária e pelo cliente.
-  - [x] Detectar oportunidades tanto para imóveis existentes reprocessados quanto para **novos imóveis assim que forem cadastrados/publicados**.
-  - [x] Usar perfil de compra e pontuação de matching por `agency_id`.
-  - [x] Permitir configurar pontuação mínima, canais, intervalo entre contatos e ativação da automação por imobiliária.
-  - [x] Criar fila deduplicada por comprador + imóvel e estados de revisão, aprovação, envio, falha e descarte.
-  - [x] Registrar consentimento/opt-out separado por canal e permissão específica para alertas automáticos.
-  - [x] Preparar geração da mensagem com IA sem inventar características do imóvel.
-  - [x] Preparar controle comercial por plano (`ai_buyer_outreach`).
-  - [x] Preparar processador backend com intervalo mínimo e adaptador genérico de entrega.
-  - [ ] Configurar credenciais reais do provedor de IA no Supabase exclusivo do IMOBILIARIAS.
-  - [ ] Conectar o adaptador de entrega ao provedor real de WhatsApp/e-mail escolhido para produção.
-  - [ ] Implementar aviso automático ao corretor responsável após geração/envio da oportunidade.
-  - [ ] Registrar resposta do comprador retornada pelo provedor e incorporar o resultado ao CRM.
-  - [ ] Executar testes reais de consentimento, opt-out, duplicidade, limites do plano e entrega antes de habilitar envio automático.
+A estrutura funcional já está preparada no repositório:
+
+- [x] Detectar oportunidades para imóveis existentes e novos imóveis publicados.
+- [x] Usar perfil de compra e pontuação de matching por `agency_id`.
+- [x] Configurar pontuação mínima, canais, intervalo entre contatos, horário silencioso e ativação por imobiliária.
+- [x] Criar fila deduplicada por comprador + imóvel e estados de revisão, aprovação, envio, falha e descarte.
+- [x] Registrar consentimento/opt-out separado por canal e permissão específica para alertas automáticos.
+- [x] Gerar mensagens com IA sem inventar características do imóvel.
+- [x] Controlar disponibilidade e limites por plano (`ai_buyer_outreach`).
+- [x] Processar fila com consentimento, cooldown, limite mensal, plano e horário silencioso.
+- [x] Possuir adaptador próprio de entrega para WhatsApp Cloud API e e-mail via Resend.
+- [x] Registrar IDs de mensagem e estados enviado/entregue/lido/falha.
+- [x] Receber webhook direto da Meta com validação de assinatura.
+- [x] Classificar respostas em interesse, detalhes, visita, sem interesse e opt-out.
+- [x] Revogar alertas automaticamente em opt-out.
+- [x] Registrar respostas no histórico do CRM.
+- [x] Criar follow-up automático para respostas positivas.
+- [x] Notificar o corretor responsável sobre respostas positivas.
+- [x] Exibir métricas, respostas e monitor de entrega no painel da imobiliária.
+- [x] Evitar fallback ambíguo de telefone entre imobiliárias diferentes.
+- [ ] Configurar credenciais reais do provedor de IA no Supabase exclusivo do IMOBILIARIAS.
+- [ ] Configurar credenciais reais da Meta e/ou Resend.
+- [ ] Cadastrar o webhook `meta-whatsapp-webhook` na Meta e concluir a verificação.
+- [ ] Fazer deploy das Edge Functions no projeto Supabase exclusivo do IMOBILIARIAS.
+- [ ] Executar testes reais de consentimento, opt-out, duplicidade, limites do plano, entrega, leitura e respostas antes de habilitar envio automático.
+
+## Manutenção automática da plataforma
+
+A função `platform-maintenance` concentra as rotinas recorrentes para reduzir a quantidade de crons independentes.
+
+Ela aciona:
+
+- expiração/manutenção de assinaturas;
+- verificação de domínios próprios;
+- dispatcher de push;
+- processamento da fila de oportunidades para compradores.
+
+Antes da produção:
+
+- [ ] Configurar `PLATFORM_MAINTENANCE_SECRET`.
+- [ ] Configurar os secrets específicos de cada rotina.
+- [ ] Fazer deploy da função `platform-maintenance`.
+- [ ] Criar um cron seguro apontando para essa função.
+- [ ] Confirmar que `platform_maintenance_runs` registra as execuções.
+- [ ] Conferir a área **Saúde da plataforma** após as primeiras execuções.
 
 ## Verificações antes de produção
 
@@ -53,6 +85,10 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
 - O fluxo offline do aplicativo cria apenas um imóvel após novas tentativas.
 - Imóveis vendidos/alugados permanecem no histórico.
 - A IA de oportunidades não envia contatos sem consentimento, canal autorizado e plano elegível.
+- Uma resposta sem contexto da Meta nunca é ligada a uma imobiliária quando o telefone for ambíguo entre tenants.
+- Um opt-out interrompe novos alertas automáticos do canal.
+- Falhas de mensageria aparecem no monitor do painel e podem voltar para revisão sem reenvio automático.
+- A manutenção automática registra histórico e não deixa uma rotina impedir as demais de serem processadas.
 
 ## Publicação web
 
