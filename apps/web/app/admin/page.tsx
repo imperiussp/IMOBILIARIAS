@@ -21,6 +21,7 @@ import AdminPlan from "../../components/AdminPlan";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 import AdminPropertyLifecycle from "../../components/AdminPropertyLifecycle";
 import AdminPropertyQuality from "../../components/AdminPropertyQuality";
+import AdminResponsePerformance from "../../components/AdminResponsePerformance";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
 import AdminStorageOverview from "../../components/AdminStorageOverview";
 import AdminUsers from "../../components/AdminUsers";
@@ -43,6 +44,7 @@ export default function AdminPage() {
             <strong>Gestão</strong>
             <a className="active" href="#visao-geral">Visão geral</a>
             <a href="#funil-comercial">Funil comercial</a>
+            <a href="#tempo-resposta">Tempo de resposta</a>
             <a href="#imoveis">Imóveis</a>
             <a className="adminOnly" href="#ciclo-imoveis">Ciclo dos imóveis</a>
             <a className="adminOnly" href="#qualidade-imoveis">Qualidade dos anúncios</a>
@@ -73,6 +75,7 @@ export default function AdminPage() {
 
             <AdminLiveData />
             <AdminCommercialFunnel />
+            <AdminResponsePerformance />
             <AdminLeadQualificationBoard />
             <AdminFollowups />
             <AdminLeadTimeline />
