@@ -8,6 +8,7 @@ import AdminDocumentUploads from "../../components/AdminDocumentUploads";
 import AdminDocumentUsage from "../../components/AdminDocumentUsage";
 import AdminDomains from "../../components/AdminDomains";
 import AdminExportTools from "../../components/AdminExportTools";
+import AdminFollowups from "../../components/AdminFollowups";
 import AdminGate from "../../components/AdminGate";
 import AdminInfinitePayCheckout from "../../components/AdminInfinitePayCheckout";
 import AdminInvitations from "../../components/AdminInvitations";
@@ -16,6 +17,7 @@ import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminPlan from "../../components/AdminPlan";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
+import AdminPropertyQuality from "../../components/AdminPropertyQuality";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
 import AdminStorageOverview from "../../components/AdminStorageOverview";
 import AdminUsers from "../../components/AdminUsers";
@@ -38,6 +40,7 @@ export default function AdminPage() {
             <strong>Gestão</strong>
             <a className="active" href="#visao-geral">Visão geral</a>
             <a href="#imoveis">Imóveis</a>
+            <a className="adminOnly" href="#qualidade-imoveis">Qualidade dos anúncios</a>
             <a className="adminOnly" href="#novo-imovel">Novo imóvel</a>
             <a className="adminOnly" href="#descricao-ia">Descrição com IA</a>
             <a className="adminOnly" href="#localidades">Localidades</a>
@@ -45,6 +48,9 @@ export default function AdminPage() {
             <a className="adminOnly" href="#corretores">Corretores</a>
             <a className="adminOnly" href="#usuarios">Usuários</a>
             <a className="adminOnly" href="#convites">Convites</a>
+            <a href="#contatos">Contatos</a>
+            <a href="#qualificacao-contatos">Classificação</a>
+            <a href="#acompanhamentos">Acompanhamentos</a>
             <a className="adminOnly" href="#documentos">Documentos</a>
             <a className="adminOnly" href="#arquivos-documentos">Anexos</a>
             <a className="adminOnly" href="#arquivos">Arquivos</a>
@@ -52,8 +58,6 @@ export default function AdminPage() {
             <a className="adminOnly" href="#pagamento-infinitepay">Pagamento</a>
             <a className="adminOnly" href="#configuracoes">Imobiliária</a>
             <a className="adminOnly" href="#dominios">Domínios</a>
-            <a href="#contatos">Contatos</a>
-            <a href="#qualificacao-contatos">Classificação</a>
             <a className="adminOnly" href="#historico">Histórico</a>
             <a className="adminOnly" href="#exportacoes">Exportações</a>
           </aside>
@@ -63,6 +67,8 @@ export default function AdminPage() {
 
             <AdminLiveData />
             <AdminLeadQualificationBoard />
+            <AdminFollowups />
+            <AdminPropertyQuality />
 
             <div className="adminPanel adminOnly" id="novo-imovel">
               <div className="adminPanelHeader"><div><span className="eyebrow">CADASTRO REAL</span><h2>Novo imóvel</h2><p>Cadastro completo com corretor, características, privacidade de endereço e fotos.</p></div></div>
