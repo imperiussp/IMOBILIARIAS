@@ -12,7 +12,8 @@ import "./contact.css";
 import "./platform.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
-const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/LENOY.jpg";
+const assetBase = process.env.GITHUB_ACTIONS === "true" ? "/IMOBILIARIAS" : "";
+const lenoyLogo = `${assetBase}/logo-lenoy.svg`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -24,9 +25,9 @@ export const metadata: Metadata = {
   keywords: ["imobiliária", "site para imobiliária", "sistema imobiliário", "imóveis", "corretores", "leads", "SaaS imobiliário"],
   alternates: { canonical: "/" },
   icons: {
-    icon: [{ url: lenoyLogo, type: "image/jpeg" }],
-    shortcut: [{ url: lenoyLogo, type: "image/jpeg" }],
-    apple: [{ url: lenoyLogo, type: "image/jpeg" }],
+    icon: [{ url: lenoyLogo, type: "image/svg+xml" }],
+    shortcut: [{ url: lenoyLogo, type: "image/svg+xml" }],
+    apple: [{ url: lenoyLogo }],
   },
   openGraph: {
     title: "LENOY IMÓVEIS",
