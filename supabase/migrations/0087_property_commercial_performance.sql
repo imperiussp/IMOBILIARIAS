@@ -1,7 +1,10 @@
 -- Desempenho comercial dos imóveis por imobiliária.
 -- EXCLUSIVO do Supabase IMOBILIARIAS. Não aplicar no Moto Connect.
 
-create or replace view public.agency_property_commercial_performance as
+drop view if exists public.agency_property_commercial_performance;
+create view public.agency_property_commercial_performance
+with (security_invoker = true)
+as
 select
   p.agency_id,
   p.id as property_id,
