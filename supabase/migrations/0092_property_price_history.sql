@@ -5,10 +5,12 @@ create table if not exists public.property_price_history (
   id uuid primary key default gen_random_uuid(),
   agency_id uuid not null references public.agencies(id) on delete cascade,
   property_id uuid not null references public.properties(id) on delete cascade,
-  previous_price numeric(14,2) not null,
-  price numeric(14,2) not null,
+  previous_price numeric(14,2),
+  price numeric(14,2),
   changed_by uuid references auth.users(id) on delete set null,
-  changed_at timestamptz not null default now()
+  changed_at timestamptz not null default now(),
+  check (previous_price is null or previous_price >= 0),
+  check (price is null or price >= 0)
 );
 
 create index if not exists property_price_history_property_idx on public.property_price_history(agency_id,property_id,changed_at desc);
@@ -39,7 +41,11 @@ create view public.agency_recent_price_changes
 with (security_invoker = true)
 as
 select h.agency_id,h.property_id,p.code,p.title,h.previous_price,h.price,h.changed_at,
-  round(case when h.previous_price>0 then 100.0*(h.price-h.previous_price)/h.previous_price else 0 end,2) as change_percent
+  case
+    when h.previous_price is null or h.price is null then null
+    when h.previous_price>0 then round(100.0*(h.price-h.previous_price)/h.previous_price,2)
+    else 0
+  end as change_percent
 from public.property_price_history h
 join public.properties p on p.id=h.property_id and p.agency_id=h.agency_id;
 revoke all on public.agency_recent_price_changes from public,anon;
