@@ -4,6 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { getCurrentAgency } from "../lib/currentAgency";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
+function aiError(value: unknown) {
+  const code=String(value||"");
+  if(code.includes("ai_generation_disabled"))return "A geração real por IA está bloqueada pelo ambiente de homologação. Nenhuma chamada externa foi realizada.";
+  if(code.includes("platform_maintenance_mode"))return "A plataforma está em modo manutenção. A geração por IA está temporariamente bloqueada.";
+  if(code.includes("release_controls_unavailable"))return "O controle global do ambiente não pôde ser validado. Por segurança, a IA não foi chamada.";
+  return code||"Não foi possível gerar a descrição.";
+}
+
 export default function AdminAiDescription() {
   const [agencyId, setAgencyId] = useState("");
   const [agencyName, setAgencyName] = useState("");
@@ -61,8 +69,7 @@ export default function AdminAiDescription() {
     setLoading(true); setMessage(""); setDescription("");
     const result = await supabaseBrowser.functions.invoke("generate-property-description", { body: payload });
     setLoading(false);
-    if (result.error) return setMessage(result.error.message || "Não foi possível gerar a descrição.");
-    if (result.data?.error) return setMessage(String(result.data.error));
+    if (result.error || result.data?.error) return setMessage(aiError(result.data?.error || result.error?.message));
     const generated = String(result.data?.description || "").trim();
     if (!generated) return setMessage("A IA não retornou texto nesta tentativa.");
     setDescription(generated);
@@ -80,9 +87,10 @@ export default function AdminAiDescription() {
   const available = featureEnabled && canUse;
 
   return <div className="adminPanel" id="descricao-ia">
-    <div className="adminPanelHeader"><div><span className="eyebrow">ASSISTENTE</span><h2>Descrição de imóvel com IA</h2><p>Gere um texto a partir apenas dos dados confirmados do imóvel de {agencyName || "sua imobiliária"}.</p></div><span>{!featureEnabled ? "Não incluída no plano" : canUse ? "Disponível" : "Limite atingido"}</span></div>
+    <div className="adminPanelHeader"><div><span className="eyebrow">ASSISTENTE</span><h2>Descrição de imóvel com IA</h2><p>Gere um texto a partir apenas dos dados confirmados do imóvel de {agencyName || "sua imobiliária"}.</p></div><span>{!featureEnabled ? "Não incluída no plano" : canUse ? "Disponível quando liberada" : "Limite atingido"}</span></div>
     {planName ? <div className="formNotice">Plano identificado: <strong>{planName}</strong>. O consumo é contabilizado por imobiliária e por mês.</div> : null}
     {!isSupabaseConfigured ? <div className="formNotice">A ferramenta fica pronta para uso quando o backend de produção e o provedor de IA forem configurados.</div> : null}
+    <div className="formNotice"><strong>Proteção de homologação:</strong> mesmo com recurso disponível no plano, o backend só chama o provedor quando a IA real estiver liberada no controle global.</div>
     {!featureEnabled ? <div className="formNotice">Este recurso está desativado para o plano atual. Nenhuma geração será cobrada ou contabilizada.</div> : null}
     <form className="propertyForm" onSubmit={submit}>
       <div className="formGrid"><label>Título<input name="title" placeholder="Casa com 3 quartos no Centro" /></label><label>Tipo<input name="property_type" placeholder="Casa, apartamento, terreno..." /></label></div>
