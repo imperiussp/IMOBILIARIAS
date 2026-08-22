@@ -19,6 +19,7 @@ import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminPlan from "../../components/AdminPlan";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
+import AdminPropertyLifecycle from "../../components/AdminPropertyLifecycle";
 import AdminPropertyQuality from "../../components/AdminPropertyQuality";
 import AdminSiteSettings from "../../components/AdminSiteSettings";
 import AdminStorageOverview from "../../components/AdminStorageOverview";
@@ -43,6 +44,7 @@ export default function AdminPage() {
             <a className="active" href="#visao-geral">Visão geral</a>
             <a href="#funil-comercial">Funil comercial</a>
             <a href="#imoveis">Imóveis</a>
+            <a className="adminOnly" href="#ciclo-imoveis">Ciclo dos imóveis</a>
             <a className="adminOnly" href="#qualidade-imoveis">Qualidade dos anúncios</a>
             <a className="adminOnly" href="#novo-imovel">Novo imóvel</a>
             <a className="adminOnly" href="#descricao-ia">Descrição com IA</a>
@@ -74,6 +76,7 @@ export default function AdminPage() {
             <AdminLeadQualificationBoard />
             <AdminFollowups />
             <AdminLeadTimeline />
+            <AdminPropertyLifecycle />
             <AdminPropertyQuality />
 
             <div className="adminPanel adminOnly" id="novo-imovel">
