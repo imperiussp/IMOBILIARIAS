@@ -36,17 +36,14 @@ Deno.serve(async(request)=>{
     try{
       const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
       const recovery=await admin.rpc("recover_stale_buyer_outreach_attempts",{p_timeout_minutes:20});
-      if(recovery.error){
-        results.push({name:"recover-stale-outreach",ok:false,status:500,duration_ms:Date.now()-recoveryStarted,error:recovery.error.message});
-      }else{
-        results.push({name:"recover-stale-outreach",ok:true,status:200,duration_ms:Date.now()-recoveryStarted,body:{recovered:Number(recovery.data||0)}});
-      }
-    }catch(error){
-      results.push({name:"recover-stale-outreach",ok:false,status:0,duration_ms:Date.now()-recoveryStarted,error:error instanceof Error?error.message:String(error)});
-    }
+      if(recovery.error){results.push({name:"recover-stale-outreach",ok:false,status:500,duration_ms:Date.now()-recoveryStarted,error:recovery.error.message});}
+      else{results.push({name:"recover-stale-outreach",ok:true,status:200,duration_ms:Date.now()-recoveryStarted,body:{recovered:Number(recovery.data||0)}});}
+    }catch(error){results.push({name:"recover-stale-outreach",ok:false,status:0,duration_ms:Date.now()-recoveryStarted,error:error instanceof Error?error.message:String(error)});}
   }else{
     results.push({name:"recover-stale-outreach",ok:false,skipped:true,error:"service_role_not_configured"});
   }
+
+  results.push(await callFunction("reconcile-outreach-provider-events",{"x-platform-maintenance-secret":maintenanceSecret}));
 
   const tasks:[string,Record<string,string>,boolean][]=[
     ["process-subscription-expiry",{"x-billing-maintenance-secret":billingSecret},Boolean(billingSecret)],
@@ -61,23 +58,12 @@ Deno.serve(async(request)=>{
   }
 
   const failed=results.filter((item:any)=>!item.ok&&!item.skipped).length;
-  const payload={
-    ok:failed===0,
-    processed_at:new Date().toISOString(),
-    failed,
-    results,
-  };
+  const payload={ok:failed===0,processed_at:new Date().toISOString(),failed,results};
 
   if(serviceRoleKey){
     try {
       const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
-      await admin.from("platform_maintenance_runs").insert({
-        started_at:startedAt,
-        finished_at:payload.processed_at,
-        success:payload.ok,
-        failed_tasks:failed,
-        result:payload,
-      });
+      await admin.from("platform_maintenance_runs").insert({started_at:startedAt,finished_at:payload.processed_at,success:payload.ok,failed_tasks:failed,result:payload});
     } catch {
       // O log nunca deve impedir as rotinas principais nem alterar seu resultado.
     }
