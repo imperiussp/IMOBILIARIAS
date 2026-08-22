@@ -41,6 +41,28 @@ using (public.can_access_lead_crm(agency_id,lead_id));
 revoke insert,update,delete on public.buyer_outreach_delivery_events from anon,authenticated;
 grant select on public.buyer_outreach_delivery_events to authenticated;
 
+-- Backfill conservador: tentativas existentes recebem somente um snapshot do estado atual.
+-- Não inventamos transições históricas que não estavam armazenadas antes desta migration.
+insert into public.buyer_outreach_delivery_events(
+  agency_id,attempt_id,opportunity_id,lead_id,property_id,channel,provider,
+  provider_message_id,event_type,previous_status,current_status,occurred_at,
+  provider_payload,error_message
+)
+select
+  a.agency_id,a.id,a.opportunity_id,a.lead_id,a.property_id,a.channel,a.provider,
+  a.provider_message_id,'historical_snapshot',null,a.status,
+  case a.status
+    when 'read' then coalesce(a.read_at,a.delivered_at,a.sent_at,a.attempted_at)
+    when 'delivered' then coalesce(a.delivered_at,a.sent_at,a.attempted_at)
+    when 'sent' then coalesce(a.sent_at,a.attempted_at)
+    else a.attempted_at
+  end,
+  coalesce(a.provider_payload,'{}'::jsonb),a.error_message
+from public.buyer_outreach_delivery_attempts a
+where not exists (
+  select 1 from public.buyer_outreach_delivery_events e where e.attempt_id=a.id
+);
+
 create or replace function public.capture_buyer_outreach_delivery_event()
 returns trigger
 language plpgsql
