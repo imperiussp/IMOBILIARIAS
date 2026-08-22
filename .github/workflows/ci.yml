@@ -40,6 +40,8 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - name: Validate environment contract
         run: pnpm env:contract
+      - name: Validate homologation safety assets
+        run: pnpm homologation:assets
       - name: Validate migration safety
         run: pnpm migration:safety
       - name: Validate privileged Edge Function guards
