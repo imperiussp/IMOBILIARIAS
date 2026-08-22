@@ -6,12 +6,18 @@ const aiUrl = Deno.env.get("AI_API_URL") || "";
 const aiKey = Deno.env.get("AI_API_KEY") || "";
 const aiModel = Deno.env.get("AI_MODEL") || "";
 
+const corsHeaders = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "authorization, content-type",
+  "access-control-allow-methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "content-type": "application/json; charset=utf-8" } });
 }
 
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "POST, OPTIONS" } });
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const authHeader = request.headers.get("authorization") || "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) return json({ error: "unauthorized" }, 401);
@@ -37,18 +43,33 @@ Deno.serve(async (request) => {
   if (opportunity.error || !opportunity.data) return json({ error: opportunity.error?.message || "opportunity_not_found" }, 404);
 
   const agencyId = String(opportunity.data.agency_id);
-  const membership = await client.from("agency_memberships").select("role").eq("agency_id", agencyId).eq("user_id", user.data.user.id).eq("active", true).maybeSingle();
-  const platformAdmin = await client.rpc("is_platform_admin");
+  const [membership,platformAdmin] = await Promise.all([
+    client.from("agency_memberships").select("role").eq("agency_id", agencyId).eq("user_id", user.data.user.id).eq("active", true).maybeSingle(),
+    client.rpc("is_platform_admin"),
+  ]);
+  if (membership.error) return json({ error: membership.error.message }, 500);
+  if (platformAdmin.error) return json({ error: platformAdmin.error.message }, 500);
   const manager = membership.data && ["owner","admin"].includes(String(membership.data.role));
   if (!manager && platformAdmin.data !== true) return json({ error: "manager_access_required" }, 403);
 
   const entitlement = await client.rpc("agency_has_plan_feature", { p_agency_id: agencyId, p_feature_key: "ai_buyer_outreach", p_default: false });
   if (entitlement.error || entitlement.data !== true) return json({ error: "plan_feature_unavailable" }, 403);
 
-  const permission = await client.from("lead_contact_permissions").select("whatsapp_allowed,email_allowed,sms_allowed,automated_property_alerts_allowed,revoked_at").eq("agency_id", agencyId).eq("lead_id", opportunity.data.lead_id).maybeSingle();
-  const settings = await client.from("buyer_outreach_settings").select("enabled,require_explicit_consent").eq("agency_id", agencyId).maybeSingle();
-  if (settings.error || !settings.data?.enabled) return json({ error: "buyer_outreach_disabled" }, 409);
-  if (settings.data.require_explicit_consent && (!permission.data?.automated_property_alerts_allowed || permission.data?.revoked_at)) return json({ error: "buyer_consent_required" }, 409);
+  const [permission,settings] = await Promise.all([
+    client.from("lead_contact_permissions").select("whatsapp_allowed,email_allowed,sms_allowed,automated_property_alerts_allowed,revoked_at").eq("agency_id", agencyId).eq("lead_id", opportunity.data.lead_id).maybeSingle(),
+    client.from("buyer_outreach_settings").select("enabled,channels").eq("agency_id", agencyId).maybeSingle(),
+  ]);
+  if (permission.error) return json({ error: permission.error.message }, 500);
+  if (settings.error || !settings.data?.enabled) return json({ error: settings.error?.message || "buyer_outreach_disabled" }, 409);
+
+  // Mesmo a geração do texto exige consentimento ativo. Assim a plataforma não prepara
+  // comunicação comercial para um contato que revogou ou nunca autorizou os alertas.
+  if (!permission.data?.automated_property_alerts_allowed || permission.data?.revoked_at) return json({ error: "buyer_consent_required" }, 409);
+  const channel = String(opportunity.data.channel || "").toLowerCase();
+  if (channel === "whatsapp" && !permission.data.whatsapp_allowed) return json({ error: "whatsapp_not_allowed" }, 409);
+  if (channel === "email" && !permission.data.email_allowed) return json({ error: "email_not_allowed" }, 409);
+  if (channel === "sms" && !permission.data.sms_allowed) return json({ error: "sms_not_allowed" }, 409);
+  if (channel && Array.isArray(settings.data.channels) && !settings.data.channels.includes(channel)) return json({ error: "channel_disabled" }, 409);
 
   if (!aiUrl || !aiKey || !aiModel) return json({ error: "AI provider ainda não configurado no servidor." }, 503);
 
@@ -73,19 +94,31 @@ Deno.serve(async (request) => {
   ].filter(Boolean).join("\n");
 
   const system = "Você escreve mensagens comerciais imobiliárias em português brasileiro. Seja cordial, breve e natural. Nunca invente características, localização, condições de pagamento, metragem ou benefícios. Use somente os dados fornecidos. Não pressione o cliente. Não diga que é inteligência artificial. Termine com convite simples para responder se quiser mais informações.";
-  const prompt = `Crie uma mensagem curta para avisar um comprador de que surgiu um imóvel compatível com as preferências registradas. Canal: ${opportunity.data.channel || "WhatsApp"}.\n\nDados confirmados:\n${facts}`;
+  const prompt = `Crie uma mensagem curta para avisar um comprador de que surgiu um imóvel compatível com as preferências registradas. Canal: ${channel || "WhatsApp"}.\n\nDados confirmados:\n${facts}`;
 
-  const aiResponse = await fetch(aiUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${aiKey}` },
-    body: JSON.stringify({ model: aiModel, messages: [{ role: "system", content: system }, { role: "user", content: prompt }], temperature: 0.35, max_tokens: 350 }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  let aiResponse: Response;
+  try {
+    aiResponse = await fetch(aiUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${aiKey}` },
+      body: JSON.stringify({ model: aiModel, messages: [{ role: "system", content: system }, { role: "user", content: prompt }], temperature: 0.35, max_tokens: 350 }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+    return json({ error: error instanceof DOMException && error.name === "AbortError" ? "AI provider timeout" : String(error) }, 502);
+  }
+  clearTimeout(timeout);
   const aiBody = await aiResponse.json().catch(() => null);
   if (!aiResponse.ok) return json({ error: aiBody?.error?.message || `AI HTTP ${aiResponse.status}` }, 502);
-  const message = String(aiBody?.choices?.[0]?.message?.content || "").trim();
+  const message = String(aiBody?.choices?.[0]?.message?.content || "").trim().slice(0, 3000);
   if (!message) return json({ error: "empty_ai_message" }, 502);
 
-  const update = await client.from("buyer_property_opportunities").update({ ai_message: message, ai_provider: aiModel, status: "review", updated_at: new Date().toISOString() }).eq("id", opportunityId).eq("agency_id", agencyId);
+  // Gerar novamente o texto não desfaz uma aprovação manual já concedida.
+  const nextStatus = opportunity.data.status === "approved" ? "approved" : "review";
+  const update = await client.from("buyer_property_opportunities").update({ ai_message: message, ai_provider: aiModel, status: nextStatus, updated_at: new Date().toISOString() }).eq("id", opportunityId).eq("agency_id", agencyId);
   if (update.error) return json({ error: update.error.message }, 500);
-  return json({ message });
+  return json({ message, status: nextStatus });
 });
