@@ -1,3 +1,5 @@
+import PlatformPublicReleaseNotice from "./PlatformPublicReleaseNotice";
+
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 
 const demoRows = [
@@ -63,6 +65,7 @@ export default function PlatformLanding() {
   return (
     <main className="platformLanding">
       <header className="platformTopbar"><div className="container platformNav"><a className="brand" href="./"><img src={lenoyLogo} alt="LENOY IMOBILIÁRIAS" style={{ width: 112, maxWidth: "28vw", height: "auto", display: "block" }} /></a><nav><a href="#recursos">Recursos</a><a href="#painel-demo">Painel</a><a href="#app-demo">Aplicativo</a><a href="#planos">Planos</a></nav><div className="platformActions"><a className="button secondary" href="login/">Entrar</a><a className="button primary" href="cadastro/">Criar imobiliária</a></div></div></header>
+      <PlatformPublicReleaseNotice />
 
       <section className="container section platformHero"><div><span className="eyebrow">PLATAFORMA SaaS PARA IMOBILIÁRIAS</span><h1>Seu site, seus imóveis, sua equipe. Tudo em um só lugar.</h1><p>Crie a imobiliária, personalize a marca, publique imóveis, organize corretores e leads e use um endereço exclusivo dentro da LENOY ou seu próprio domínio.</p><div className="platformHeroActions"><a className="button primary" href="cadastro/">Começar agora</a><a className="button secondary" href="#painel-demo">Ver nova versão visual</a></div><div className="platformTrustLine"><span>Site próprio</span><span>CRM</span><span>Aplicativo do corretor</span><span>IA comercial</span></div></div><div className="platformHeroCard"><div className="platformHeroCardTop"><div><span>AMBIENTE DA IMOBILIÁRIA</span><strong>João Imobiliária</strong></div><span className="platformOnlineDot">● Online</span></div><div className="platformMiniGrid"><article><small>Imóveis</small><b>42</b></article><article><small>Leads</small><b>18</b></article><article><small>Corretores</small><b>4</b></article><article><small>Oportunidades</small><b>9</b></article></div><div className="platformHeroStatus"><span>IA comercial</span><b>7 oportunidades ativas</b></div><div className="platformHeroActivity"><span>Agora</span><p><b>Marina Souza</b> respondeu sobre o imóvel IM-1042</p></div></div></section>
 
