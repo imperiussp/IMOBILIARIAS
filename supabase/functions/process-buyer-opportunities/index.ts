@@ -71,7 +71,6 @@ Deno.serve(async (request) => {
         .eq("agency_id", item.agency_id).eq("lead_id", item.lead_id).maybeSingle();
       if (permissionResult.error) throw new Error(permissionResult.error.message);
       const permission = permissionResult.data as any;
-      // Envio automático nunca ocorre sem consentimento ativo, mesmo se a oportunidade foi aprovada manualmente.
       if (!permission?.automated_property_alerts_allowed || permission?.revoked_at) {
         await admin.from("buyer_property_opportunities").update({ status: "review", skip_reason: "Consentimento para alertas automáticos não registrado ou revogado.", updated_at: new Date().toISOString() }).eq("id", item.id);
         reviewed++; continue;
@@ -140,7 +139,7 @@ Deno.serve(async (request) => {
         lead_id: item.lead_id,
         property_id: item.property_id,
         channel,
-        provider: "external",
+        provider: "pending",
         status: "sending",
         message_text: aiMessage,
       }).select("id").single();
@@ -168,8 +167,9 @@ Deno.serve(async (request) => {
       if (!delivery.ok) throw new Error((deliveryBody as any)?.error || `delivery HTTP ${delivery.status}`);
 
       const providerMessageId = String((deliveryBody as any)?.message_id || "") || null;
+      const providerName = String((deliveryBody as any)?.provider || "").trim() || "unknown";
       const now = new Date().toISOString();
-      const finishAttempt = await admin.from("buyer_outreach_delivery_attempts").update({ status: "sent", sent_at: now, provider_message_id: providerMessageId, provider_payload: deliveryBody, error_message: null }).eq("id", attemptId);
+      const finishAttempt = await admin.from("buyer_outreach_delivery_attempts").update({ status: "sent", provider: providerName, sent_at: now, provider_message_id: providerMessageId, provider_payload: deliveryBody, error_message: null }).eq("id", attemptId);
       if (finishAttempt.error) throw new Error(finishAttempt.error.message);
       const finishOpportunity = await admin.from("buyer_property_opportunities").update({ status: "sent", channel, ai_message: aiMessage, ai_provider: aiModel || "prepared", sent_at: now, provider_message_id: providerMessageId, last_error: null, updated_at: now }).eq("id", item.id);
       if (finishOpportunity.error) throw new Error(finishOpportunity.error.message);
