@@ -1,7 +1,10 @@
 -- Desempenho comercial por corretor e por imobiliária.
 -- EXCLUSIVO do Supabase IMOBILIARIAS. Não aplicar no Moto Connect.
 
-create or replace view public.agency_broker_performance as
+drop view if exists public.agency_broker_performance;
+create view public.agency_broker_performance
+with (security_invoker = true)
+as
 select
   b.agency_id,
   b.id as broker_id,
