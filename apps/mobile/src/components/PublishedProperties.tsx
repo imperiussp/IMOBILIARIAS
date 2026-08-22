@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { getMobileAgencyContext } from "../lib/currentAgency";
+import { mobilePropertyPhotoPaths } from "../lib/storagePaths";
 import { mobileSupabase } from "../lib/supabase";
 import { preparePropertyPhoto } from "../services/imageProcessing";
 
@@ -145,9 +146,9 @@ export default function PublishedProperties({ onClose }: Props) {
       for (const [offset, uri] of uris.entries()) {
         const prepared = await preparePropertyPhoto(uri);
         const [fullBlob, thumbnailBlob] = await Promise.all([blobFromUri(prepared.fullUri), blobFromUri(prepared.thumbnailUri)]);
-        const token = `${Date.now()}-${offset}`;
-        const storagePath = `${agencyId}/${editing.id}/mobile-edit/${token}.jpg`;
-        const thumbnailPath = `${agencyId}/${editing.id}/mobile-edit/thumbs/${token}.jpg`;
+        const paths = mobilePropertyPhotoPaths(agencyId, editing.id, "mobile-edit", `${Date.now()}-${offset}`);
+        const storagePath = paths.full;
+        const thumbnailPath = paths.thumbnail;
 
         const upload = await mobileSupabase.storage.from("property-photos").upload(storagePath, fullBlob, { upsert: false, contentType: "image/jpeg", cacheControl: "31536000" });
         if (upload.error) throw upload.error;
