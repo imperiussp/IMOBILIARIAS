@@ -1,12 +1,12 @@
 # Runbook de implantação — LENOY IMOBILIÁRIAS
 
-Este runbook existe para colocar o sistema na rede primeiro em homologação, mantendo cobrança, mensageria, IA, push e indexação bloqueados até decisão explícita.
+Este runbook descreve a implantação segura do IMOBILIÁRIAS, primeiro em homologação e somente depois em produção.
 
 ## 1. Pré-condição obrigatória
 
-Use um projeto Supabase exclusivo do IMOBILIARIAS.
+Use um projeto Supabase exclusivo do IMOBILIÁRIAS. Nunca reutilize URL, project ref, chaves, storage, usuários administrativos ou secrets de outro projeto.
 
-Antes de qualquer migration/deploy de banco, configure no ambiente local/CI autorizado:
+Antes de qualquer migration/deploy de banco, configure e confira:
 
 - `IMOBILIARIAS_SUPABASE_PROJECT_REF`
 - `SUPABASE_PROJECT_REF`
@@ -14,55 +14,42 @@ Antes de qualquer migration/deploy de banco, configure no ambiente local/CI auto
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_URL`
 
-Execute `pnpm supabase:guard`. O guard bloqueia se project refs divergirem ou se web/app/backend apontarem para outro projeto Supabase.
+Execute `pnpm supabase:guard`. O guard deve bloquear qualquer divergência de project ref.
 
-## 2. Validações do repositório
+## 2. Validação única de release
 
-Antes de implantar:
+Antes de implantar, execute:
 
-- `pnpm env:contract`
-- `pnpm migration:safety`
-- `pnpm edge:guards`
-- typecheck web
-- build web
-- typecheck mobile
+`pnpm release:validate`
 
-O workflow de CI já executa essas validações em push/PR. Não considerar um commit homologável sem resultado verde do workflow ou validação equivalente executada no ambiente de implantação.
+Esse comando valida contrato de ambiente, kit de homologação, segurança das migrations, guards das Edge Functions, typecheck web, build web e typecheck mobile.
 
-## 3. Estado seguro de homologação
+O CI do `main` executa o mesmo caminho de validação. Não considerar um commit homologável sem validação concluída com sucesso no ambiente de implantação ou em CI observável.
 
-Após aplicar as migrations, confirme em `platform_release_controls`:
+## 3. Identificação obrigatória do build
 
-- `environment_mode = homologation`
-- `maintenance_mode = false`
-- `new_registrations_enabled = false`
-- `real_billing_enabled = false`
-- `external_messaging_enabled = false`
-- `ai_generation_enabled = false`
-- `push_notifications_enabled = false`
+O deploy web deve receber:
 
-O catálogo pode permanecer ligado para testes controlados. Se a vitrine não puder ficar visível, desligue `public_catalog_enabled`.
+- `NEXT_PUBLIC_COMMIT_SHA=<sha do commit implantado>`
+- `NEXT_PUBLIC_BUILD_LABEL=<rótulo humano da release>`
+
+O endpoint `/api/health` expõe esses valores. O smoke pós-deploy pode receber `EXPECTED_COMMIT_SHA` e falhar se o host estiver servindo outro commit.
 
 ## 4. Banco de dados
 
-1. Aplicar todas as migrations em ordem, até a migration mais recente do repositório.
+1. Aplicar todas as migrations do repositório em ordem, atualmente até `0129_production_requires_smoke_validated_release.sql`.
 2. Executar `select public.project_identity();` e confirmar retorno `IMOBILIARIAS`.
-3. Abrir a administração global e verificar:
-   - Pré-voo;
-   - Auditoria de isolamento entre clientes;
-   - Checklist para colocar na rede;
-   - Checklist real de homologação.
-4. Marcar `migrations_applied` e `supabase_identity_checked` somente depois da confirmação real.
+3. Confirmar `environment_mode=homologation`.
+4. Manter novos cadastros, cobrança real, mensageria externa, IA e push desligados durante a primeira homologação.
+5. Confirmar os painéis de pré-voo, auditoria multi-tenant, validações de release, checkpoints e versões implantadas.
 
-## 5. Backend / Edge Functions
+## 5. Edge Functions
 
-Implantar somente no Supabase exclusivo do IMOBILIARIAS.
+Implantar somente no projeto exclusivo do IMOBILIÁRIAS e apenas depois das migrations das quais dependem.
 
-Endpoints com `verify_jwt=false` permanecem protegidos pela assinatura/secret próprio. Não publicar função privilegiada se o secret correspondente ainda não estiver configurado.
+Endpoints privilegiados com `verify_jwt=false` precisam permanecer protegidos por assinatura ou secret próprio. Não publicar função privilegiada sem o secret correspondente configurado.
 
-Para a primeira homologação, priorize as funções necessárias para login, operação do painel e manutenção. Meta, Resend, InfinitePay e IA podem continuar sem credenciais enquanto seus gates globais estiverem OFF.
-
-Depois do deploy, marque `edge_functions_deployed` somente após confirmar que as funções necessárias respondem no projeto correto.
+Meta, Resend, InfinitePay, IA e push podem permanecer sem credenciais enquanto seus gates globais estiverem OFF.
 
 ## 6. Aplicação web
 
@@ -73,103 +60,68 @@ Configurar pelo menos:
 - `NEXT_PUBLIC_PLATFORM_HOST=imoveis.lenoy.com.br`
 - `NEXT_PUBLIC_SITE_URL=https://imoveis.lenoy.com.br`
 - `NEXT_PUBLIC_ALLOW_INDEXING=false`
+- `NEXT_PUBLIC_COMMIT_SHA`
+- `NEXT_PUBLIC_BUILD_LABEL`
 
-Publicar a aplicação Next.js. Não considerar GitHub Pages como deploy real da aplicação.
-
-Após abrir a aplicação publicada e confirmar que o painel carrega, marcar `web_deployed`.
+Publicar a aplicação Next.js. GitHub Pages é apenas a prévia visual e não substitui o deploy real.
 
 ## 7. DNS e HTTPS
 
-Apontar `imoveis.lenoy.com.br` para o host escolhido.
+Apontar `imoveis.lenoy.com.br` para o host escolhido e confirmar resolução DNS, TLS válido e carregamento pelo hostname oficial.
 
-Confirmar:
+## 8. Smoke pós-deploy
 
-- resolução DNS correta;
-- certificado HTTPS válido;
-- redirecionamento HTTP → HTTPS, quando aplicável;
-- ausência de erro de certificado;
-- aplicação carregando pelo hostname oficial.
+Executar com HTTPS:
 
-Somente então marcar:
+`DEPLOYMENT_URL=https://SEU-HOST EXPECTED_COMMIT_SHA=<sha> pnpm smoke:deploy`
 
-- `platform_domain_pointed`;
-- `tls_valid`.
+O smoke valida home, login, `/api/health`, identidade do Supabase, status saudável, commit esperado e política de indexação.
 
-## 8. SEO em homologação
+Somente um deploy com smoke `passed` pode ser marcado como release ativa em produção.
 
-Confirmar `NEXT_PUBLIC_ALLOW_INDEXING=false`.
+## 9. Registro da release
 
-Validar que:
+No painel **Versões implantadas**:
 
-- `robots.txt` bloqueia indexação;
-- sitemap não publica URLs para indexação;
-- metadata não contradiz o bloqueio.
+1. registrar ambiente, commit SHA, label e URL;
+2. registrar resultado do smoke;
+3. marcar candidato a rollback somente se a versão já tiver sido validada;
+4. marcar como ativa somente uma release com smoke aprovado.
 
-Depois marcar `seo_blocked_homologation`.
+Não excluir releases históricas.
 
-## 9. Cron / manutenção
+## 10. Manutenção automática
 
-Configurar um cron seguro para `platform-maintenance`, usando `PLATFORM_MAINTENANCE_SECRET`.
+Configurar `platform-maintenance` com `PLATFORM_MAINTENANCE_SECRET` e confirmar pelo menos uma execução `success=true` nas últimas 24 horas antes da promoção para produção.
 
-Confirmar pelo menos uma execução com `success=true` em `platform_maintenance_runs`.
+## 11. Teste multi-imobiliária
 
-Depois marcar:
+Criar duas imobiliárias e duas contas independentes. Executar `supabase/tests/tenant-isolation-regression.sql` e validar que leitura, INSERT, UPDATE, DELETE, fotos e contexto do corretor não atravessam tenants.
 
-- `maintenance_cron_configured`;
-- `maintenance_success_verified`.
+Registrar as evidências em `platform_release_validations`.
 
-## 10. Teste multi-imobiliária
+## 12. Testes funcionais mínimos
 
-Criar duas imobiliárias de teste e duas contas independentes.
+Validar login/recuperação, CRUD de imóvel, fotos/capa/ordem, catálogo, leads/CRM, permissões, documentos, app/offline quando aplicável, DNS/HTTPS, cron, backup e recuperação.
 
-Executar o cenário de `supabase/tests/tenant-isolation-regression.sql` e validar manualmente no web/app que:
+## 13. Checkpoints e pré-voo
 
-- uma imobiliária não lê dados privados da outra;
-- INSERT/UPDATE/DELETE fora do tenant são recusados;
-- fotos respeitam o tenant herdado pelo imóvel;
-- corretor vinculado a mais de uma imobiliária não mistura contexto.
+Antes de produção, revisar:
 
-Registrar a evidência correspondente em `platform_release_validations`.
+- Pré-voo V4 e deployment gate;
+- auditoria de isolamento;
+- checklist real de homologação;
+- checkpoints de implantação e histórico;
+- saúde da plataforma;
+- release registrada e smoke aprovado;
+- backup e rollback documentados.
 
-## 11. Testes funcionais mínimos
+## 14. Promoção para produção
 
-Antes de considerar a homologação online concluída, validar e registrar:
+A proteção no banco deve recusar a promoção se faltarem requisitos obrigatórios. A partir da migration `0129`, produção também exige uma release ativa com smoke aprovado.
 
-- login/sessão/recuperação de senha;
-- CRUD de imóvel;
-- fotos, capa e ordenação;
-- catálogo público;
-- lead e CRM;
-- permissões admin/corretor;
-- documentos;
-- app e sincronização offline quando fizer parte do escopo testado;
-- backup e recuperação.
+Somente depois da promoção validada habilite integrações comerciais deliberadamente, uma por vez. `NEXT_PUBLIC_ALLOW_INDEXING=true` só deve ser ligado no lançamento público intencional.
 
-## 12. Integrações externas
+## 15. Pós-deploy
 
-Ativar uma por vez, somente com dados controlados:
-
-- InfinitePay;
-- Meta/WhatsApp;
-- Resend;
-- IA;
-- push.
-
-Depois de cada teste, se o lançamento ainda não ocorrer, voltar o gate correspondente para OFF.
-
-## 13. Promoção para produção
-
-A mudança para `production` é protegida no banco. Ela é recusada se faltarem critérios obrigatórios de manutenção, segurança multi-tenant, evidências funcionais ou checkpoints de implantação.
-
-Antes da promoção:
-
-1. revisar Pré-voo V4;
-2. revisar Checklist para colocar na rede;
-3. revisar Auditoria de isolamento;
-4. revisar Checklist real de homologação;
-5. revisar Saúde da plataforma;
-6. registrar release label e release notes completas;
-7. confirmar backup e recuperação;
-8. confirmar zero bloqueios obrigatórios.
-
-Somente no lançamento público deliberado habilitar `NEXT_PUBLIC_ALLOW_INDEXING=true`.
+Executar integralmente `docs/POST-DEPLOY-CHECKLIST.md` e registrar o resultado. Se saúde, smoke, tenant isolation ou provider health falharem, não avançar: usar o plano de rollback documentado em `docs/ROLLBACK-PLAN.md`.
