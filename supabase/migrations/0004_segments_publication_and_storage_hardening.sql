@@ -46,7 +46,12 @@ create policy "authorized delete property storage" on storage.objects
 for delete to authenticated
 using (bucket_id = 'property-photos' and public.can_manage_property_content());
 
-create or replace view public.property_catalog as
+-- PostgreSQL não permite CREATE OR REPLACE VIEW quando a nova definição insere
+-- colunas no meio da lista existente. Em instalação limpa, removemos e recriamos
+-- a view para preservar a ordem final esperada pelo catálogo.
+drop view if exists public.property_catalog;
+
+create view public.property_catalog as
 select
   p.id,
   p.code,
