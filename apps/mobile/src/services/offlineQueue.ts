@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { getMobileAgencyContext } from "../lib/currentAgency";
+import { mobilePropertyPhotoPaths } from "../lib/storagePaths";
 import { mobileSupabase } from "../lib/supabase";
 import { preparePropertyPhoto } from "./imageProcessing";
 import type { PropertyDraft } from "./propertyDrafts";
@@ -165,9 +166,9 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
       blobFromUri(prepared.thumbnailUri),
     ]);
 
-    const baseName = `${draft.id}-${index}.jpg`;
-    const storagePath = `${context.agencyId}/${propertyResult.data.id}/mobile/${baseName}`;
-    const thumbnailPath = `${context.agencyId}/${propertyResult.data.id}/mobile/thumbs/${baseName}`;
+    const paths = mobilePropertyPhotoPaths(context.agencyId, propertyResult.data.id, "mobile", `${draft.id}-${index}`);
+    const storagePath = paths.full;
+    const thumbnailPath = paths.thumbnail;
 
     const fullUpload = await mobileSupabase.storage.from("property-photos").upload(storagePath, fullBlob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
     if (fullUpload.error) throw fullUpload.error;
