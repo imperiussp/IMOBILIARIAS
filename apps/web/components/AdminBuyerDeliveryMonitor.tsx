@@ -26,11 +26,24 @@ type Opportunity = {
   properties?:{code?:string|null;title?:string|null}|null;
 };
 
+type ChannelHealth={
+  channel:string;
+  provider:string;
+  attempts_30d:number;
+  delivered_30d:number;
+  read_30d:number;
+  failed_30d:number;
+  delivery_rate_30d:number|null;
+  read_rate_30d:number|null;
+  failure_rate_30d:number|null;
+};
+
 const labels:Record<string,string>={prepared:"Preparada",sending:"Enviando",sent:"Enviada",delivered:"Entregue",read:"Lida",failed:"Falhou"};
 const channels:Record<string,string>={whatsapp:"WhatsApp",email:"E-mail",sms:"SMS"};
 
 export default function AdminBuyerDeliveryMonitor(){
   const [rows,setRows]=useState<(Attempt & {opportunity?:Opportunity|null})[]>([]);
+  const [health,setHealth]=useState<ChannelHealth[]>([]);
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState("");
   const [filter,setFilter]=useState("all");
@@ -40,10 +53,16 @@ export default function AdminBuyerDeliveryMonitor(){
     const agency=await getCurrentAgency();
     if(!agency)return setMessage("Imobiliária ativa não encontrada.");
 
-    const attempts=await supabaseBrowser.from("buyer_outreach_delivery_attempts")
-      .select("id,opportunity_id,status,channel,provider,attempted_at,sent_at,delivered_at,read_at,error_message,provider_message_id")
-      .eq("agency_id",agency.agencyId).order("attempted_at",{ascending:false}).limit(100);
+    const [attempts,healthResult]=await Promise.all([
+      supabaseBrowser.from("buyer_outreach_delivery_attempts")
+        .select("id,opportunity_id,status,channel,provider,attempted_at,sent_at,delivered_at,read_at,error_message,provider_message_id")
+        .eq("agency_id",agency.agencyId).order("attempted_at",{ascending:false}).limit(100),
+      supabaseBrowser.from("agency_buyer_outreach_channel_health")
+        .select("channel,provider,attempts_30d,delivered_30d,read_30d,failed_30d,delivery_rate_30d,read_rate_30d,failure_rate_30d")
+        .eq("agency_id",agency.agencyId),
+    ]);
     if(attempts.error){if(!['42P01','42703'].includes(attempts.error.code||''))setMessage(attempts.error.message);return;}
+    if(!healthResult.error)setHealth((healthResult.data||[]) as ChannelHealth[]);
 
     const ids=[...new Set((attempts.data||[]).map((row:any)=>row.opportunity_id).filter(Boolean))];
     let opportunities:Opportunity[]=[];
@@ -79,6 +98,7 @@ export default function AdminBuyerDeliveryMonitor(){
   return <div className="adminPanel adminOnly" id="entregas-oportunidades">
     <div className="adminPanelHeader"><div><span className="eyebrow">MENSAGERIA</span><h2>Entrega das oportunidades</h2><p>Acompanhe o retorno técnico dos provedores sem precisar consultar logs.</p></div><span>{rows.length} tentativa(s)</span></div>
     <div className="statsGrid"><article><strong>{rows.length}</strong><span>tentativas recentes</span></article><article><strong>{delivered}</strong><span>entregues</span></article><article><strong>{read}</strong><span>lidas</span></article><article><strong>{failed}</strong><span>falhas</span></article><article><strong>{stuck}</strong><span>enviando há +10 min</span></article></div>
+    {health.length?<div className="accessList">{health.map(item=><article className="accessRow" key={`${item.channel}-${item.provider}`}><div className="accessIdentity"><strong>{channels[item.channel]||item.channel}</strong><span>{item.attempts_30d} tentativa(s) nos últimos 30 dias · {item.provider}</span><small>{item.delivered_30d} entregues · {item.read_30d} lidas · {item.failed_30d} falhas</small></div><div className="accessActions"><span className="statusPill">{item.delivery_rate_30d??0}% entregues</span><span className="statusPill">{item.read_rate_30d??0}% lidas</span><span className={`statusPill ${(item.failure_rate_30d??0)>10?"muted":""}`}>{item.failure_rate_30d??0}% falhas</span></div></article>)}</div>:null}
     <div className="adminFilters"><label>Situação<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todas</option><option value="sending">Enviando</option><option value="sent">Enviadas</option><option value="delivered">Entregues</option><option value="read">Lidas</option><option value="failed">Falhas</option></select></label></div>
     {message?<div className="formMessage">{message}</div>:null}
     <div className="adminTableWrap"><table className="adminTable"><thead><tr><th>Cliente</th><th>Imóvel</th><th>Canal</th><th>Status</th><th>Provedor</th><th>Último evento</th><th>Ação</th></tr></thead><tbody>{visible.length?visible.map(row=>{
