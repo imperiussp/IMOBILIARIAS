@@ -3,6 +3,7 @@ import AdminAiDescription from "../../components/AdminAiDescription";
 import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokers from "../../components/AdminBrokers";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
+import AdminCommercialFunnel from "../../components/AdminCommercialFunnel";
 import AdminDocuments from "../../components/AdminDocuments";
 import AdminDocumentUploads from "../../components/AdminDocumentUploads";
 import AdminDocumentUsage from "../../components/AdminDocumentUsage";
@@ -40,6 +41,7 @@ export default function AdminPage() {
           <aside className="adminSidebar">
             <strong>Gestão</strong>
             <a className="active" href="#visao-geral">Visão geral</a>
+            <a href="#funil-comercial">Funil comercial</a>
             <a href="#imoveis">Imóveis</a>
             <a className="adminOnly" href="#qualidade-imoveis">Qualidade dos anúncios</a>
             <a className="adminOnly" href="#novo-imovel">Novo imóvel</a>
@@ -68,6 +70,7 @@ export default function AdminPage() {
             <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos, documentos, arquivos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
             <AdminLiveData />
+            <AdminCommercialFunnel />
             <AdminLeadQualificationBoard />
             <AdminFollowups />
             <AdminLeadTimeline />
