@@ -6,8 +6,10 @@ A plataforma possui uma cadeia completa para oportunidades automáticas:
 2. O processamento valida plano, consentimento, canal, intervalo mínimo, limite mensal e horário silencioso.
 3. `deliver-buyer-outreach` faz a entrega pelo canal configurado.
 4. `meta-whatsapp-webhook` recebe diretamente os eventos da Meta para WhatsApp.
-5. `buyer-outreach-webhook` permanece disponível como entrada normalizada para outros provedores.
-6. O painel administrativo exibe métricas, respostas, pedidos de visita e descadastros.
+5. `resend-outreach-webhook` recebe eventos assinados do Resend para e-mail.
+6. `ingest-inbound-email` diferencia um novo lead de uma resposta a oportunidade já enviada.
+7. `buyer-outreach-webhook` permanece disponível como entrada normalizada para outros provedores.
+8. O painel administrativo exibe tentativas, entregas, leituras, falhas, respostas, pedidos de visita e descadastros.
 
 ## Adaptador de entrega próprio
 
@@ -48,9 +50,18 @@ A versão da Graph API fica em variável de ambiente para permitir atualização
 ```text
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=Imobiliária <imoveis@seudominio.com.br>
+RESEND_WEBHOOK_SIGNING_SECRET=whsec_...
 ```
 
-O domínio/remetente precisa estar autorizado no provedor antes do uso em produção.
+O domínio/remetente precisa estar autorizado no provedor antes do uso em produção. O signing secret é usado pela função `resend-outreach-webhook` para validar os eventos antes de alterar qualquer status interno.
+
+### E-mail recebido
+
+```text
+INBOUND_EMAIL_SECRET=
+```
+
+`ingest-inbound-email` recebe um payload normalizado do provedor de e-mail de entrada e sempre resolve primeiro o endereço da imobiliária. Uma mensagem recebida só é tratada como resposta a oportunidade quando o remetente corresponde de forma inequívoca a um contato daquela mesma imobiliária com e-mail de oportunidade enviado nos últimos 30 dias. Caso contrário, entra como novo lead.
 
 ## Contrato interno de entrega
 
@@ -98,8 +109,8 @@ Ela implementa:
 - validação dos `POST` pela assinatura `X-Hub-Signature-256` usando `META_APP_SECRET`;
 - atualização de `sent`, `delivered`, `read` e `failed`;
 - associação de respostas pelo ID da mensagem original quando a Meta fornece `context.id`;
-- fallback pelo número do comprador para localizar a última oportunidade WhatsApp enviada;
-- classificação local de respostas como interesse, pedido de detalhes, pedido de visita, sem interesse e opt-out;
+- fallback por telefone somente quando a associação dentro das tentativas recentes for inequívoca;
+- classificação local conservadora de interesse, pedido de detalhes, pedido de visita, sem interesse e opt-out;
 - gravação idempotente da resposta no CRM;
 - revogação automática de alertas e WhatsApp quando o comprador solicita não receber novas mensagens.
 
@@ -108,6 +119,35 @@ O valor informado no campo **Verify token** da Meta deve ser exatamente o mesmo 
 ```text
 META_WHATSAPP_WEBHOOK_VERIFY_TOKEN=
 ```
+
+## Webhook direto do Resend
+
+Configure o endpoint:
+
+```text
+https://SEU_PROJECT_REF.supabase.co/functions/v1/resend-outreach-webhook
+```
+
+A função valida as assinaturas Svix com `RESEND_WEBHOOK_SIGNING_SECRET` e correlaciona o `email_id` retornado pelo provedor com `provider_message_id` da tentativa de entrega.
+
+Eventos utilizados:
+
+- `email.sent` → enviada;
+- `email.delivered` → entregue;
+- `email.opened` → lida;
+- `email.failed`, `email.bounced`, `email.complained`, `email.suppressed` → falha.
+
+Bounce, complaint e suppression também desativam novos alertas automáticos por e-mail para aquele contato até que a permissão seja revista.
+
+## Respostas de e-mail no CRM
+
+Quando `ingest-inbound-email` identifica que o remetente respondeu a uma oportunidade recente da mesma imobiliária, grava a mensagem em `buyer_outreach_responses` em vez de criar outro lead. A resposta passa pelo mesmo fluxo de CRM usado pelo WhatsApp: interesse, pedido de detalhes e pedido de visita podem gerar acompanhamento e notificação ao corretor; opt-out desativa os alertas de e-mail.
+
+## Gateway Supabase
+
+As funções chamadas por Meta, Resend, provedores de entrada ou cron têm `verify_jwt = false` em `supabase/config.toml`, porque esses serviços não possuem JWT do Supabase. Isso **não** torna as rotas abertas: cada uma continua protegida por assinatura ou segredo próprio.
+
+Funções iniciadas pelo usuário, como geração de IA e checkout, continuam com `verify_jwt = true`.
 
 ## Webhook normalizado para outros provedores
 
@@ -144,10 +184,12 @@ Antes de ativar em produção:
 1. confirmar que o Supabase é o projeto exclusivo do IMOBILIARIAS;
 2. aplicar as migrations na ordem somente no projeto correto;
 3. configurar secrets das Edge Functions;
-4. fazer deploy de `deliver-buyer-outreach`, `process-buyer-opportunities`, `meta-whatsapp-webhook` e `buyer-outreach-webhook`;
-5. configurar o agendador de processamento;
+4. fazer deploy de `deliver-buyer-outreach`, `process-buyer-opportunities`, `meta-whatsapp-webhook`, `resend-outreach-webhook`, `ingest-inbound-email`, `buyer-outreach-webhook` e `platform-maintenance`;
+5. configurar o agendador para chamar apenas `platform-maintenance` com `PLATFORM_MAINTENANCE_SECRET`;
 6. configurar na Meta a Callback URL da função `meta-whatsapp-webhook` e o mesmo Verify Token salvo no backend;
 7. assinar os eventos de WhatsApp necessários no painel da Meta;
-8. testar com uma imobiliária de homologação e um contato que tenha consentimento explícito.
+8. configurar no Resend o webhook `resend-outreach-webhook`, selecionar os eventos de entrega/abertura/falha e salvar o signing secret no backend;
+9. configurar o provedor de e-mail recebido para entregar o formato normalizado a `ingest-inbound-email` com `INBOUND_EMAIL_SECRET`;
+10. testar com uma imobiliária de homologação e contatos que tenham consentimento explícito.
 
 A ativação não deve reutilizar chaves, banco, storage ou projeto Supabase de qualquer outro sistema LENOY.
