@@ -54,7 +54,11 @@ create trigger properties_capture_lifecycle
 after update of status, publication_state on public.properties
 for each row execute function public.capture_property_lifecycle_change();
 
-create or replace view public.agency_property_lifecycle_summary as
+-- A view deve respeitar as policies de properties do usuário que consulta.
+drop view if exists public.agency_property_lifecycle_summary;
+create view public.agency_property_lifecycle_summary
+with (security_invoker = true)
+as
 select
   p.agency_id,
   count(*) filter (where p.status='available')::bigint as available,
