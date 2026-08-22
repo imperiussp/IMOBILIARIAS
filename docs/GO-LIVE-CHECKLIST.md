@@ -24,6 +24,19 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
 9. Cadastrar corretores e vincular cada conta ao corretor correto.
 10. Testar cadastro de imóvel, upload de fotos, catálogo público, WhatsApp, lead e aplicativo antes de publicar para clientes.
 
+## Recursos pendentes / roadmap
+
+- [ ] **IA de oportunidade para compradores:** quando um imóvel disponível atingir a compatibilidade mínima com as preferências registradas de um comprador, a IA deve preparar e disparar um contato comercial personalizado nos canais autorizados pela imobiliária e pelo cliente.
+  - Deve funcionar tanto para imóveis que já estejam no catálogo quanto para **novos imóveis assim que forem cadastrados/publicados**.
+  - Usar o perfil de compra e a pontuação de matching já existente, respeitando sempre `agency_id` para não misturar compradores e imóveis de imobiliárias diferentes.
+  - Permitir definir uma pontuação mínima de compatibilidade antes do contato automático.
+  - Evitar envio duplicado do mesmo imóvel para o mesmo comprador e aplicar período de espera entre contatos.
+  - Registrar no CRM qual imóvel gerou o contato, a pontuação de compatibilidade, canal utilizado, data/hora, resultado e eventual resposta do comprador.
+  - Permitir ligar/desligar automação por imobiliária e, futuramente, controlar o recurso por plano.
+  - Priorizar WhatsApp e permitir outros canais compatíveis, sempre respeitando consentimento, opt-out e regras do provedor utilizado.
+  - A IA não pode inventar características do imóvel: a mensagem deve usar somente dados confirmados no cadastro.
+  - O corretor responsável deve receber aviso da oportunidade e do contato efetuado.
+
 ## Verificações antes de produção
 
 - O projeto Supabase exibido no painel é IMOBILIARIAS.
