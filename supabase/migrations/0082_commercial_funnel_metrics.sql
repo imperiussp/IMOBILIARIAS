@@ -1,7 +1,11 @@
 -- Indicadores comerciais e de conversão por imobiliária.
 -- EXCLUSIVO do Supabase IMOBILIARIAS. Não aplicar no Moto Connect.
+-- As views usam security_invoker para respeitar o RLS das tabelas-base.
 
-create or replace view public.agency_commercial_funnel as
+drop view if exists public.agency_commercial_funnel;
+create view public.agency_commercial_funnel
+with (security_invoker = true)
+as
 select
   l.agency_id,
   count(*)::bigint as total_leads,
@@ -30,7 +34,10 @@ group by l.agency_id;
 revoke all on public.agency_commercial_funnel from public,anon;
 grant select on public.agency_commercial_funnel to authenticated;
 
-create or replace view public.agency_lead_source_performance as
+drop view if exists public.agency_lead_source_performance;
+create view public.agency_lead_source_performance
+with (security_invoker = true)
+as
 select
   l.agency_id,
   coalesce(nullif(trim(l.source),''),'outro') as source,
