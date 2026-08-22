@@ -25,16 +25,18 @@ on public.property_visit_appointments(agency_id,lead_id,scheduled_at desc);
 
 alter table public.property_visit_appointments enable row level security;
 
+-- A agenda segue a mesma autorização do CRM: corretor só acessa visita ligada
+-- a contato atribuído a ele; gestores/equipe interna mantêm acesso da imobiliária.
 drop policy if exists "tenant members read property visits" on public.property_visit_appointments;
 create policy "tenant members read property visits" on public.property_visit_appointments
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 
 drop policy if exists "tenant members manage property visits" on public.property_visit_appointments;
 create policy "tenant members manage property visits" on public.property_visit_appointments
 for all to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin())
-with check (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id))
+with check (public.can_access_lead_crm(agency_id,lead_id));
 
 create or replace function public.validate_property_visit_tenant()
 returns trigger
@@ -45,11 +47,25 @@ begin
   if not exists(select 1 from public.leads l where l.id=new.lead_id and l.agency_id=new.agency_id) then
     raise exception 'Contato fora da imobiliária atual.';
   end if;
+  if not public.can_access_lead_crm(new.agency_id,new.lead_id) then
+    raise exception 'Sem permissão para agendar visita para este contato.';
+  end if;
   if new.property_id is not null and not exists(select 1 from public.properties p where p.id=new.property_id and p.agency_id=new.agency_id) then
     raise exception 'Imóvel fora da imobiliária atual.';
   end if;
   if new.broker_id is not null and not exists(select 1 from public.brokers b where b.id=new.broker_id and b.agency_id=new.agency_id) then
     raise exception 'Corretor fora da imobiliária atual.';
+  end if;
+  -- Um corretor comum não pode agendar a visita em nome de outro corretor.
+  if exists(
+    select 1 from public.agency_memberships am
+    where am.agency_id=new.agency_id and am.user_id=auth.uid() and am.active=true and am.role='broker'
+  ) and new.broker_id is distinct from (
+    select b.id from public.brokers b
+    where b.agency_id=new.agency_id and b.user_id=auth.uid() and b.active=true
+    limit 1
+  ) then
+    raise exception 'Corretor não pode atribuir visita a outro corretor.';
   end if;
   new.updated_at := now();
   new.created_by := coalesce(new.created_by,auth.uid());
@@ -63,7 +79,10 @@ create trigger property_visit_appointments_validate
 before insert or update on public.property_visit_appointments
 for each row execute function public.validate_property_visit_tenant();
 
-create or replace view public.agency_visit_schedule_summary as
+drop view if exists public.agency_visit_schedule_summary;
+create view public.agency_visit_schedule_summary
+with (security_invoker = true)
+as
 select
   agency_id,
   count(*) filter (where status='scheduled' and scheduled_at >= now())::bigint as upcoming,
