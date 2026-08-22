@@ -28,7 +28,14 @@ with check (public.can_manage_agency(agency_id) or public.is_platform_admin());
 drop policy if exists "tenant members read broker goals" on public.broker_monthly_goals;
 create policy "tenant members read broker goals" on public.broker_monthly_goals
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (
+  public.can_manage_agency(agency_id)
+  or public.is_platform_admin()
+  or exists(
+    select 1 from public.brokers b
+    where b.id=broker_id and b.agency_id=agency_id and b.user_id=auth.uid() and b.active=true
+  )
+);
 
 create or replace function public.validate_broker_goal_tenant()
 returns trigger language plpgsql set search_path=public as $$
@@ -45,7 +52,10 @@ drop trigger if exists broker_monthly_goals_validate on public.broker_monthly_go
 create trigger broker_monthly_goals_validate before insert or update on public.broker_monthly_goals
 for each row execute function public.validate_broker_goal_tenant();
 
-create or replace view public.broker_monthly_goal_progress as
+drop view if exists public.broker_monthly_goal_progress;
+create view public.broker_monthly_goal_progress
+with (security_invoker = true)
+as
 select
   g.agency_id,g.broker_id,g.month,g.leads_goal,g.visits_goal,g.won_goal,g.new_properties_goal,
   (select count(*) from public.leads l where l.agency_id=g.agency_id and l.broker_id=g.broker_id and l.created_at>=g.month and l.created_at<g.month+interval '1 month')::bigint as leads_done,
