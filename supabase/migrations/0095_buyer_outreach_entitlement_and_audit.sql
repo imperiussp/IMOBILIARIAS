@@ -61,10 +61,11 @@ create index if not exists buyer_outreach_attempts_opportunity_idx on public.buy
 create index if not exists buyer_outreach_attempts_lead_idx on public.buyer_outreach_delivery_attempts(agency_id,lead_id,attempted_at desc);
 alter table public.buyer_outreach_delivery_attempts enable row level security;
 
+-- Tentativas podem conter texto e payload do provedor: corretor só lê tentativas dos próprios contatos.
 drop policy if exists "tenant members read buyer outreach attempts" on public.buyer_outreach_delivery_attempts;
 create policy "tenant members read buyer outreach attempts" on public.buyer_outreach_delivery_attempts
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 
 revoke insert,update,delete on public.buyer_outreach_delivery_attempts from anon,authenticated;
 
@@ -88,7 +89,7 @@ alter table public.lead_contact_permission_history enable row level security;
 drop policy if exists "tenant members read consent history" on public.lead_contact_permission_history;
 create policy "tenant members read consent history" on public.lead_contact_permission_history
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 revoke insert,update,delete on public.lead_contact_permission_history from anon,authenticated;
 
 create or replace function public.capture_lead_contact_permission_history()
@@ -149,6 +150,15 @@ begin
   select agency_id into v_agency from public.properties
   where id=p_property_id and publication_state='published' and status='available';
   if v_agency is null then return 0; end if;
+
+  -- Fora de trigger, somente gestor/plataforma pode forçar varredura manual.
+  -- O disparo automático após publicação continua funcionando para o corretor que publicou o imóvel.
+  if auth.uid() is not null and pg_trigger_depth()=0
+     and not public.can_manage_agency(v_agency)
+     and not public.is_platform_admin() then
+    raise exception 'Somente gestores podem gerar oportunidades manualmente.';
+  end if;
+
   if not public.agency_has_plan_feature(v_agency,'ai_buyer_outreach',false) then return 0; end if;
 
   select * into v_settings from public.buyer_outreach_settings where agency_id=v_agency;
@@ -214,7 +224,10 @@ create trigger buyer_property_opportunities_log_activity
 after update of status on public.buyer_property_opportunities
 for each row execute function public.log_buyer_outreach_activity();
 
-create or replace view public.agency_buyer_outreach_delivery_summary as
+drop view if exists public.agency_buyer_outreach_delivery_summary;
+create view public.agency_buyer_outreach_delivery_summary
+with (security_invoker = true)
+as
 select agency_id,
   count(*)::bigint as attempts,
   count(*) filter(where status in ('sent','delivered','read'))::bigint as sent,
