@@ -35,6 +35,10 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+      - name: Write preview build marker
+        run: |
+          mkdir -p apps/web/public
+          printf "commit=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/public/preview-build.txt
       - name: Build static web
         run: pnpm build:web
       - name: Configure Pages
