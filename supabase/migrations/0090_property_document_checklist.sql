@@ -19,16 +19,43 @@ create table if not exists public.property_document_items (
 create index if not exists property_document_items_agency_status_idx on public.property_document_items(agency_id,status,updated_at desc);
 alter table public.property_document_items enable row level security;
 
+-- Documentos podem conter informação operacional sensível. Gestores e staff veem
+-- a carteira da imobiliária; corretor acessa apenas imóveis vinculados ao próprio perfil.
+create or replace function public.can_access_property_internal(p_agency_id uuid,p_property_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path=public
+as $$
+  select
+    public.is_platform_admin()
+    or public.can_manage_agency(p_agency_id)
+    or exists(
+      select 1 from public.agency_memberships am
+      where am.agency_id=p_agency_id and am.user_id=auth.uid() and am.active=true and am.role='staff'
+    )
+    or exists(
+      select 1
+      from public.properties p
+      join public.brokers b on b.id=p.broker_id and b.agency_id=p.agency_id and b.active=true
+      where p.id=p_property_id and p.agency_id=p_agency_id and b.user_id=auth.uid()
+    );
+$$;
+revoke all on function public.can_access_property_internal(uuid,uuid) from public,anon;
+grant execute on function public.can_access_property_internal(uuid,uuid) to authenticated;
+
 drop policy if exists "tenant members manage property documents" on public.property_document_items;
 create policy "tenant members manage property documents" on public.property_document_items
 for all to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin())
-with check (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_property_internal(agency_id,property_id))
+with check (public.can_access_property_internal(agency_id,property_id));
 
 create or replace function public.validate_property_document_item_tenant()
 returns trigger language plpgsql set search_path=public as $$
 begin
   if not exists(select 1 from public.properties p where p.id=new.property_id and p.agency_id=new.agency_id) then raise exception 'Imóvel fora da imobiliária atual.'; end if;
+  if not public.can_access_property_internal(new.agency_id,new.property_id) then raise exception 'Sem permissão para este imóvel.'; end if;
   new.updated_at := now();
   new.updated_by := coalesce(auth.uid(),new.updated_by);
   return new;
@@ -45,7 +72,7 @@ declare v_agency uuid;
 begin
   select agency_id into v_agency from public.properties where id=p_property_id;
   if v_agency is null then raise exception 'Imóvel não encontrado.'; end if;
-  if not (public.is_agency_member(v_agency) or public.is_platform_admin()) then raise exception 'Sem acesso.'; end if;
+  if not public.can_access_property_internal(v_agency,p_property_id) then raise exception 'Sem acesso.'; end if;
   insert into public.property_document_items(agency_id,property_id,item_key,label)
   values
     (v_agency,p_property_id,'matricula','Matrícula atualizada'),
@@ -60,7 +87,10 @@ end; $$;
 revoke all on function public.ensure_default_property_document_items(uuid) from public,anon;
 grant execute on function public.ensure_default_property_document_items(uuid) to authenticated;
 
-create or replace view public.agency_property_document_summary as
+drop view if exists public.agency_property_document_summary;
+create view public.agency_property_document_summary
+with (security_invoker = true)
+as
 select agency_id,property_id,
   count(*)::bigint as total,
   count(*) filter(where status='approved')::bigint as approved,
