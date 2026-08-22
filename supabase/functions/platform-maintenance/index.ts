@@ -32,15 +32,24 @@ Deno.serve(async(request)=>{
   const results:any[]=[];
 
   if(serviceRoleKey){
+    const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
+
     const recoveryStarted=Date.now();
     try{
-      const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});
       const recovery=await admin.rpc("recover_stale_buyer_outreach_attempts",{p_timeout_minutes:20});
       if(recovery.error){results.push({name:"recover-stale-outreach",ok:false,status:500,duration_ms:Date.now()-recoveryStarted,error:recovery.error.message});}
       else{results.push({name:"recover-stale-outreach",ok:true,status:200,duration_ms:Date.now()-recoveryStarted,body:{recovered:Number(recovery.data||0)}});}
     }catch(error){results.push({name:"recover-stale-outreach",ok:false,status:0,duration_ms:Date.now()-recoveryStarted,error:error instanceof Error?error.message:String(error)});}
+
+    const retentionStarted=Date.now();
+    try{
+      const retention=await admin.rpc("abandon_stale_outreach_provider_events",{p_age_days:7});
+      if(retention.error){results.push({name:"retain-orphan-provider-events",ok:false,status:500,duration_ms:Date.now()-retentionStarted,error:retention.error.message});}
+      else{results.push({name:"retain-orphan-provider-events",ok:true,status:200,duration_ms:Date.now()-retentionStarted,body:{abandoned:Number(retention.data||0)}});}
+    }catch(error){results.push({name:"retain-orphan-provider-events",ok:false,status:0,duration_ms:Date.now()-retentionStarted,error:error instanceof Error?error.message:String(error)});}
   }else{
     results.push({name:"recover-stale-outreach",ok:false,skipped:true,error:"service_role_not_configured"});
+    results.push({name:"retain-orphan-provider-events",ok:false,skipped:true,error:"service_role_not_configured"});
   }
 
   results.push(await callFunction("reconcile-outreach-provider-events",{"x-platform-maintenance-secret":maintenanceSecret}));
