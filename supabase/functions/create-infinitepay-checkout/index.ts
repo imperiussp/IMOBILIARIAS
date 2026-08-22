@@ -24,10 +24,9 @@ Deno.serve(async (request) => {
   const { data: userData, error: userError } = await userClient.auth.getUser();
   if (userError || !userData.user) return json({ error: "unauthorized" }, 401);
 
-  const release = await admin.from("platform_release_controls").select("environment_mode,maintenance_mode,real_billing_enabled").eq("id",1).maybeSingle();
-  if (release.error) return json({ error: "release_controls_unavailable" }, 503);
-  if (release.data?.maintenance_mode) return json({ error: "platform_maintenance_mode" }, 423);
-  if (release.data?.real_billing_enabled !== true) return json({ error: "real_billing_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
+  const allowed = await admin.rpc("platform_runtime_action_allowed", { p_action: "billing" });
+  if (allowed.error) return json({ error: "release_controls_unavailable" }, 503);
+  if (allowed.data !== true) return json({ error: "billing_blocked_by_release_control" }, 423);
   if (!handle || !webhookSecret) return json({ error: "infinitepay_not_configured" }, 503);
 
   let payload: Record<string, unknown>;
