@@ -13,6 +13,7 @@
     "migration:safety": "node scripts/check-migration-safety.mjs",
     "env:contract": "node scripts/check-env-contract.mjs",
     "homologation:assets": "node scripts/check-homologation-assets.mjs",
-    "smoke:deploy": "node scripts/post-deploy-smoke.mjs"
+    "smoke:deploy": "node scripts/post-deploy-smoke.mjs",
+    "release:validate": "pnpm env:contract && pnpm homologation:assets && pnpm migration:safety && pnpm edge:guards && pnpm --filter @imobiliarias/web typecheck && pnpm --filter @imobiliarias/web build && pnpm --filter @imobiliarias/mobile typecheck"
   }
 }
