@@ -67,8 +67,12 @@ create trigger agency_documents_snapshot_version
 after insert or update of title, content, status on public.agency_documents
 for each row execute function public.snapshot_agency_document();
 
--- Snapshot comercial único usado pelas interfaces web/mobile.
-create or replace function public.agency_plan_feature_snapshot(p_agency_id uuid)
+-- O snapshot anterior, criado em 0058, possui a mesma assinatura de argumentos
+-- mas um RETURNS TABLE menor. PostgreSQL não permite alterar o tipo de retorno
+-- com CREATE OR REPLACE, portanto removemos explicitamente antes de recriar.
+drop function if exists public.agency_plan_feature_snapshot(uuid);
+
+create function public.agency_plan_feature_snapshot(p_agency_id uuid)
 returns table (
   plan_name text,
   broker_app boolean,
