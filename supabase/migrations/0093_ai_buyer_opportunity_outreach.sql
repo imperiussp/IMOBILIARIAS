@@ -68,13 +68,13 @@ with check (public.is_agency_manager(agency_id) or public.is_platform_admin());
 drop policy if exists "tenant members manage lead contact permissions" on public.lead_contact_permissions;
 create policy "tenant members manage lead contact permissions" on public.lead_contact_permissions
 for all to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin())
-with check (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id))
+with check (public.can_access_lead_crm(agency_id,lead_id));
 
 drop policy if exists "tenant members read buyer opportunities" on public.buyer_property_opportunities;
 create policy "tenant members read buyer opportunities" on public.buyer_property_opportunities
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 
 drop policy if exists "tenant managers manage buyer opportunities" on public.buyer_property_opportunities;
 create policy "tenant managers manage buyer opportunities" on public.buyer_property_opportunities
@@ -87,6 +87,9 @@ returns trigger language plpgsql set search_path=public as $$
 begin
   if not exists(select 1 from public.leads l where l.id=new.lead_id and l.agency_id=new.agency_id) then
     raise exception 'Contato fora da imobiliária atual.';
+  end if;
+  if not public.can_access_lead_crm(new.agency_id,new.lead_id) then
+    raise exception 'Sem permissão para alterar consentimento deste contato.';
   end if;
   new.updated_by := coalesce(auth.uid(),new.updated_by);
   new.updated_at := now();
@@ -118,6 +121,12 @@ begin
   select agency_id into v_agency from public.properties
   where id=p_property_id and publication_state='published' and status='available';
   if v_agency is null then return 0; end if;
+
+  -- Chamada manual/autenticada só pode atuar em imóvel visível ao usuário.
+  -- Triggers e rotinas privilegiadas continuam funcionando pelo contexto interno.
+  if auth.uid() is not null and not public.can_access_property_internal(v_agency,p_property_id) then
+    raise exception 'Sem permissão para gerar oportunidades deste imóvel.';
+  end if;
 
   select * into v_settings from public.buyer_outreach_settings where agency_id=v_agency;
   if not found or not v_settings.enabled then return 0; end if;
@@ -185,7 +194,10 @@ create trigger properties_queue_buyer_matches
 after insert or update of publication_state,status,price on public.properties
 for each row execute function public.queue_matches_when_property_published();
 
-create or replace view public.agency_buyer_opportunity_summary as
+drop view if exists public.agency_buyer_opportunity_summary;
+create view public.agency_buyer_opportunity_summary
+with (security_invoker = true)
+as
 select agency_id,
   count(*) filter(where status in ('queued','review'))::bigint as pending,
   count(*) filter(where status='approved')::bigint as approved,
