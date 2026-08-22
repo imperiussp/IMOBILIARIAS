@@ -18,12 +18,13 @@ Nunca reutilize URL, chave, banco, bucket ou usuário administrativo de Moto Con
    - `EXPO_PUBLIC_SUPABASE_URL`
    - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 5. Configurar os secrets das Edge Functions conforme `.env.example` e nunca expô-los no navegador/app.
-6. Criar a primeira conta da equipe em `/cadastro/`.
-7. Confirmar o e-mail, caso a confirmação esteja habilitada no Supabase.
-8. Entrar nessa conta e abrir `/primeiro-acesso/` para definir o administrador inicial.
-9. Depois disso, todos os novos usuários devem ser liberados pelo menu **Usuários** do painel.
-10. Cadastrar corretores e vincular cada conta ao corretor correto.
-11. Testar cadastro de imóvel, upload de fotos, catálogo público, WhatsApp, lead e aplicativo antes de publicar para clientes.
+6. Conferir `supabase/config.toml`: webhooks externos e rotinas protegidas por segredo usam `verify_jwt=false`; ações iniciadas pelo usuário continuam com `verify_jwt=true`.
+7. Criar a primeira conta da equipe em `/cadastro/`.
+8. Confirmar o e-mail, caso a confirmação esteja habilitada no Supabase.
+9. Entrar nessa conta e abrir `/primeiro-acesso/` para definir o administrador inicial.
+10. Depois disso, todos os novos usuários devem ser liberados pelo menu **Usuários** do painel.
+11. Cadastrar corretores e vincular cada conta ao corretor correto.
+12. Testar cadastro de imóvel, upload de fotos, catálogo público, WhatsApp, lead e aplicativo antes de publicar para clientes.
 
 ## IA de oportunidades para compradores
 
@@ -40,6 +41,10 @@ A estrutura funcional já está preparada no repositório:
 - [x] Possuir adaptador próprio de entrega para WhatsApp Cloud API e e-mail via Resend.
 - [x] Registrar IDs de mensagem e estados enviado/entregue/lido/falha.
 - [x] Receber webhook direto da Meta com validação de assinatura.
+- [x] Receber webhook direto e assinado do Resend.
+- [x] Mapear `email.opened` para leitura no monitor de entrega.
+- [x] Desativar alertas de e-mail após bounce, complaint ou suppression.
+- [x] Diferenciar novo lead por e-mail de resposta a oportunidade já enviada.
 - [x] Classificar respostas em interesse, detalhes, visita, sem interesse e opt-out.
 - [x] Revogar alertas automaticamente em opt-out.
 - [x] Registrar respostas no histórico do CRM.
@@ -47,9 +52,12 @@ A estrutura funcional já está preparada no repositório:
 - [x] Notificar o corretor responsável sobre respostas positivas.
 - [x] Exibir métricas, respostas e monitor de entrega no painel da imobiliária.
 - [x] Evitar fallback ambíguo de telefone entre imobiliárias diferentes.
+- [x] Evitar correlação ambígua de resposta de e-mail; associação só ocorre dentro da imobiliária e para um contato inequívoco.
 - [ ] Configurar credenciais reais do provedor de IA no Supabase exclusivo do IMOBILIARIAS.
 - [ ] Configurar credenciais reais da Meta e/ou Resend.
 - [ ] Cadastrar o webhook `meta-whatsapp-webhook` na Meta e concluir a verificação.
+- [ ] Cadastrar `resend-outreach-webhook` no Resend e salvar `RESEND_WEBHOOK_SIGNING_SECRET`.
+- [ ] Configurar o recebimento normalizado de e-mail para `ingest-inbound-email`.
 - [ ] Fazer deploy das Edge Functions no projeto Supabase exclusivo do IMOBILIARIAS.
 - [ ] Executar testes reais de consentimento, opt-out, duplicidade, limites do plano, entrega, leitura e respostas antes de habilitar envio automático.
 
@@ -86,8 +94,12 @@ Antes da produção:
 - Imóveis vendidos/alugados permanecem no histórico.
 - A IA de oportunidades não envia contatos sem consentimento, canal autorizado e plano elegível.
 - Uma resposta sem contexto da Meta nunca é ligada a uma imobiliária quando o telefone for ambíguo entre tenants.
+- Uma resposta por e-mail nunca é correlacionada fora da imobiliária destinatária e não deve criar lead duplicado quando houver correspondência segura.
 - Um opt-out interrompe novos alertas automáticos do canal.
+- Bounce, complaint e suppression interrompem o canal de e-mail automático até revisão da permissão.
 - Falhas de mensageria aparecem no monitor do painel e podem voltar para revisão sem reenvio automático.
+- Eventos do Resend alteram o monitor somente após validação da assinatura do webhook.
+- Webhooks externos alcançam as Edge Functions sem JWT do Supabase, mas continuam protegidos por assinatura/segredo próprio.
 - A manutenção automática registra histórico e não deixa uma rotina impedir as demais de serem processadas.
 
 ## Publicação web
