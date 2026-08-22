@@ -38,13 +38,13 @@ type ChannelHealth={
   failure_rate_30d:number|null;
 };
 
-type DeliveryEvent={
-  id:string;
+type DeliveryEventSummary={
   attempt_id:string;
-  event_type:string;
-  current_status:string;
-  occurred_at:string;
-  error_message:string|null;
+  event_count:number;
+  latest_event_type:string|null;
+  latest_current_status:string|null;
+  latest_occurred_at:string|null;
+  latest_error_message:string|null;
 };
 
 const labels:Record<string,string>={prepared:"Preparada",sending:"Enviando",sent:"Enviada",delivered:"Entregue",read:"Lida",failed:"Falhou"};
@@ -57,7 +57,7 @@ function eventLabel(eventType:string,channel:string){if(eventType==="status_read
 export default function AdminBuyerDeliveryMonitor(){
   const [rows,setRows]=useState<(Attempt & {opportunity?:Opportunity|null})[]>([]);
   const [health,setHealth]=useState<ChannelHealth[]>([]);
-  const [events,setEvents]=useState<DeliveryEvent[]>([]);
+  const [eventSummary,setEventSummary]=useState<DeliveryEventSummary[]>([]);
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState("");
   const [filter,setFilter]=useState("all");
@@ -82,12 +82,12 @@ export default function AdminBuyerDeliveryMonitor(){
     const attemptRows=(attempts.data||[]) as Attempt[];
     const attemptIds=attemptRows.map(row=>row.id);
     if(attemptIds.length){
-      const eventResult=await supabaseBrowser.from("buyer_outreach_delivery_events")
-        .select("id,attempt_id,event_type,current_status,occurred_at,error_message")
-        .in("attempt_id",attemptIds).order("occurred_at",{ascending:false}).limit(500);
-      if(!eventResult.error)setEvents((eventResult.data||[]) as DeliveryEvent[]);
+      const eventResult=await supabaseBrowser.from("agency_buyer_outreach_delivery_event_summary")
+        .select("attempt_id,event_count,latest_event_type,latest_current_status,latest_occurred_at,latest_error_message")
+        .in("attempt_id",attemptIds);
+      if(!eventResult.error)setEventSummary((eventResult.data||[]).map((row:any)=>({...row,event_count:Number(row.event_count||0)})) as DeliveryEventSummary[]);
       else if(!['42P01','42703'].includes(eventResult.error.code||''))setMessage(eventResult.error.message);
-    }else setEvents([]);
+    }else setEventSummary([]);
 
     const ids=[...new Set(attemptRows.map(row=>row.opportunity_id).filter(Boolean))];
     let opportunities:Opportunity[]=[];
@@ -114,11 +114,7 @@ export default function AdminBuyerDeliveryMonitor(){
     await load();
   }
 
-  const eventsByAttempt=useMemo(()=>{
-    const map=new Map<string,DeliveryEvent[]>();
-    for(const event of events){const list=map.get(event.attempt_id)||[];list.push(event);map.set(event.attempt_id,list);}
-    return map;
-  },[events]);
+  const summaryByAttempt=useMemo(()=>new Map(eventSummary.map(item=>[item.attempt_id,item])),[eventSummary]);
   const visible=useMemo(()=>rows.filter(row=>(filter==="all"||row.status===filter)&&(channelFilter==="all"||row.channel===channelFilter)),[rows,filter,channelFilter]);
   const delivered=rows.filter(row=>row.status==="delivered"||row.status==="read").length;
   const read=rows.filter(row=>row.status==="read").length;
@@ -132,12 +128,11 @@ export default function AdminBuyerDeliveryMonitor(){
     <div className="adminFilters"><label>Situação<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todas</option><option value="sending">Enviando</option><option value="sent">Enviadas</option><option value="delivered">Entregues</option><option value="read">Lidas/abertas</option><option value="failed">Falhas</option></select></label><label>Canal<select value={channelFilter} onChange={e=>setChannelFilter(e.target.value)}><option value="all">Todos</option><option value="whatsapp">WhatsApp</option><option value="email">E-mail</option><option value="sms">SMS</option></select></label></div>
     {message?<div className="formMessage">{message}</div>:null}
     <div className="adminTableWrap"><table className="adminTable"><thead><tr><th>Cliente</th><th>Imóvel</th><th>Canal</th><th>Status</th><th>Provedor</th><th>Histórico</th><th>Último evento</th><th>Ação</th></tr></thead><tbody>{visible.length?visible.map(row=>{
-      const history=eventsByAttempt.get(row.id)||[];
-      const latestEvent=history[0]||null;
-      const last=latestEvent?.occurred_at||row.read_at||row.delivered_at||row.sent_at||row.attempted_at;
+      const history=summaryByAttempt.get(row.id)||null;
+      const last=history?.latest_occurred_at||row.read_at||row.delivered_at||row.sent_at||row.attempted_at;
       const sendingMinutes=row.status==="sending"?Math.floor((Date.now()-new Date(row.attempted_at).getTime())/60000):0;
-      return <tr key={row.id}><td><strong>{row.opportunity?.leads?.name||"Contato"}</strong></td><td><strong>{row.opportunity?.properties?.code||"—"}</strong><small className="tableSub">{row.opportunity?.properties?.title||""}</small></td><td>{channels[row.channel]||row.channel}</td><td><span className="statusPill">{statusLabel(row.status,row.channel)}</span>{row.status==="sending"&&sendingMinutes>=10?<small className="tableSub">Aguardando retorno há {sendingMinutes} min</small>:null}{row.error_message?<small className="tableSub">{row.error_message}</small>:null}</td><td>{row.provider||"—"}{row.provider_message_id?<small className="tableSub">ID registrado</small>:null}</td><td><strong>{history.length}</strong><small className="tableSub">evento(s) técnico(s)</small></td><td>{latestEvent?<><strong>{eventLabel(latestEvent.event_type,row.channel)}</strong><small className="tableSub">{new Date(last).toLocaleString("pt-BR")}</small>{latestEvent.error_message?<small className="tableSub">{latestEvent.error_message}</small>:null}</>:new Date(last).toLocaleString("pt-BR")}</td><td>{row.status==="failed"?<button type="button" className="miniButton" onClick={()=>void returnToReview(row)} disabled={busy===row.id}>{busy===row.id?"Atualizando...":"Revisar novamente"}</button>:<span>—</span>}</td></tr>
+      return <tr key={row.id}><td><strong>{row.opportunity?.leads?.name||"Contato"}</strong></td><td><strong>{row.opportunity?.properties?.code||"—"}</strong><small className="tableSub">{row.opportunity?.properties?.title||""}</small></td><td>{channels[row.channel]||row.channel}</td><td><span className="statusPill">{statusLabel(row.status,row.channel)}</span>{row.status==="sending"&&sendingMinutes>=10?<small className="tableSub">Aguardando retorno há {sendingMinutes} min</small>:null}{row.error_message?<small className="tableSub">{row.error_message}</small>:null}</td><td>{row.provider||"—"}{row.provider_message_id?<small className="tableSub">ID registrado</small>:null}</td><td><strong>{history?.event_count||0}</strong><small className="tableSub">evento(s) técnico(s)</small></td><td>{history?.latest_event_type?<><strong>{eventLabel(history.latest_event_type,row.channel)}</strong><small className="tableSub">{new Date(last).toLocaleString("pt-BR")}</small>{history.latest_error_message?<small className="tableSub">{history.latest_error_message}</small>:null}</>:new Date(last).toLocaleString("pt-BR")}</td><td>{row.status==="failed"?<button type="button" className="miniButton" onClick={()=>void returnToReview(row)} disabled={busy===row.id}>{busy===row.id?"Atualizando...":"Revisar novamente"}</button>:<span>—</span>}</td></tr>
     }):<tr><td colSpan={8}>Nenhuma tentativa nesta combinação de filtros.</td></tr>}</tbody></table></div>
-    <div className="formNotice"><strong>Segurança:</strong> o histórico técnico é imutável. Registros antigos migrados aparecem como “Estado anterior preservado”, sem inventar transições passadas. No e-mail, “aberta” indica o evento técnico de abertura do provedor e não garante leitura humana. Tentativas em envio há mais de 20 minutos são marcadas como falha pela manutenção automática, sem reenvio. “Revisar novamente” apenas devolve a oportunidade para análise.</div>
+    <div className="formNotice"><strong>Segurança:</strong> o histórico técnico é imutável e o painel usa uma visão resumida para manter desempenho com alto volume. Registros antigos migrados aparecem como “Estado anterior preservado”, sem inventar transições passadas. No e-mail, “aberta” indica o evento técnico de abertura do provedor e não garante leitura humana. Tentativas em envio há mais de 20 minutos são marcadas como falha pela manutenção automática, sem reenvio. “Revisar novamente” apenas devolve a oportunidade para análise.</div>
   </div>;
 }
