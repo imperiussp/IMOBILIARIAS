@@ -16,7 +16,7 @@ alter table public.property_price_history enable row level security;
 
 drop policy if exists "tenant members read property price history" on public.property_price_history;
 create policy "tenant members read property price history" on public.property_price_history
-for select to authenticated using (public.is_agency_member(agency_id) or public.is_platform_admin());
+for select to authenticated using (public.can_access_property_internal(agency_id,property_id));
 revoke insert,update,delete on public.property_price_history from anon,authenticated;
 
 create or replace function public.capture_property_price_change()
@@ -34,7 +34,10 @@ drop trigger if exists properties_capture_price_change on public.properties;
 create trigger properties_capture_price_change after update of price on public.properties
 for each row execute function public.capture_property_price_change();
 
-create or replace view public.agency_recent_price_changes as
+drop view if exists public.agency_recent_price_changes;
+create view public.agency_recent_price_changes
+with (security_invoker = true)
+as
 select h.agency_id,h.property_id,p.code,p.title,h.previous_price,h.price,h.changed_at,
   round(case when h.previous_price>0 then 100.0*(h.price-h.previous_price)/h.previous_price else 0 end,2) as change_percent
 from public.property_price_history h
