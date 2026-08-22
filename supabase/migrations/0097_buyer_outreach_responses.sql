@@ -21,10 +21,11 @@ create index if not exists buyer_outreach_responses_lead_idx on public.buyer_out
 create index if not exists buyer_outreach_responses_opportunity_idx on public.buyer_outreach_responses(opportunity_id,received_at desc);
 alter table public.buyer_outreach_responses enable row level security;
 
+-- Resposta e payload do provedor só podem ser vistos por quem pode operar o contato no CRM.
 drop policy if exists "tenant members read buyer outreach responses" on public.buyer_outreach_responses;
 create policy "tenant members read buyer outreach responses" on public.buyer_outreach_responses
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 revoke insert,update,delete on public.buyer_outreach_responses from anon,authenticated;
 
 create or replace function public.validate_buyer_outreach_response_tenant()
@@ -39,6 +40,7 @@ begin
   if new.opportunity_id is not null and not exists(
     select 1 from public.buyer_property_opportunities o
     where o.id=new.opportunity_id and o.agency_id=new.agency_id and o.lead_id=new.lead_id
+      and (new.property_id is null or o.property_id=new.property_id)
   ) then raise exception 'Oportunidade fora da imobiliária.'; end if;
   return new;
 end; $$;
@@ -70,7 +72,8 @@ begin
       'property_id',new.property_id,
       'channel',new.channel,
       'response_kind',new.response_kind,
-      'response_text',left(coalesce(new.response_text,''),1200),
+      -- Mantém apenas um resumo curto na timeline; o texto integral fica na tabela de respostas.
+      'response_preview',left(coalesce(new.response_text,''),240),
       'received_at',new.received_at
     ),
     null
@@ -84,6 +87,13 @@ begin
     where agency_id=new.agency_id and lead_id=new.lead_id;
   end if;
 
+  -- Sinais positivos deixam a oportunidade marcada para acompanhamento no painel.
+  if new.opportunity_id is not null and new.response_kind in ('interested','request_details','request_visit') then
+    update public.buyer_property_opportunities
+      set updated_at=now()
+    where id=new.opportunity_id and agency_id=new.agency_id and lead_id=new.lead_id;
+  end if;
+
   return new;
 end; $$;
 revoke all on function public.log_buyer_outreach_response_to_crm() from public,anon,authenticated;
@@ -93,7 +103,10 @@ create trigger buyer_outreach_responses_log_crm
 after insert on public.buyer_outreach_responses
 for each row execute function public.log_buyer_outreach_response_to_crm();
 
-create or replace view public.agency_buyer_outreach_response_summary as
+drop view if exists public.agency_buyer_outreach_response_summary;
+create view public.agency_buyer_outreach_response_summary
+with (security_invoker = true)
+as
 select agency_id,
   count(*)::bigint as responses,
   count(*) filter(where response_kind='interested')::bigint as interested,
