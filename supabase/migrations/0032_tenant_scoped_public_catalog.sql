@@ -1,5 +1,10 @@
 -- Catálogo público passa a expor agency_id para que cada domínio carregue apenas sua imobiliária.
-create or replace view public.property_catalog as
+-- A view é recriada porque a inclusão de agency_id altera a ordem/estrutura das colunas.
+drop view if exists public.property_catalog;
+
+create view public.property_catalog
+with (security_invoker = true)
+as
 select
   p.id,
   p.agency_id,
