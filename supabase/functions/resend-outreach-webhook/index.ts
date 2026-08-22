@@ -46,7 +46,7 @@ Deno.serve(async (request) => {
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const attemptResult = await admin.from("buyer_outreach_delivery_attempts")
-    .select("id,opportunity_id,status")
+    .select("id,agency_id,lead_id,opportunity_id,status")
     .eq("provider_message_id", providerMessageId)
     .order("attempted_at", { ascending: false })
     .limit(1)
@@ -89,6 +89,16 @@ Deno.serve(async (request) => {
       updated_at: new Date().toISOString(),
     }).eq("id", (attemptResult.data as any).opportunity_id);
     if (opportunity.error) return json({ error: opportunity.error.message }, 500);
+  }
+
+  if (["email.bounced", "email.complained", "email.suppressed"].includes(type)) {
+    const permission = await admin.from("lead_contact_permissions").update({
+      email_allowed: false,
+      automated_property_alerts_allowed: false,
+      revoked_at: now,
+      updated_at: now,
+    }).eq("agency_id", (attemptResult.data as any).agency_id).eq("lead_id", (attemptResult.data as any).lead_id);
+    if (permission.error) return json({ error: permission.error.message }, 500);
   }
 
   return json({ ok: true, type, updated: updateAttempt });
