@@ -1,3 +1,7 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const adapterToken = Deno.env.get("BUYER_OUTREACH_WEBHOOK_TOKEN") || "";
 const metaAccessToken = Deno.env.get("META_WHATSAPP_ACCESS_TOKEN") || "";
 const metaPhoneNumberId = Deno.env.get("META_WHATSAPP_PHONE_NUMBER_ID") || "";
@@ -113,6 +117,13 @@ async function sendEmail(destination: string, message: string, idempotencyKey: s
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   if (!adapterToken || bearer(request) !== adapterToken) return json({ error: "unauthorized" }, 401);
+  if (!supabaseUrl || !serviceKey) return json({ error: "supabase_not_configured" }, 503);
+
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const release = await admin.from("platform_release_controls").select("environment_mode,maintenance_mode,external_messaging_enabled").eq("id",1).maybeSingle();
+  if (release.error) return json({ error: "release_controls_unavailable" }, 503);
+  if (release.data?.maintenance_mode) return json({ error: "platform_maintenance_mode" }, 423);
+  if (release.data?.external_messaging_enabled !== true) return json({ error: "external_messaging_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
 
   let body: Record<string, unknown>;
   try {
