@@ -7,6 +7,7 @@ import PlatformOperationsDashboard from "../../components/PlatformOperationsDash
 import PlatformPlanManager from "../../components/PlatformPlanManager";
 import PlatformReleaseControls from "../../components/PlatformReleaseControls";
 import PlatformReleaseHistory from "../../components/PlatformReleaseHistory";
+import PlatformReleaseValidations from "../../components/PlatformReleaseValidations";
 import PlatformSubscriptionManager from "../../components/PlatformSubscriptionManager";
 import PlatformTenantSecurityAudit from "../../components/PlatformTenantSecurityAudit";
 
@@ -29,6 +30,7 @@ export default function PlatformAdminPage() {
             <PlatformReleaseControls />
             <PlatformHomologationReadiness />
             <PlatformTenantSecurityAudit />
+            <PlatformReleaseValidations />
             <PlatformReleaseHistory />
             <PlatformAdminDashboard />
             <PlatformOperationsDashboard />
