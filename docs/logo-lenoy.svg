@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
-  <title id="title">LENOY IMÓVEIS</title>
-  <desc id="desc">Marca LENOY IMÓVEIS para a plataforma imobiliária.</desc>
+  <title id="title">LENOY IMOBILIÁRIAS</title>
+  <desc id="desc">Marca LENOY IMOBILIÁRIAS para a plataforma imobiliária.</desc>
   <rect width="760" height="220" rx="30" fill="#ffffff"/>
   <g transform="translate(28 28)">
     <rect width="164" height="164" rx="34" fill="#17202a"/>
@@ -10,6 +10,6 @@
   </g>
   <g transform="translate(220 64)" font-family="Arial,Helvetica,sans-serif">
     <text x="0" y="58" font-size="66" font-weight="900" letter-spacing="4" fill="#17202a">LENOY</text>
-    <text x="3" y="100" font-size="24" font-weight="800" letter-spacing="8" fill="#5f6d78">IMÓVEIS</text>
+    <text x="3" y="100" font-size="24" font-weight="800" letter-spacing="5" fill="#5f6d78">IMOBILIÁRIAS</text>
   </g>
 </svg>
