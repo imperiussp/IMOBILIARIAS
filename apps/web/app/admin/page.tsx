@@ -4,6 +4,7 @@ import AdminAuditLog from "../../components/AdminAuditLog";
 import AdminBrokerGoals from "../../components/AdminBrokerGoals";
 import AdminBrokerPerformance from "../../components/AdminBrokerPerformance";
 import AdminBrokers from "../../components/AdminBrokers";
+import AdminBuyerConsent from "../../components/AdminBuyerConsent";
 import AdminBuyerOutreach from "../../components/AdminBuyerOutreach";
 import AdminBuyerPreferences from "../../components/AdminBuyerPreferences";
 import AdminCatalogSettings from "../../components/AdminCatalogSettings";
@@ -55,6 +56,7 @@ export default function AdminPage() {
             <a href="#tempo-resposta">Tempo de resposta</a>
             <a href="#agenda-visitas">Agenda de visitas</a>
             <a href="#perfil-compra">Perfil de compra</a>
+            <a href="#consentimento-compradores">Consentimentos</a>
             <a className="adminOnly" href="#oportunidades-ia">Oportunidades IA</a>
             <a href="#imoveis">Imóveis</a>
             <a className="adminOnly" href="#desempenho-imoveis">Desempenho dos imóveis</a>
@@ -94,6 +96,7 @@ export default function AdminPage() {
             <AdminLeadResponseMetrics />
             <AdminLeadQualificationBoard />
             <AdminBuyerPreferences />
+            <AdminBuyerConsent />
             <AdminBuyerOutreach />
             <AdminFollowups />
             <AdminVisitSchedule />
