@@ -16,6 +16,13 @@ function clean(value: unknown, max = 4000) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+function providerTimestamp(value: unknown) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return new Date().toISOString();
+  const date = new Date(seconds * 1000);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
 function normalizeText(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
@@ -102,7 +109,7 @@ Deno.serve(async (request) => {
           continue;
         }
 
-        const now = new Date().toISOString();
+        const occurredAt = providerTimestamp(status?.timestamp);
         const current = clean((attempt.data as any).status, 40);
         const rank: Record<string, number> = { prepared: 0, sending: 1, sent: 2, delivered: 3, read: 4 };
         const patch: Record<string, unknown> = { provider_payload: status };
@@ -111,13 +118,13 @@ Deno.serve(async (request) => {
           if (!["delivered", "read"].includes(current)) { patch.status = "failed"; patch.error_message = clean(status?.errors?.[0]?.title || status?.errors?.[0]?.message || "Falha informada pela Meta.", 1200); shouldUpdate = true; }
         } else if ((rank[statusName] ?? -1) > (rank[current] ?? -1)) {
           patch.status = statusName;
-          if (statusName === "sent") patch.sent_at = now;
-          if (statusName === "delivered") patch.delivered_at = now;
-          if (statusName === "read") { patch.read_at = now; patch.delivered_at = now; }
+          if (statusName === "sent") patch.sent_at = occurredAt;
+          if (statusName === "delivered") patch.delivered_at = occurredAt;
+          if (statusName === "read") { patch.read_at = occurredAt; patch.delivered_at = occurredAt; }
           shouldUpdate = true;
         }
         if (shouldUpdate) { const update = await admin.from("buyer_outreach_delivery_attempts").update(patch).eq("id", (attempt.data as any).id); if (update.error) return json({ error: update.error.message }, 500); }
-        if (statusName === "failed" && !["delivered", "read"].includes(current)) { const opportunityUpdate = await admin.from("buyer_property_opportunities").update({ status: "failed", last_error: patch.error_message, updated_at: now }).eq("id", (attempt.data as any).opportunity_id); if (opportunityUpdate.error) return json({ error: opportunityUpdate.error.message }, 500); }
+        if (statusName === "failed" && !["delivered", "read"].includes(current)) { const opportunityUpdate = await admin.from("buyer_property_opportunities").update({ status: "failed", last_error: patch.error_message, updated_at: occurredAt }).eq("id", (attempt.data as any).opportunity_id); if (opportunityUpdate.error) return json({ error: opportunityUpdate.error.message }, 500); }
         processedStatuses++;
       }
 
@@ -151,7 +158,7 @@ Deno.serve(async (request) => {
         }
         if (!attempt) { ignored++; continue; }
 
-        const receivedAt = message?.timestamp ? new Date(Number(message.timestamp) * 1000).toISOString() : new Date().toISOString();
+        const receivedAt = providerTimestamp(message?.timestamp);
         const responseKind = classifyResponse(responseText);
         const insert = await admin.from("buyer_outreach_responses").upsert({ agency_id: attempt.agency_id, opportunity_id: attempt.opportunity_id, lead_id: attempt.lead_id, property_id: attempt.property_id, channel: "whatsapp", provider: "meta_whatsapp", provider_event_id: providerMessageId, provider_message_id: providerMessageId, response_text: responseText || null, response_kind: responseKind, received_at: receivedAt, provider_payload: message }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true });
         if (insert.error) return json({ error: insert.error.message }, 500);
