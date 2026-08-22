@@ -9,7 +9,9 @@ A plataforma possui uma cadeia completa para oportunidades automáticas:
 5. `resend-outreach-webhook` recebe eventos assinados do Resend para e-mail.
 6. `ingest-inbound-email` diferencia um novo lead de uma resposta a oportunidade já enviada.
 7. `buyer-outreach-webhook` permanece disponível como entrada normalizada para outros provedores.
-8. O painel administrativo exibe tentativas, entregas, leituras, falhas, respostas, pedidos de visita e descadastros.
+8. `reconcile-outreach-provider-events` recupera eventos que chegaram antes de a tentativa possuir o ID do provedor.
+9. `platform-maintenance` recupera envios presos, trata eventos órfãos e executa as demais rotinas operacionais.
+10. O painel administrativo exibe tentativas, entregas, leituras, falhas, respostas, pedidos de visita e descadastros.
 
 ## Adaptador de entrega próprio
 
@@ -108,6 +110,7 @@ Ela implementa:
 - verificação `GET` com `hub.mode`, `hub.verify_token` e `hub.challenge`;
 - validação dos `POST` pela assinatura `X-Hub-Signature-256` usando `META_APP_SECRET`;
 - atualização de `sent`, `delivered`, `read` e `failed`;
+- uso do timestamp informado pela Meta para registrar o horário real de envio, entrega, leitura ou resposta quando disponível;
 - associação de respostas pelo ID da mensagem original quando a Meta fornece `context.id`;
 - fallback por telefone somente quando a associação dentro das tentativas recentes for inequívoca;
 - classificação local conservadora de interesse, pedido de detalhes, pedido de visita, sem interesse e opt-out;
@@ -143,6 +146,26 @@ Bounce, complaint e suppression também desativam novos alertas automáticos por
 
 Quando `ingest-inbound-email` identifica que o remetente respondeu a uma oportunidade recente da mesma imobiliária, grava a mensagem em `buyer_outreach_responses` em vez de criar outro lead. A resposta passa pelo mesmo fluxo de CRM usado pelo WhatsApp: interesse, pedido de detalhes e pedido de visita podem gerar acompanhamento e notificação ao corretor; opt-out desativa os alertas de e-mail.
 
+## Eventos que chegam antes da correlação
+
+Meta e Resend podem enviar um webhook imediatamente após aceitar uma mensagem. Em uma condição de corrida rara, esse webhook pode chegar antes de `process-buyer-opportunities` terminar de gravar `provider_message_id` na tentativa.
+
+Para não perder o evento, os webhooks preservam temporariamente o payload em `outreach_provider_event_inbox`. A função `reconcile-outreach-provider-events`, executada pela manutenção da plataforma, tenta correlacioná-lo novamente.
+
+A fila possui três estados operacionais relevantes:
+
+- **pendente**: ainda aguarda correlação;
+- **processado**: foi correlacionado e aplicado à tentativa/resposta;
+- **abandonado**: permaneceu sem correlação por mais de 7 dias e foi retirado da fila ativa, mas seu payload continua preservado para auditoria.
+
+Nenhum evento abandonado é apagado automaticamente. A migration `0106_outreach_provider_event_retention.sql` adiciona essa retenção segura.
+
+## Recuperação de envios presos
+
+Tentativas que permanecem no status `sending` por mais de 20 minutos podem ter sofrido falha de rede entre a plataforma e o provedor. A função `recover_stale_buyer_outreach_attempts` marca essas tentativas como falha para revisão manual.
+
+Essa recuperação **não reenvia automaticamente** a mensagem. A decisão é proposital: o provedor pode ter recebido a mensagem mesmo que a resposta tenha sido perdida, e um reenvio automático poderia gerar duplicidade para o comprador.
+
 ## Gateway Supabase
 
 As funções chamadas por Meta, Resend, provedores de entrada ou cron têm `verify_jwt = false` em `supabase/config.toml`, porque esses serviços não possuem JWT do Supabase. Isso **não** torna as rotas abertas: cada uma continua protegida por assinatura ou segredo próprio.
@@ -175,21 +198,23 @@ Eventos aceitos atualmente:
 
 O webhook é idempotente por `provider + event_id` para respostas e não rebaixa um status de entrega já mais avançado.
 
-## Ativação segura
+## Ordem segura de ativação
 
 Este repositório contém apenas o código e os nomes das variáveis. Nenhuma chave real deve ser commitada.
 
 Antes de ativar em produção:
 
 1. confirmar que o Supabase é o projeto exclusivo do IMOBILIARIAS;
-2. aplicar as migrations na ordem somente no projeto correto;
+2. aplicar **todas as migrations na ordem**, incluindo `0102` a `0106`, somente no projeto correto;
 3. configurar secrets das Edge Functions;
-4. fazer deploy de `deliver-buyer-outreach`, `process-buyer-opportunities`, `meta-whatsapp-webhook`, `resend-outreach-webhook`, `ingest-inbound-email`, `buyer-outreach-webhook` e `platform-maintenance`;
+4. fazer deploy de `deliver-buyer-outreach`, `process-buyer-opportunities`, `meta-whatsapp-webhook`, `resend-outreach-webhook`, `ingest-inbound-email`, `buyer-outreach-webhook`, `reconcile-outreach-provider-events` e `platform-maintenance`;
 5. configurar o agendador para chamar apenas `platform-maintenance` com `PLATFORM_MAINTENANCE_SECRET`;
 6. configurar na Meta a Callback URL da função `meta-whatsapp-webhook` e o mesmo Verify Token salvo no backend;
 7. assinar os eventos de WhatsApp necessários no painel da Meta;
 8. configurar no Resend o webhook `resend-outreach-webhook`, selecionar os eventos de entrega/abertura/falha e salvar o signing secret no backend;
 9. configurar o provedor de e-mail recebido para entregar o formato normalizado a `ingest-inbound-email` com `INBOUND_EMAIL_SECRET`;
 10. testar com uma imobiliária de homologação e contatos que tenham consentimento explícito.
+
+A ordem migrations → secrets → Edge Functions é importante porque as funções de reconciliação usam estruturas criadas pelas migrations mais recentes.
 
 A ativação não deve reutilizar chaves, banco, storage ou projeto Supabase de qualquer outro sistema LENOY.
