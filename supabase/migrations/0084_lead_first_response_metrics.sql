@@ -34,7 +34,10 @@ create trigger leads_capture_first_response
 before update of status on public.leads
 for each row execute function public.capture_lead_first_response();
 
-create or replace view public.agency_lead_response_metrics as
+drop view if exists public.agency_lead_response_metrics;
+create view public.agency_lead_response_metrics
+with (security_invoker = true)
+as
 select
   l.agency_id,
   count(*)::bigint as total_leads,
