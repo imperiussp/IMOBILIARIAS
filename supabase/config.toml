@@ -20,6 +20,9 @@ verify_jwt = false
 [functions.platform-maintenance]
 verify_jwt = false
 
+[functions.reconcile-outreach-provider-events]
+verify_jwt = false
+
 [functions.process-subscription-expiry]
 verify_jwt = false
 
