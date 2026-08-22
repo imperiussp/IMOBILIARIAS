@@ -30,7 +30,8 @@ function classifyResponse(text: string) {
   if (!value) return "reply";
 
   const optOut = [
-    "parar", "pare", "cancelar mensagens", "nao quero receber", "não quero receber",
+    "nao quero receber", "não quero receber", "nao me envie mais", "não me envie mais",
+    "pare de enviar", "pare de mandar", "parar de receber", "cancelar mensagens",
     "remover meu numero", "remover meu número", "sair da lista", "descadastrar", "unsubscribe",
   ];
   if (optOut.some((term) => value.includes(normalizeText(term)))) return "opt_out";
@@ -118,6 +119,7 @@ Deno.serve(async (request) => {
   let processedStatuses = 0;
   let processedMessages = 0;
   let ignored = 0;
+  let ambiguous = 0;
 
   for (const entry of body?.entry || []) {
     for (const change of entry?.changes || []) {
@@ -196,14 +198,19 @@ Deno.serve(async (request) => {
         if (!attempt) {
           const from = clean(message?.from, 80).replace(/\D/g, "");
           if (from) {
+            const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
             const candidates = await admin.from("buyer_outreach_delivery_attempts")
-              .select("id,agency_id,opportunity_id,lead_id,property_id,channel,provider_message_id,leads!inner(phone)")
+              .select("id,agency_id,opportunity_id,lead_id,property_id,channel,provider_message_id,attempted_at,leads!inner(phone)")
               .eq("channel", "whatsapp")
               .in("status", ["sent", "delivered", "read"])
+              .gte("attempted_at", since)
               .order("attempted_at", { ascending: false })
-              .limit(100);
+              .limit(200);
             if (candidates.error) return json({ error: candidates.error.message }, 500);
-            attempt = (candidates.data || []).find((row: any) => clean(row?.leads?.phone, 80).replace(/\D/g, "") === from) || null;
+            const matches = (candidates.data || []).filter((row: any) => clean(row?.leads?.phone, 80).replace(/\D/g, "") === from);
+            const identities = new Set(matches.map((row: any) => `${row.agency_id}:${row.lead_id}`));
+            if (identities.size === 1) attempt = matches[0] || null;
+            else if (identities.size > 1) ambiguous++;
           }
         }
 
@@ -247,5 +254,5 @@ Deno.serve(async (request) => {
     }
   }
 
-  return json({ ok: true, processed_statuses: processedStatuses, processed_messages: processedMessages, ignored });
+  return json({ ok: true, processed_statuses: processedStatuses, processed_messages: processedMessages, ignored, ambiguous });
 });
