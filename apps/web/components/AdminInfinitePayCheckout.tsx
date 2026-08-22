@@ -22,6 +22,15 @@ function statusLabel(status: string) {
   return "Criado";
 }
 
+function billingError(value: unknown) {
+  const code = String(value || "");
+  if (code.includes("real_billing_disabled")) return "Cobranças reais estão bloqueadas pelo ambiente de homologação. Nenhum pagamento foi iniciado.";
+  if (code.includes("platform_maintenance_mode")) return "A plataforma está em modo manutenção. Novas cobranças estão temporariamente bloqueadas.";
+  if (code.includes("release_controls_unavailable")) return "O controle de ambiente não pôde ser validado. Por segurança, nenhuma cobrança foi iniciada.";
+  if (code.includes("infinitepay_not_configured")) return "A InfinitePay ainda não está configurada neste ambiente.";
+  return code || "Não foi possível criar o checkout.";
+}
+
 function daysUntil(value: string | null) {
   if (!value) return null;
   const target = new Date(value).getTime();
@@ -104,15 +113,16 @@ export default function AdminInfinitePayCheckout() {
     setLoading(true); setMessage("");
     const result = await supabaseBrowser.functions.invoke("create-infinitepay-checkout", { body: { agency_id: agencyId, plan_id: planId, billing_cycle: cycle } });
     setLoading(false);
-    if (result.error || result.data?.error) return setMessage(result.data?.error || result.error?.message || "Não foi possível criar o checkout.");
+    if (result.error || result.data?.error) return setMessage(billingError(result.data?.error || result.error?.message));
     const url = String(result.data?.checkout_url || "");
     if (!url) return setMessage("A InfinitePay não retornou um endereço de pagamento.");
     window.location.assign(url);
   }
 
   return <div className="adminPanel" id="pagamento-infinitepay">
-    <div className="adminPanelHeader"><div><span className="eyebrow">PAGAMENTO</span><h2>InfinitePay</h2><p>Contratação, renovação e troca de plano com confirmação no servidor antes de liberar a assinatura.</p></div><span>{loading ? "Processando..." : "Checkout preparado"}</span></div>
+    <div className="adminPanelHeader"><div><span className="eyebrow">PAGAMENTO</span><h2>InfinitePay</h2><p>Contratação, renovação e troca de plano com confirmação no servidor antes de liberar a assinatura.</p></div><span>{loading ? "Processando..." : "Checkout protegido"}</span></div>
     {!isSupabaseConfigured ? <div className="formNotice">A cobrança ficará disponível somente no Supabase exclusivo do IMOBILIARIAS, com a InfiniteTag e os segredos configurados no backend.</div> : null}
+    <div className="formNotice"><strong>Proteção de homologação:</strong> o servidor só cria uma cobrança quando o controle global de cobrança real estiver explicitamente liberado.</div>
     {currentSubscription ? <div className="domainPrimaryCard"><div><span className="eyebrow">ASSINATURA ATUAL</span><strong>{currentSubscription.status === "trial" ? "Período de teste" : currentSubscription.status === "active" ? "Ativa" : currentSubscription.status === "past_due" ? "Pagamento pendente" : "Encerrada"}</strong><small>{remainingDays != null && remainingDays > 0 ? `${remainingDays} dia(s) de vigência restante(s)` : remainingDays != null ? "Vigência encerrada — gere uma nova cobrança para reativar" : "Sem data final definida"}</small></div></div> : null}
     <div className="propertyForm">
       <div className="formGrid"><label>Plano<select value={planId} onChange={(e) => setPlanId(e.target.value)}><option value="">Selecione</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label><label>Cobrança<select value={cycle} onChange={(e) => setCycle(e.target.value as "monthly" | "annual")}><option value="monthly">Mensal</option><option value="annual">Anual</option></select></label></div>
