@@ -21,8 +21,8 @@ Deno.serve((request) => {
     access_token: has("META_WHATSAPP_ACCESS_TOKEN"),
     phone_number_id: has("META_WHATSAPP_PHONE_NUMBER_ID"),
     graph_version: has("META_GRAPH_API_VERSION"),
-    webhook_verify_token: has("META_WHATSAPP_VERIFY_TOKEN"),
-    app_secret: has("META_WHATSAPP_APP_SECRET"),
+    webhook_verify_token: has("META_WHATSAPP_WEBHOOK_VERIFY_TOKEN"),
+    app_secret: has("META_APP_SECRET"),
   };
 
   const email = {
