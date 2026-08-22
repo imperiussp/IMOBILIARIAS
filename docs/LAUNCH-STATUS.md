@@ -4,45 +4,54 @@ Atualizado em 22/08/2026.
 
 ## Estado atual
 
-O código está em fase de **release hardening**. Não considerar o produto em produção até que todos os bloqueios de infraestrutura e homologação abaixo estejam concluídos.
+O código entrou em **launch-ready hardening**. Ainda não considerar o produto em produção enquanto infraestrutura e homologação real não forem concluídas.
 
 ## Concluído no código
 
 - Identidade visual premium V3 aplicada à plataforma e ao site público das imobiliárias.
-- Rotas públicas, catálogo, filtros, favoritos, detalhe do imóvel, painel administrativo e experiência demonstrativa do app preservados.
-- Guard de projeto Supabase exclusivo do IMOBILIÁRIAS.
-- Contrato de variáveis de ambiente com bloqueio de segredos públicos.
-- RLS, gates de runtime, migrations de segurança e auditoria de tenants preparadas.
-- Health check `/api/health` com identidade do projeto, project ref, commit SHA e build label.
-- Smoke test pós-deploy com validação opcional do commit esperado.
-- Registro operacional de releases com smoke, release ativa e candidato a rollback; exclusão não é oferecida pela UI.
-- Checklist de pós-deploy, rollback, homologação e go-live presentes no repositório.
-- Verificador de homologação exige `POST-DEPLOY-CHECKLIST.md` e migration `0123`.
-- Comando único `pnpm release:validate` para executar os principais checks de pré-lançamento.
+- Catálogo, filtros, favoritos, detalhe de imóvel e administração preservados.
+- App com fila offline, drafts, câmera/galeria, limite de 20 fotos e sincronização protegidos contra alterações agressivas nesta fase.
+- Guard de Supabase exclusivo do IMOBILIÁRIAS.
+- Contrato de ambiente com proteção contra segredos públicos.
+- Migrations de release/security preparadas até `0129`.
+- Health `/api/health` com identidade, project ref, commit SHA e build label.
+- Smoke pós-deploy capaz de exigir o SHA exato implantado.
+- Registro de releases gravável, sem exclusão na UI, com smoke/ativa/rollback controlados.
+- `pnpm release:validate` reúne os checks críticos de pré-lançamento.
+- CI do `main` executa o mesmo `release:validate` e injeta SHA/build label do run.
+- Runbook, homologação, go-live e pós-deploy atualizados para migrations até `0129`.
+- Verificador do kit de homologação exige documentos atuais, `release:validate`, build identity e smoke com SHA.
+
+## Infraestrutura Supabase
+
+Na conta conectada foi encontrada somente a organização `imperiussp` e somente o projeto existente `MOTO-CONNECT`.
+
+O projeto `MOTO-CONNECT` permanece intocado e não deve receber nenhuma migration, Edge Function ou credencial do IMOBILIÁRIAS.
+
+O custo retornado pelo Supabase para criar um novo projeto na organização `imperiussp` foi **0 por mês**. A criação ainda depende da confirmação explícita do usuário exigida pelo provedor após a apresentação do custo.
 
 ## Bloqueador crítico atual
 
-**Ainda não existe um projeto Supabase exclusivo do IMOBILIÁRIAS na conta conectada.**
+Criar o projeto Supabase exclusivo `IMOBILIARIAS`.
 
-Foi encontrado somente o projeto `MOTO-CONNECT`. Ele não deve ser reutilizado, alterado ou receber migrations do IMOBILIÁRIAS.
+Depois disso, a sequência é:
 
-## Próxima sequência obrigatória
-
-1. Criar projeto Supabase exclusivo `IMOBILIARIAS` na organização autorizada.
-2. Confirmar project ref e URL exclusivos.
-3. Preencher variáveis de ambiente do IMOBILIÁRIAS sem copiar segredos de outros projetos.
-4. Executar o guard de destino Supabase.
-5. Aplicar migrations em ordem e verificar `project_identity = 'IMOBILIARIAS'`.
-6. Rodar advisors de segurança e performance.
-7. Configurar Auth, Storage e Edge Functions do próprio projeto.
-8. Publicar ambiente de homologação web.
-9. Configurar DNS/TLS para `imoveis.lenoy.com.br`.
-10. Executar `pnpm release:validate`, testes de isolamento entre tenants e smoke pós-deploy.
-11. Registrar release de homologação e marcar `smoke_status=passed` somente após validação real.
-12. Fazer E2E de cadastro, login, imóveis, fotos, leads, WhatsApp, app offline/sync e pagamentos habilitados.
-13. Liberar indexação e integrações externas somente na etapa de produção, uma a uma.
-14. Executar checklist final, backup e promoção para produção.
+1. confirmar project ref e URL exclusivos;
+2. configurar variáveis do web/app/backend;
+3. executar `pnpm supabase:guard`;
+4. aplicar migrations em ordem até `0129`;
+5. confirmar `project_identity() = 'IMOBILIARIAS'`;
+6. rodar advisors de segurança e performance;
+7. configurar Auth/Storage e Edge Functions necessárias;
+8. publicar homologação Next.js com commit SHA/build label;
+9. configurar DNS/TLS de `imoveis.lenoy.com.br`;
+10. executar smoke exigindo o commit exato;
+11. criar duas imobiliárias e executar tenant isolation;
+12. executar testes funcionais/E2E;
+13. registrar evidências, checkpoints e release de homologação;
+14. validar backup e rollback;
+15. promover para produção somente com todos os gates satisfeitos.
 
 ## Regra de segurança
 
-Nenhuma migration, Edge Function, credencial ou configuração do IMOBILIÁRIAS deve ser aplicada ao projeto Supabase `MOTO-CONNECT` ou a qualquer outro projeto existente.
+Nenhuma migration, Edge Function, credencial ou configuração do IMOBILIÁRIAS deve ser aplicada ao Supabase `MOTO-CONNECT` ou a qualquer outro projeto existente.
