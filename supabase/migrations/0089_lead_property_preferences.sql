@@ -29,13 +29,14 @@ alter table public.lead_property_preferences enable row level security;
 drop policy if exists "tenant members manage lead preferences" on public.lead_property_preferences;
 create policy "tenant members manage lead preferences" on public.lead_property_preferences
 for all to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin())
-with check (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id))
+with check (public.can_access_lead_crm(agency_id,lead_id));
 
 create or replace function public.validate_lead_property_preference_tenant()
 returns trigger language plpgsql set search_path=public as $$
 begin
   if not exists(select 1 from public.leads l where l.id=new.lead_id and l.agency_id=new.agency_id) then raise exception 'Contato fora da imobiliária atual.'; end if;
+  if not public.can_access_lead_crm(new.agency_id,new.lead_id) then raise exception 'Sem permissão para este contato.'; end if;
   if new.neighborhood_id is not null and not exists(select 1 from public.neighborhoods n where n.id=new.neighborhood_id and (n.agency_id is null or n.agency_id=new.agency_id)) then raise exception 'Bairro fora da imobiliária atual.'; end if;
   new.created_by := coalesce(new.created_by,auth.uid());
   new.updated_at := now();
@@ -47,7 +48,10 @@ drop trigger if exists lead_property_preferences_validate on public.lead_propert
 create trigger lead_property_preferences_validate before insert or update on public.lead_property_preferences
 for each row execute function public.validate_lead_property_preference_tenant();
 
-create or replace view public.lead_property_match_candidates as
+drop view if exists public.lead_property_match_candidates;
+create view public.lead_property_match_candidates
+with (security_invoker = true)
+as
 select
   pref.agency_id,
   pref.lead_id,
