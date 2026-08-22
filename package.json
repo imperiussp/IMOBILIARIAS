@@ -12,6 +12,7 @@
     "edge:guards": "node scripts/check-edge-function-guards.mjs",
     "migration:safety": "node scripts/check-migration-safety.mjs",
     "env:contract": "node scripts/check-env-contract.mjs",
-    "homologation:assets": "node scripts/check-homologation-assets.mjs"
+    "homologation:assets": "node scripts/check-homologation-assets.mjs",
+    "smoke:deploy": "node scripts/post-deploy-smoke.mjs"
   }
 }
