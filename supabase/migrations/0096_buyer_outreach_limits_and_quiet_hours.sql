@@ -42,17 +42,26 @@ grant execute on function public.buyer_outreach_monthly_limit(uuid) to authentic
 
 create or replace function public.buyer_outreach_monthly_usage(p_agency_id uuid)
 returns integer
-language sql
+language plpgsql
 stable
 security definer
 set search_path=public
 as $$
-  select count(*)::integer
+declare v_usage integer;
+begin
+  if auth.uid() is not null
+     and not public.is_agency_member(p_agency_id)
+     and not public.is_platform_admin() then
+    raise exception 'Acesso negado';
+  end if;
+
+  select count(*)::integer into v_usage
   from public.buyer_outreach_delivery_attempts a
   where a.agency_id=p_agency_id
     and a.status in ('sending','sent','delivered','read')
     and a.attempted_at >= date_trunc('month',now());
-$$;
+  return coalesce(v_usage,0);
+end; $$;
 revoke all on function public.buyer_outreach_monthly_usage(uuid) from public,anon;
 grant execute on function public.buyer_outreach_monthly_usage(uuid) to authenticated;
 
@@ -67,6 +76,12 @@ declare
   v_settings public.buyer_outreach_settings%rowtype;
   v_local time;
 begin
+  if auth.uid() is not null
+     and not public.is_agency_member(p_agency_id)
+     and not public.is_platform_admin() then
+    raise exception 'Acesso negado';
+  end if;
+
   select * into v_settings from public.buyer_outreach_settings where agency_id=p_agency_id;
   if not found or not v_settings.quiet_hours_enabled then return false; end if;
 
@@ -94,13 +109,23 @@ as $$
 declare
   v_op public.buyer_property_opportunities%rowtype;
   v_permission public.lead_contact_permissions%rowtype;
+  v_settings public.buyer_outreach_settings%rowtype;
   v_limit integer;
   v_usage integer;
 begin
+  -- Serializa tentativas da mesma imobiliária para evitar ultrapassar limite mensal em concorrência.
+  perform pg_advisory_xact_lock(hashtextextended(new.agency_id::text,0));
+
   select * into v_op from public.buyer_property_opportunities where id=new.opportunity_id;
   if not found then raise exception 'Oportunidade não encontrada.'; end if;
   if v_op.agency_id<>new.agency_id or v_op.lead_id<>new.lead_id or v_op.property_id<>new.property_id then
     raise exception 'Tentativa de entrega fora do vínculo da oportunidade.';
+  end if;
+  if v_op.status not in ('queued','approved') then
+    raise exception 'Oportunidade não está pronta para envio.';
+  end if;
+  if v_op.channel is not null and v_op.channel<>new.channel then
+    raise exception 'Canal diferente do canal aprovado para a oportunidade.';
   end if;
   if not public.agency_has_plan_feature(new.agency_id,'ai_buyer_outreach',false) then
     raise exception 'Plano sem IA de oportunidades.';
@@ -115,8 +140,29 @@ begin
   if new.channel='email' and not v_permission.email_allowed then raise exception 'E-mail não autorizado.'; end if;
   if new.channel='sms' and not v_permission.sms_allowed then raise exception 'SMS não autorizado.'; end if;
 
+  select * into v_settings from public.buyer_outreach_settings where agency_id=new.agency_id;
+  if not found or not v_settings.enabled then raise exception 'Automação de oportunidades desativada.'; end if;
+
   if public.buyer_outreach_is_quiet_now(new.agency_id) then
     raise exception 'Horário silencioso ativo para a imobiliária.';
+  end if;
+
+  if exists(
+    select 1 from public.buyer_outreach_delivery_attempts a
+    where a.opportunity_id=new.opportunity_id
+      and a.status in ('sending','sent','delivered','read')
+  ) then
+    raise exception 'Esta oportunidade já está em envio ou já foi enviada.';
+  end if;
+
+  if exists(
+    select 1 from public.buyer_outreach_delivery_attempts a
+    where a.agency_id=new.agency_id
+      and a.lead_id=new.lead_id
+      and a.status in ('sent','delivered','read')
+      and a.attempted_at > now() - make_interval(hours=>v_settings.cooldown_hours)
+  ) then
+    raise exception 'Intervalo mínimo entre contatos deste comprador ainda não terminou.';
   end if;
 
   v_limit := public.buyer_outreach_monthly_limit(new.agency_id);
@@ -135,7 +181,10 @@ create trigger buyer_outreach_delivery_attempt_validate
 before insert on public.buyer_outreach_delivery_attempts
 for each row execute function public.validate_buyer_outreach_delivery_attempt();
 
-create or replace view public.agency_buyer_outreach_usage as
+drop view if exists public.agency_buyer_outreach_usage;
+create view public.agency_buyer_outreach_usage
+with (security_invoker = true)
+as
 select
   a.id as agency_id,
   public.buyer_outreach_monthly_usage(a.id) as used_this_month,
