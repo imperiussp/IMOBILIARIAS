@@ -58,6 +58,7 @@ export default function PlatformPlanManager() {
     const maxDocumentUploads = nullableNumber(form.get("max_document_uploads"));
     const maxBuyerOutreach = nullableNumber(form.get("max_buyer_outreach_per_month"));
     const features = {
+      ...(editing?.features || {}),
       custom_domain: form.get("custom_domain") === "on",
       default_trial: form.get("default_trial") === "on",
       trial_days: Math.max(1, Math.min(90, Number(form.get("trial_days") || 14))),
