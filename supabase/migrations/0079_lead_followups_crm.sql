@@ -20,16 +20,51 @@ create index if not exists lead_followups_lead_idx on public.lead_followups(agen
 
 alter table public.lead_followups enable row level security;
 
+-- Regra central do CRM: owner/admin/staff podem operar os contatos da imobiliária;
+-- corretor vê somente contatos efetivamente vinculados ao seu cadastro de corretor.
+create or replace function public.can_access_lead_crm(p_agency_id uuid, p_lead_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path=public
+as $$
+  select
+    public.is_platform_admin()
+    or public.can_manage_agency(p_agency_id)
+    or exists (
+      select 1
+      from public.agency_memberships am
+      where am.agency_id=p_agency_id
+        and am.user_id=auth.uid()
+        and am.active=true
+        and am.role='staff'
+    )
+    or exists (
+      select 1
+      from public.leads l
+      join public.brokers b
+        on b.id=l.broker_id
+       and b.agency_id=l.agency_id
+       and b.active=true
+      where l.id=p_lead_id
+        and l.agency_id=p_agency_id
+        and b.user_id=auth.uid()
+    );
+$$;
+revoke all on function public.can_access_lead_crm(uuid,uuid) from public,anon;
+grant execute on function public.can_access_lead_crm(uuid,uuid) to authenticated;
+
 drop policy if exists "tenant members read lead followups" on public.lead_followups;
 create policy "tenant members read lead followups" on public.lead_followups
 for select to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id));
 
 drop policy if exists "tenant members manage lead followups" on public.lead_followups;
 create policy "tenant members manage lead followups" on public.lead_followups
 for all to authenticated
-using (public.is_agency_member(agency_id) or public.is_platform_admin())
-with check (public.is_agency_member(agency_id) or public.is_platform_admin());
+using (public.can_access_lead_crm(agency_id,lead_id))
+with check (public.can_access_lead_crm(agency_id,lead_id));
 
 create or replace function public.validate_lead_followup_tenant()
 returns trigger
@@ -40,7 +75,11 @@ begin
   if not exists(select 1 from public.leads l where l.id=new.lead_id and l.agency_id=new.agency_id) then
     raise exception 'Contato fora da imobiliária atual.';
   end if;
+  if not public.can_access_lead_crm(new.agency_id,new.lead_id) then
+    raise exception 'Sem permissão para este contato.';
+  end if;
   new.updated_at := now();
+  new.created_by := coalesce(new.created_by,auth.uid());
   return new;
 end;
 $$;
