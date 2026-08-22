@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const aiUrl = Deno.env.get("AI_API_URL") || "";
 const aiKey = Deno.env.get("AI_API_KEY") || "";
 const aiModel = Deno.env.get("AI_MODEL") || "";
@@ -21,14 +22,20 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const authHeader = request.headers.get("authorization") || "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) return json({ error: "unauthorized" }, 401);
-  if (!supabaseUrl || !anonKey) return json({ error: "supabase_not_configured" }, 500);
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "supabase_not_configured" }, 500);
 
   const client = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
+  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
   const user = await client.auth.getUser();
   if (user.error || !user.data.user) return json({ error: "unauthorized" }, 401);
+
+  const release = await admin.from("platform_release_controls").select("environment_mode,maintenance_mode,ai_generation_enabled").eq("id",1).maybeSingle();
+  if (release.error) return json({ error: "release_controls_unavailable" }, 503);
+  if (release.data?.maintenance_mode) return json({ error: "platform_maintenance_mode" }, 423);
+  if (release.data?.ai_generation_enabled !== true) return json({ error: "ai_generation_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
 
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
@@ -62,8 +69,6 @@ Deno.serve(async (request) => {
   if (permission.error) return json({ error: permission.error.message }, 500);
   if (settings.error || !settings.data?.enabled) return json({ error: settings.error?.message || "buyer_outreach_disabled" }, 409);
 
-  // Mesmo a geração do texto exige consentimento ativo. Assim a plataforma não prepara
-  // comunicação comercial para um contato que revogou ou nunca autorizou os alertas.
   if (!permission.data?.automated_property_alerts_allowed || permission.data?.revoked_at) return json({ error: "buyer_consent_required" }, 409);
   const channel = String(opportunity.data.channel || "").toLowerCase();
   if (channel === "whatsapp" && !permission.data.whatsapp_allowed) return json({ error: "whatsapp_not_allowed" }, 409);
@@ -116,7 +121,6 @@ Deno.serve(async (request) => {
   const message = String(aiBody?.choices?.[0]?.message?.content || "").trim().slice(0, 3000);
   if (!message) return json({ error: "empty_ai_message" }, 502);
 
-  // Gerar novamente o texto não desfaz uma aprovação manual já concedida.
   const nextStatus = opportunity.data.status === "approved" ? "approved" : "review";
   const update = await client.from("buyer_property_opportunities").update({ ai_message: message, ai_provider: aiModel, status: nextStatus, updated_at: new Date().toISOString() }).eq("id", opportunityId).eq("agency_id", agencyId);
   if (update.error) return json({ error: update.error.message }, 500);
