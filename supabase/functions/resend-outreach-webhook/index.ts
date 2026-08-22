@@ -19,6 +19,7 @@ function clean(value: unknown, max = 1200) {
 function statusFromEvent(type: string) {
   if (type === "email.sent") return "sent";
   if (type === "email.delivered") return "delivered";
+  if (type === "email.opened") return "read";
   if (["email.failed", "email.bounced", "email.complained", "email.suppressed"].includes(type)) return "failed";
   return null;
 }
@@ -74,6 +75,7 @@ Deno.serve(async (request) => {
     patch.status = nextStatus;
     if (nextStatus === "sent") patch.sent_at = now;
     if (nextStatus === "delivered") patch.delivered_at = now;
+    if (nextStatus === "read") { patch.read_at = now; patch.delivered_at = now; }
     updateAttempt = true;
   }
 
