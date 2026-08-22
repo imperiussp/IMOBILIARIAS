@@ -8,6 +8,7 @@
     "dev:mobile": "pnpm --filter @imobiliarias/mobile start",
     "build:web": "pnpm --filter @imobiliarias/web build",
     "typecheck": "pnpm -r typecheck",
-    "supabase:guard": "node scripts/verify-supabase-target.mjs"
+    "supabase:guard": "node scripts/verify-supabase-target.mjs",
+    "edge:guards": "node scripts/check-edge-function-guards.mjs"
   }
 }
