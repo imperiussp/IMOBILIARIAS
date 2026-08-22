@@ -46,8 +46,23 @@ for (const [name, envNames] of Object.entries(required)) {
     if (!source.includes(envName)) errors.push(`${name}: não referencia ${envName}`);
   }
 
-  const hasUnauthorized = /unauthorized|invalid_signature|forbidden|webhook_secret/i.test(source);
-  if (!hasUnauthorized) errors.push(`${name}: nenhuma sinalização de rejeição/autenticação encontrada no código`);
+  const hasRejection = /unauthorized|invalid_signature|verification_failed|forbidden|server_not_configured|not_configured/i.test(source);
+  if (!hasRejection) errors.push(`${name}: nenhuma sinalização de rejeição/autenticação encontrada no código`);
+
+  // Evita o padrão perigoso: segredo opcional que só autentica quando existe.
+  // Exemplo proibido: if (secret && supplied !== secret) ...
+  if (/if\s*\(\s*[A-Za-z_$][\w$]*Secret\s*&&/i.test(source) || /if\s*\(\s*internalSecret\s*&&/i.test(source)) {
+    errors.push(`${name}: segredo parece opcional; o endpoint deve falhar fechado quando o secret estiver ausente`);
+  }
+
+  // Todo endpoint privilegiado deve conter pelo menos uma verificação explícita de ausência de segredo
+  // ou encapsular a validação em função que retorne false quando a chave não existe.
+  const missingSecretGuard = /!\s*(?:expectedSecret|internalSecret|maintenanceSecret|billingSecret|domainSecret|pushSecret|buyerSecret|adapterToken|internalToken|verifyToken|appSecret|signingSecret|webhookSecret|providerSecret|inboundSecret)/i.test(source)
+    || /if\s*\(\s*!\s*[A-Za-z_$][\w$]*(?:Secret|Token)/i.test(source)
+    || /if\s*\(\s*!appSecret\s*\)\s*return\s+false/i.test(source);
+  if (!missingSecretGuard) {
+    errors.push(`${name}: não foi encontrada evidência estática de fail-closed quando o segredo está ausente`);
+  }
 }
 
 if (errors.length) {
@@ -55,4 +70,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Edge Function guards: ${Object.keys(required).length} endpoints verificados.`);
+console.log(`Edge Function guards: ${Object.keys(required).length} endpoints verificados com política fail-closed.`);
