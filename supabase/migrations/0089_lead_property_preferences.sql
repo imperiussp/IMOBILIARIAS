@@ -7,7 +7,7 @@ create table if not exists public.lead_property_preferences (
   lead_id uuid not null references public.leads(id) on delete cascade,
   purpose public.property_purpose,
   zone public.property_zone,
-  segment text check (segment is null or segment in ('residential','commercial')),
+  segment public.property_segment,
   city_id uuid references public.cities(id) on delete set null,
   neighborhood_id uuid references public.neighborhoods(id) on delete set null,
   property_type_id uuid references public.property_types(id) on delete set null,
@@ -50,30 +50,14 @@ drop trigger if exists lead_property_preferences_validate on public.lead_propert
 create trigger lead_property_preferences_validate before insert or update on public.lead_property_preferences
 for each row execute function public.validate_lead_property_preference_tenant();
 
--- A aderência usa apenas critérios realmente preenchidos pelo comprador.
--- Ex.: se o cliente informou somente finalidade e cidade, a nota é normalizada
--- entre esses dois critérios; campos em branco não dão pontos automaticamente.
 drop view if exists public.lead_property_match_candidates;
 create view public.lead_property_match_candidates
 with (security_invoker = true)
 as
 with scored as (
   select
-    pref.agency_id,
-    pref.lead_id,
-    p.id as property_id,
-    p.code,
-    p.title,
-    p.price,
-    p.purpose,
-    p.zone,
-    p.segment,
-    p.city_id,
-    p.neighborhood_id,
-    p.property_type_id,
-    p.bedrooms,
-    p.parking_spaces,
-    p.published_at,
+    pref.agency_id,pref.lead_id,p.id as property_id,p.code,p.title,p.price,p.purpose,p.zone,p.segment,
+    p.city_id,p.neighborhood_id,p.property_type_id,p.bedrooms,p.parking_spaces,p.published_at,
     (
       (case when pref.purpose is not null and p.purpose=pref.purpose then 20 else 0 end)+
       (case when pref.zone is not null and p.zone=pref.zone then 10 else 0 end)+
@@ -102,8 +86,7 @@ with scored as (
   join public.properties p on p.agency_id=pref.agency_id
   where pref.active=true and p.publication_state='published' and p.status='available'
 )
-select
-  agency_id,lead_id,property_id,code,title,price,purpose,zone,segment,
+select agency_id,lead_id,property_id,code,title,price,purpose,zone,segment,
   city_id,neighborhood_id,property_type_id,bedrooms,parking_spaces,published_at,
   case when total_weight=0 then 0 else round(100.0*matched_weight/total_weight)::integer end as match_score,
   matched_weight,total_weight
