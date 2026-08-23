@@ -12,9 +12,9 @@ const vars=new Set([...text.matchAll(/^([A-Z0-9_]+)=/gm)].map(m=>m[1]));
 
 const required=[
   "IMOBILIARIAS_SUPABASE_PROJECT_REF","SUPABASE_PROJECT_REF",
-  "NEXT_PUBLIC_SUPABASE_URL","NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL","NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY","NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_COMMIT_SHA","NEXT_PUBLIC_BUILD_LABEL",
-  "EXPO_PUBLIC_SUPABASE_URL","EXPO_PUBLIC_SUPABASE_ANON_KEY",
+  "EXPO_PUBLIC_SUPABASE_URL","EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY","EXPO_PUBLIC_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_PLATFORM_HOST","NEXT_PUBLIC_SITE_URL","NEXT_PUBLIC_ALLOW_INDEXING",
   "SUPABASE_URL","SUPABASE_ANON_KEY","SUPABASE_SERVICE_ROLE_KEY","PLATFORM_SITE_URL",
   "PLATFORM_MAINTENANCE_SECRET","BILLING_MAINTENANCE_SECRET","PUSH_DISPATCH_SECRET","DOMAIN_VERIFY_SECRET",
@@ -38,6 +38,8 @@ for(const name of vars){
 if(!/NEXT_PUBLIC_ALLOW_INDEXING=false/.test(text)) errors.push("NEXT_PUBLIC_ALLOW_INDEXING deve permanecer false no exemplo seguro");
 if(!/NEXT_PUBLIC_PLATFORM_HOST=imoveis\.lenoy\.com\.br/.test(text)) errors.push("host principal esperado não está documentado corretamente");
 if(!/NEXT_PUBLIC_SITE_URL=https:\/\/imoveis\.lenoy\.com\.br/.test(text)) errors.push("URL pública principal esperada não está documentada corretamente");
+if(!/NEXT_PUBLIC_SUPABASE_URL=https:\/\/rvjsonspplqelktzwusu\.supabase\.co/.test(text)) errors.push("URL Supabase web não aponta para o projeto exclusivo do IMOBILIARIAS");
+if(!/EXPO_PUBLIC_SUPABASE_URL=https:\/\/rvjsonspplqelktzwusu\.supabase\.co/.test(text)) errors.push("URL Supabase mobile não aponta para o projeto exclusivo do IMOBILIARIAS");
 
 if(errors.length){
   console.error("Falha no contrato de ambiente:\n- "+errors.join("\n- "));
