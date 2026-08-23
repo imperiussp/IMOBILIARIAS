@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(){
   const url=String(process.env.NEXT_PUBLIC_SUPABASE_URL||"").trim();
-  const anon=String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"").trim();
+  const publicKey=String(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"").trim();
   const expectedRef=String(process.env.IMOBILIARIAS_SUPABASE_PROJECT_REF||process.env.SUPABASE_PROJECT_REF||"").trim();
   const allowIndexing=String(process.env.NEXT_PUBLIC_ALLOW_INDEXING||"false").toLowerCase()==="true";
   const commitSha=String(process.env.NEXT_PUBLIC_COMMIT_SHA||"").trim().toLowerCase()||null;
@@ -13,7 +13,7 @@ export async function GET(){
 
   const checks={
     web:true,
-    supabase_configured:Boolean(url&&anon),
+    supabase_configured:Boolean(url&&publicKey),
     project_identity:false,
     project_ref_matches:false,
     indexing_enabled:allowIndexing,
@@ -34,9 +34,9 @@ export async function GET(){
     checks.project_ref_matches=false;
   }
 
-  if(url&&anon){
+  if(url&&publicKey){
     try{
-      const client=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
+      const client=createClient(url,publicKey,{auth:{persistSession:false,autoRefreshToken:false}});
       const result=await client.rpc("project_identity");
       if(result.error)supabaseError="project_identity_unavailable";
       else{
