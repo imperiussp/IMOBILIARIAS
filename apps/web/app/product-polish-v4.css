@@ -1,0 +1,61 @@
+/* LENOY IMOBILIÁRIAS — Product Polish V4 */
+:root{--v4-navy:#07182d;--v4-navy2:#0c2748;--v4-gold:#d6ac58;--v4-paper:#f6f3ed;--v4-line:#e5ded2;--v4-shadow:0 22px 60px rgba(7,24,45,.12)}
+
+/* Auth */
+.loginPage{min-height:100vh!important;background:radial-gradient(circle at 82% 15%,rgba(214,172,88,.12),transparent 24%),linear-gradient(135deg,#07182d 0%,#0b223f 42%,#f6f3ed 42%,#f6f3ed 100%)!important;padding:46px 20px!important}
+.loginShell{max-width:1120px!important;margin:auto!important;display:grid!important;grid-template-columns:.76fr 1fr!important;align-items:center!important;gap:80px!important;min-height:calc(100vh - 92px)!important}
+.loginBrand{align-self:start!important;color:#fff!important;font-family:Georgia,'Times New Roman',serif!important;font-size:24px!important;letter-spacing:-.02em!important}
+.loginBrand .brandMark{background:var(--v4-gold)!important;color:var(--v4-navy)!important}
+.loginCard{max-width:540px!important;width:100%!important;margin-left:auto!important;background:rgba(255,255,255,.98)!important;border:1px solid rgba(7,24,45,.07)!important;border-radius:28px!important;padding:34px!important;box-shadow:0 34px 90px rgba(7,24,45,.25)!important}
+.loginCard .eyebrow{color:#9e762b!important;font-weight:900!important;letter-spacing:.13em!important}
+.loginCard h1{font-family:Georgia,'Times New Roman',serif!important;font-size:42px!important;line-height:1.02!important;letter-spacing:-.03em!important;color:var(--v4-navy)!important;margin:10px 0 13px!important}
+.loginCard p{color:#6b7884!important;line-height:1.65!important}
+.loginCard label{font-weight:800!important;color:#33465a!important}
+.loginCard input{min-height:49px!important;border-radius:12px!important;border-color:#dfe4e8!important;background:#fff!important}
+.loginCard input:focus{outline:none!important;border-color:var(--v4-gold)!important;box-shadow:0 0 0 3px rgba(214,172,88,.14)!important}
+.loginCard .button.primary{background:var(--v4-navy)!important;border-color:var(--v4-navy)!important;min-height:50px!important;border-radius:12px!important;font-weight:900!important;box-shadow:0 10px 25px rgba(7,24,45,.2)!important}
+.loginLinks a,.backLink{color:#936c25!important;font-weight:800!important}
+.slugField{border-radius:12px!important;overflow:hidden!important}
+
+/* Property detail */
+.propertyDetail{padding-top:54px!important;padding-bottom:90px!important}
+.propertyDetail .propertyHeader,.propertyDetail .detailHeader{margin-bottom:28px!important}
+.propertyDetail h1{font-family:Georgia,'Times New Roman',serif!important;color:var(--v4-navy)!important;font-size:clamp(38px,5vw,62px)!important;line-height:1!important;letter-spacing:-.035em!important}
+.propertyDetail .price,.propertyDetail .detailPrice{color:var(--v4-navy)!important;font-weight:950!important}
+.propertyDetail .gallery,.propertyDetail .propertyGallery{border-radius:24px!important;overflow:hidden!important;box-shadow:var(--v4-shadow)!important;background:#fff!important}
+.propertyDetail .galleryMain,.propertyDetail .propertyHeroImage{min-height:560px!important}
+.propertyDetail .detailGrid,.propertyDetail .propertyDetailGrid{gap:32px!important;align-items:start!important}
+.propertyDetail .propertyInfo,.propertyDetail .detailPanel,.propertyDetail .brokerCard{background:#fff!important;border:1px solid var(--v4-line)!important;border-radius:22px!important;box-shadow:0 14px 42px rgba(7,24,45,.08)!important}
+.propertyDetail .propertyInfo,.propertyDetail .detailPanel{padding:28px!important}
+.propertyDetail .brokerCard{padding:24px!important;position:sticky!important;top:105px!important}
+.propertyDetail .brokerCard h3{font-family:Georgia,'Times New Roman',serif!important;color:var(--v4-navy)!important;font-size:26px!important}
+.propertyDetail .whatsappButton,.propertyDetail a[href*='wa.me']{background:#24c962!important;color:#082b17!important;border:none!important;font-weight:900!important;border-radius:12px!important;box-shadow:0 10px 24px rgba(36,201,98,.22)!important}
+.propertyDetail .feature,.propertyDetail .specItem{background:#faf8f4!important;border:1px solid #eee7dc!important;border-radius:14px!important;padding:15px!important}
+.propertyDetail .thumbnail,.propertyDetail .galleryThumb{border-radius:12px!important;overflow:hidden!important}
+
+/* Admin */
+.adminPage{background:var(--v4-paper)!important;min-height:100vh!important}
+.adminTopbar{background:rgba(7,24,45,.98)!important;border-bottom:1px solid rgba(255,255,255,.08)!important;box-shadow:0 10px 32px rgba(7,24,45,.16)!important;position:sticky!important;top:0!important;z-index:40!important}
+.adminTopbar .brand{color:#fff!important}
+.adminTopbar .button.primary{background:var(--v4-gold)!important;color:var(--v4-navy)!important;border-color:var(--v4-gold)!important}
+.adminShell{gap:28px!important;padding-top:28px!important;padding-bottom:70px!important}
+.adminSidebar{background:linear-gradient(180deg,#07182d,#0a213e)!important;border:none!important;border-radius:22px!important;padding:20px!important;box-shadow:0 22px 54px rgba(7,24,45,.18)!important;position:sticky!important;top:108px!important;max-height:calc(100vh - 130px)!important;overflow:auto!important}
+.adminSidebar strong{color:var(--v4-gold)!important;text-transform:uppercase!important;letter-spacing:.12em!important;font-size:10px!important}
+.adminSidebar a{color:rgba(255,255,255,.72)!important;border-radius:10px!important;padding:10px 11px!important;font-weight:700!important}
+.adminSidebar a:hover{background:rgba(255,255,255,.07)!important;color:#fff!important}
+.adminSidebar a.active{background:var(--v4-gold)!important;color:var(--v4-navy)!important;font-weight:900!important}
+.adminContent{min-width:0!important}
+.adminHeading{background:linear-gradient(135deg,#fff 0%,#fffaf0 100%)!important;border:1px solid var(--v4-line)!important;border-radius:22px!important;padding:27px 30px!important;box-shadow:0 12px 36px rgba(7,24,45,.07)!important;margin-bottom:24px!important}
+.adminHeading .eyebrow{color:#9d762e!important;font-weight:900!important}
+.adminHeading h1{font-family:Georgia,'Times New Roman',serif!important;color:var(--v4-navy)!important;font-size:45px!important;letter-spacing:-.03em!important;margin:7px 0!important}
+.adminPanel,.adminCard,.metricCard{background:#fff!important;border:1px solid var(--v4-line)!important;border-radius:20px!important;box-shadow:0 12px 36px rgba(7,24,45,.07)!important}
+.adminPanel{padding:24px!important;margin-bottom:22px!important}
+.adminPanelHeader h2,.adminPage h2{font-family:Georgia,'Times New Roman',serif!important;color:var(--v4-navy)!important;letter-spacing:-.02em!important}
+.adminPage .button.primary{background:var(--v4-navy)!important;border-color:var(--v4-navy)!important;color:#fff!important;border-radius:11px!important;font-weight:850!important}
+.adminPage input,.adminPage select,.adminPage textarea{border-radius:11px!important;border-color:#dfe4e8!important;background:#fff!important}
+.adminPage input:focus,.adminPage select:focus,.adminPage textarea:focus{outline:none!important;border-color:var(--v4-gold)!important;box-shadow:0 0 0 3px rgba(214,172,88,.13)!important}
+.adminPage table{border-collapse:separate!important;border-spacing:0!important;overflow:hidden!important;border-radius:14px!important}
+.adminPage th{background:#f5f1e9!important;color:#556677!important;text-transform:uppercase!important;letter-spacing:.06em!important;font-size:10px!important}
+
+@media(max-width:900px){.loginPage{background:linear-gradient(180deg,#07182d 0 28%,#f6f3ed 28%)!important}.loginShell{grid-template-columns:1fr!important;gap:28px!important}.loginBrand{margin:auto!important}.loginCard{margin:auto!important}.adminSidebar{position:relative!important;top:auto!important;max-height:none!important}}
+@media(max-width:650px){.loginCard{padding:24px!important;border-radius:22px!important}.loginCard h1{font-size:35px!important}.propertyDetail .galleryMain,.propertyDetail .propertyHeroImage{min-height:360px!important}.propertyDetail .brokerCard{position:relative!important;top:auto!important}.adminHeading h1{font-size:36px!important}.adminHeading{padding:22px!important}}
