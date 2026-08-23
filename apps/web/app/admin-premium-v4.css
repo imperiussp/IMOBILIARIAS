@@ -71,6 +71,18 @@
 .adminMetrics span,.platformMetrics span{font-size:11px!important;letter-spacing:.06em!important;text-transform:uppercase!important;color:#788693!important;font-weight:800!important}
 .adminMetrics strong,.platformMetrics strong{display:block!important;font-family:Georgia,'Times New Roman',serif!important;font-size:34px!important;color:var(--admin4-navy)!important;margin:10px 0 5px!important}
 .adminMetrics small,.platformMetrics small{color:var(--admin4-muted)!important}
+.planMetrics article:nth-child(1):before{background:#d6ac58}.planMetrics article:nth-child(2):before{background:#6f8fb3}.planMetrics article:nth-child(3):before{background:#6da27f}.planMetrics article:nth-child(4):before{background:#a883b2}
+
+.adminFilters{display:grid!important;grid-template-columns:minmax(240px,1.6fr) repeat(3,minmax(145px,.7fr)) auto!important;gap:10px!important;padding:16px 18px!important;background:#faf8f4!important;border-bottom:1px solid #ebe5dc!important;align-items:center!important}
+.adminFilters input,.adminFilters select{min-height:42px!important;background:#fff!important}
+.adminPanelTools{display:flex!important;align-items:center!important;gap:10px!important;color:#7f8b95!important;font-size:11px!important}
+.miniButton{min-height:36px!important;padding:0 12px!important;border-radius:9px!important;border:1px solid #d7dde2!important;background:#fff!important;color:#33485c!important;font-size:11px!important;font-weight:850!important;cursor:pointer!important;transition:.16s ease!important}
+.miniButton:hover{border-color:var(--admin4-gold)!important;background:#fffaf0!important;color:var(--admin4-navy)!important}
+.miniButton.muted{color:#788590!important;background:#f7f8f8!important}
+.tableActions{display:flex!important;gap:7px!important;flex-wrap:wrap!important}
+.draftTag{display:inline-flex!important;margin-left:8px!important;padding:4px 7px!important;border-radius:999px!important;background:#fff1c9!important;color:#8a6719!important;font-size:8px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.06em!important}
+.statusSelect{min-width:118px!important;min-height:36px!important;border-radius:999px!important;padding:0 28px 0 11px!important;font-weight:850!important;font-size:10px!important}
+.status-available{background:#eef8f1!important;border-color:#b8dec3!important;color:#2f7650!important}.status-reserved{background:#fff6dc!important;border-color:#ead291!important;color:#84631a!important}.status-rented,.status-sold{background:#eef3fb!important;border-color:#bfd0ea!important;color:#486a96!important}.status-inactive{background:#f2f3f4!important;border-color:#d7dadd!important;color:#747d85!important}
 
 .adminTableWrap{overflow:auto!important;background:#fff!important;border:1px solid var(--admin4-line)!important;box-shadow:0 12px 32px rgba(7,24,45,.05)!important}
 .adminTable{width:100%!important;border-collapse:separate!important;border-spacing:0!important}
@@ -81,6 +93,11 @@
 .tableSub{display:block!important;margin-top:4px!important;color:#87929b!important;font-size:10px!important}
 .statusPill,.platformStatus{border-radius:999px!important;padding:6px 9px!important;font-size:9px!important;font-weight:900!important;letter-spacing:.04em!important}
 
+.domainPrimaryCard{margin:16px 18px 18px!important;padding:18px 20px!important;border-radius:16px!important;background:linear-gradient(135deg,#f8f5ee,#fff)!important;border:1px solid #e4ddcf!important;box-shadow:0 10px 28px rgba(7,24,45,.05)!important}
+.domainPrimaryCard p{margin:10px 0!important;padding:10px 0!important;border-bottom:1px solid #eee8df!important}.domainPrimaryCard p:last-child{border-bottom:none!important}
+
+.editPanel{scroll-margin-top:112px!important;border:1px solid rgba(214,172,88,.5)!important;box-shadow:0 18px 48px rgba(7,24,45,.1)!important}.editPanel .adminPanelHeader{background:linear-gradient(180deg,#fffaf0,#fff)!important}
+
 .adminContent form{background:#fff!important;border:1px solid var(--admin4-line)!important;border-radius:18px!important;padding:22px!important;box-shadow:0 10px 30px rgba(7,24,45,.045)!important}
 .adminContent label{color:#526273!important;font-weight:800!important;font-size:11px!important;letter-spacing:.035em!important}
 .adminContent input,.adminContent select,.adminContent textarea{background:#fff!important;border:1px solid #dce2e6!important;border-radius:11px!important;min-height:44px!important;color:var(--admin4-ink)!important}
@@ -88,6 +105,7 @@
 .adminContent button,.adminContent .button{border-radius:10px!important;font-weight:850!important}
 .adminContent .button.primary,.adminContent button.primary{background:var(--admin4-navy)!important;border-color:var(--admin4-navy)!important;color:#fff!important}
 
+.formNotice{border-radius:13px!important;background:#eef4fb!important;border:1px solid #cadbef!important;color:#415d7a!important;padding:12px 15px!important;margin-bottom:16px!important}
 .formMessage{border-radius:14px!important;background:#fff7dd!important;border:1px solid #ead29a!important;color:#745c1f!important;padding:14px 16px!important;margin-bottom:20px!important}
 .adminContent>div.adminOnly,.adminContent>.adminOnly{margin-bottom:0!important}
 .adminContent section[id],.adminContent .adminPanel[id]{scroll-margin-top:110px}
@@ -96,6 +114,7 @@
   .adminShell{grid-template-columns:210px minmax(0,1fr)!important;gap:18px!important}
   .adminMetrics,.platformMetrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .adminQuickActions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .adminFilters{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:820px){
   .adminNav{min-height:70px!important}
@@ -119,4 +138,5 @@
   .adminPanelHeader{padding:18px!important}
   .adminPanelHeader h2{font-size:26px!important}
   .adminTable tbody td,.adminTable thead th{padding:12px!important}
+  .adminFilters{grid-template-columns:1fr!important}
 }
