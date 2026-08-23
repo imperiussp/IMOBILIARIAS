@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getPreferredMobileAgencyId } from "../lib/currentAgency";
+import { mobileSupabase } from "../lib/supabase";
 
 export type PropertyDraft = {
   id: string;
@@ -39,8 +41,18 @@ function normalizeDraft(draft: PropertyDraft): PropertyDraft {
   };
 }
 
-export async function getPropertyDrafts(): Promise<PropertyDraft[]> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+async function getScopedStorageKey() {
+  const [agencyId, sessionResult] = await Promise.all([
+    getPreferredMobileAgencyId(),
+    mobileSupabase?.auth.getSession(),
+  ]);
+  const userId = sessionResult?.data.session?.user?.id || "";
+  if (!agencyId || !userId) return null;
+  return `${STORAGE_KEY}:${userId}:${agencyId}`;
+}
+
+async function readDrafts(storageKey: string): Promise<PropertyDraft[]> {
+  const raw = await AsyncStorage.getItem(storageKey);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as PropertyDraft[];
@@ -50,18 +62,29 @@ export async function getPropertyDrafts(): Promise<PropertyDraft[]> {
   }
 }
 
+export async function getPropertyDrafts(): Promise<PropertyDraft[]> {
+  const storageKey = await getScopedStorageKey();
+  if (!storageKey) return [];
+  return readDrafts(storageKey);
+}
+
 export async function savePropertyDraft(draft: Omit<PropertyDraft, "id" | "updatedAt"> & { id?: string }) {
-  const drafts = await getPropertyDrafts();
+  const storageKey = await getScopedStorageKey();
+  if (!storageKey) throw new Error("Não foi possível identificar o usuário e a imobiliária ativa para salvar o rascunho.");
+
+  const drafts = await readDrafts(storageKey);
   const id = draft.id || `draft-${Date.now()}`;
   const next = normalizeDraft({ ...draft, id, updatedAt: new Date().toISOString() } as PropertyDraft);
   const index = drafts.findIndex((item) => item.id === id);
   if (index >= 0) drafts[index] = next;
   else drafts.unshift(next);
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
+  await AsyncStorage.setItem(storageKey, JSON.stringify(drafts));
   return next;
 }
 
 export async function removePropertyDraft(id: string) {
-  const drafts = await getPropertyDrafts();
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(drafts.filter((item) => item.id !== id)));
+  const storageKey = await getScopedStorageKey();
+  if (!storageKey) return;
+  const drafts = await readDrafts(storageKey);
+  await AsyncStorage.setItem(storageKey, JSON.stringify(drafts.filter((item) => item.id !== id)));
 }

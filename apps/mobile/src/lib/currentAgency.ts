@@ -77,7 +77,8 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
       const membership = membershipByAgency.get(agency.id)!;
       const broker = brokerByAgency.get(agency.id)!;
       const featureResult = await mobileSupabase!.rpc("agency_plan_feature_snapshot", { p_agency_id: agency.id });
-      const feature = Array.isArray(featureResult.data) ? featureResult.data[0] : null;
+      const feature = !featureResult.error && Array.isArray(featureResult.data) ? featureResult.data[0] : null;
+      const featureSnapshotAvailable = Boolean(feature);
       return {
         agencyId: agency.id,
         agencyName: agency.name,
@@ -87,15 +88,19 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
         logoUrl: agency.logo_url || null,
         primaryColor: validHex(agency.primary_color, "#17202a"),
         secondaryColor: validHex(agency.secondary_color, "#f4f6f8"),
-        planName: String(feature?.plan_name || "Sem plano configurado"),
-        brokerAppEnabled: featureResult.error ? true : feature?.broker_app !== false,
-        pushNotificationsEnabled: featureResult.error ? true : feature?.push_notifications !== false,
-        emailLeadsEnabled: featureResult.error ? true : feature?.email_leads !== false,
-        aiDescriptionsEnabled: featureResult.error ? true : feature?.ai_descriptions !== false,
+        planName: String(feature?.plan_name || "Plano indisponível"),
+        brokerAppEnabled: featureSnapshotAvailable && feature?.broker_app === true,
+        pushNotificationsEnabled: featureSnapshotAvailable && feature?.push_notifications === true,
+        emailLeadsEnabled: featureSnapshotAvailable && feature?.email_leads === true,
+        aiDescriptionsEnabled: featureSnapshotAvailable && feature?.ai_descriptions === true,
       } satisfies MobileAgencyContext;
     }));
 
-  return contexts.sort((a, b) => a.agencyName.localeCompare(b.agencyName, "pt-BR"));
+  // Fail closed: a corretora só aparece no app se o plano confirmar explicitamente
+  // que o recurso broker_app está habilitado. Erros de leitura nunca liberam recurso pago.
+  return contexts
+    .filter((context) => context.brokerAppEnabled)
+    .sort((a, b) => a.agencyName.localeCompare(b.agencyName, "pt-BR"));
 }
 
 export async function getMobileAgencyContext(): Promise<MobileAgencyContext | null> {

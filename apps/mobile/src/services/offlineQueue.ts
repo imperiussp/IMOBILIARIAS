@@ -105,8 +105,17 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
   const cityResult = await cityQuery.limit(1).maybeSingle();
   if (cityResult.error || !cityResult.data) throw new Error(`Cidade não cadastrada no sistema: ${draft.city}`);
 
-  const typeResult = await mobileSupabase.from("property_types").select("id").ilike("name", draft.category).eq("active", true).limit(1).maybeSingle();
-  if (typeResult.error || !typeResult.data) throw new Error(`Tipo de imóvel não cadastrado: ${draft.category}`);
+  const typeResult = await mobileSupabase
+    .from("property_types")
+    .select("id,agency_id")
+    .or(`agency_id.is.null,agency_id.eq.${context.agencyId}`)
+    .ilike("name", draft.category)
+    .eq("active", true)
+    .limit(5);
+  if (typeResult.error) throw typeResult.error;
+  const typeRow = (typeResult.data || []).find((row) => row.agency_id === context.agencyId)
+    || (typeResult.data || []).find((row) => row.agency_id == null);
+  if (!typeRow) throw new Error(`Tipo de imóvel não cadastrado: ${draft.category}`);
 
   let neighborhoodId: string | null = null;
   if (draft.neighborhood.trim()) {
@@ -123,7 +132,7 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
     broker_id: context.brokerId,
     city_id: cityResult.data.id,
     neighborhood_id: neighborhoodId,
-    property_type_id: typeResult.data.id,
+    property_type_id: typeRow.id,
     title: draft.title.trim(),
     slug: `${slugify(draft.title)}-${code.toLowerCase()}`,
     description: draft.description.trim() || null,
