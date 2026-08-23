@@ -1,0 +1,113 @@
+/* LENOY IMOBILIÁRIAS — Admin Premium V4
+   Visual-only refinement for the real tenant admin. No business logic changes. */
+
+:root{
+  --admin4-navy:#07182d;
+  --admin4-navy-2:#0d294a;
+  --admin4-gold:#d6ac58;
+  --admin4-paper:#f5f3ee;
+  --admin4-white:#fff;
+  --admin4-ink:#10233a;
+  --admin4-muted:#6f7d8a;
+  --admin4-line:#e5dfd5;
+  --admin4-green:#2f8b59;
+  --admin4-red:#b35151;
+  --admin4-shadow:0 18px 48px rgba(7,24,45,.09);
+}
+
+.adminPage{background:var(--admin4-paper)!important;color:var(--admin4-ink)!important;min-height:100vh}
+.adminTopbar{position:sticky!important;top:0;z-index:70;background:rgba(7,24,45,.97)!important;border-bottom:1px solid rgba(255,255,255,.08)!important;box-shadow:0 10px 30px rgba(2,12,24,.15);backdrop-filter:blur(14px)}
+.adminNav{min-height:82px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:20px!important}
+.adminTopbar .brand img{width:96px!important;filter:drop-shadow(0 6px 18px rgba(0,0,0,.2))}
+.adminNavActions{display:flex!important;gap:12px!important;align-items:center!important;flex-wrap:wrap!important}
+.adminNavActions .button.primary{background:var(--admin4-gold)!important;color:var(--admin4-navy)!important;border-color:var(--admin4-gold)!important;font-weight:900!important}
+
+.adminShell{display:grid!important;grid-template-columns:250px minmax(0,1fr)!important;gap:28px!important;align-items:start!important;padding-top:30px!important;padding-bottom:60px!important}
+.adminSidebar{position:sticky!important;top:108px!important;max-height:calc(100vh - 130px)!important;overflow:auto!important;background:linear-gradient(180deg,var(--admin4-navy),#0a223e)!important;color:#fff!important;border-radius:22px!important;padding:20px 14px!important;box-shadow:0 22px 60px rgba(7,24,45,.18)!important;border:1px solid rgba(255,255,255,.05)!important;scrollbar-width:thin}
+.adminSidebar strong{display:block!important;color:var(--admin4-gold)!important;font-size:12px!important;letter-spacing:.14em!important;text-transform:uppercase!important;padding:4px 10px 15px!important}
+.adminSidebar a{display:flex!important;align-items:center!important;min-height:38px!important;padding:8px 11px!important;margin:2px 0!important;border-radius:10px!important;color:rgba(255,255,255,.72)!important;font-size:12px!important;font-weight:700!important;line-height:1.2!important;transition:.18s ease!important}
+.adminSidebar a:hover{background:rgba(255,255,255,.07)!important;color:#fff!important;transform:translateX(2px)}
+.adminSidebar a.active{background:#fff!important;color:var(--admin4-navy)!important;box-shadow:0 8px 20px rgba(0,0,0,.12)!important;font-weight:900!important}
+.adminSidebar a.adminOnly:after{content:"ADM";margin-left:auto;font-size:7px;letter-spacing:.08em;color:var(--admin4-gold);opacity:.72}
+
+.adminContent{min-width:0!important}
+.adminHeading{position:relative!important;overflow:hidden!important;background:linear-gradient(135deg,var(--admin4-navy) 0%,var(--admin4-navy-2) 70%,#17385d 100%)!important;border-radius:24px!important;padding:30px 32px!important;color:#fff!important;margin-bottom:24px!important;box-shadow:0 24px 65px rgba(7,24,45,.16)!important;display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:24px!important}
+.adminHeading:after{content:"";position:absolute;right:-80px;top:-90px;width:260px;height:260px;border-radius:50%;border:1px solid rgba(214,172,88,.2);box-shadow:0 0 0 35px rgba(214,172,88,.035),0 0 0 70px rgba(214,172,88,.025)}
+.adminHeading> *{position:relative;z-index:2}
+.adminHeading .eyebrow{color:var(--admin4-gold)!important;letter-spacing:.15em!important}
+.adminHeading h1{font-family:Georgia,'Times New Roman',serif!important;font-size:44px!important;line-height:1!important;letter-spacing:-.025em!important;color:#fff!important;margin:8px 0 10px!important}
+.adminHeading p{color:rgba(255,255,255,.69)!important;max-width:720px!important;line-height:1.6!important;margin:0!important}
+.adminHeading .button.primary{background:var(--admin4-gold)!important;color:var(--admin4-navy)!important;border-color:var(--admin4-gold)!important;white-space:nowrap!important;font-weight:900!important}
+
+.adminContent .adminPanel,
+.adminContent .adminMetrics,
+.adminContent .platformMetrics,
+.adminContent .adminCard,
+.adminContent .metricCard,
+.adminContent .adminTableWrap,
+.adminContent .formCard,
+.adminContent .infoCard{
+  border-radius:20px!important;
+}
+
+.adminPanel{background:#fff!important;border:1px solid var(--admin4-line)!important;box-shadow:var(--admin4-shadow)!important;margin-bottom:24px!important;overflow:hidden!important}
+.adminPanelHeader{padding:22px 24px!important;border-bottom:1px solid #eee9e1!important;background:linear-gradient(180deg,#fff,#fcfbf8)!important;display:flex!important;justify-content:space-between!important;gap:20px!important;align-items:flex-start!important}
+.adminPanelHeader h2{font-family:Georgia,'Times New Roman',serif!important;font-size:30px!important;line-height:1.08!important;color:var(--admin4-navy)!important;margin:7px 0 7px!important}
+.adminPanelHeader p{color:var(--admin4-muted)!important;line-height:1.55!important;margin:0!important}
+.adminPanelHeader .eyebrow{color:#9f7429!important;font-weight:900!important;letter-spacing:.13em!important}
+
+.adminMetrics,.platformMetrics{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin-bottom:22px!important}
+.adminMetrics article,.platformMetrics article{position:relative!important;overflow:hidden!important;background:#fff!important;border:1px solid var(--admin4-line)!important;border-radius:18px!important;padding:20px!important;box-shadow:0 10px 30px rgba(7,24,45,.055)!important;min-height:120px!important}
+.adminMetrics article:before,.platformMetrics article:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--admin4-gold)}
+.adminMetrics span,.platformMetrics span{font-size:11px!important;letter-spacing:.06em!important;text-transform:uppercase!important;color:#788693!important;font-weight:800!important}
+.adminMetrics strong,.platformMetrics strong{display:block!important;font-family:Georgia,'Times New Roman',serif!important;font-size:34px!important;color:var(--admin4-navy)!important;margin:10px 0 5px!important}
+.adminMetrics small,.platformMetrics small{color:var(--admin4-muted)!important}
+
+.adminTableWrap{overflow:auto!important;background:#fff!important;border:1px solid var(--admin4-line)!important;box-shadow:0 12px 32px rgba(7,24,45,.05)!important}
+.adminTable{width:100%!important;border-collapse:separate!important;border-spacing:0!important}
+.adminTable thead th{position:sticky;top:0;background:#f3f0ea!important;color:#516171!important;font-size:10px!important;letter-spacing:.08em!important;text-transform:uppercase!important;font-weight:900!important;padding:13px 15px!important;border-bottom:1px solid #ddd7cd!important;z-index:2}
+.adminTable tbody td{padding:15px!important;border-bottom:1px solid #eee9e1!important;color:#33485c!important;vertical-align:middle!important}
+.adminTable tbody tr:hover td{background:#fffaf1!important}
+.adminTable tbody tr:last-child td{border-bottom:none!important}
+.tableSub{display:block!important;margin-top:4px!important;color:#87929b!important;font-size:10px!important}
+.statusPill,.platformStatus{border-radius:999px!important;padding:6px 9px!important;font-size:9px!important;font-weight:900!important;letter-spacing:.04em!important}
+
+.adminContent form{background:#fff!important;border:1px solid var(--admin4-line)!important;border-radius:18px!important;padding:22px!important;box-shadow:0 10px 30px rgba(7,24,45,.045)!important}
+.adminContent label{color:#526273!important;font-weight:800!important;font-size:11px!important;letter-spacing:.035em!important}
+.adminContent input,.adminContent select,.adminContent textarea{background:#fff!important;border:1px solid #dce2e6!important;border-radius:11px!important;min-height:44px!important;color:var(--admin4-ink)!important}
+.adminContent input:focus,.adminContent select:focus,.adminContent textarea:focus{outline:none!important;border-color:var(--admin4-gold)!important;box-shadow:0 0 0 3px rgba(214,172,88,.14)!important}
+.adminContent button,.adminContent .button{border-radius:10px!important;font-weight:850!important}
+.adminContent .button.primary,.adminContent button.primary{background:var(--admin4-navy)!important;border-color:var(--admin4-navy)!important;color:#fff!important}
+
+.formMessage{border-radius:14px!important;background:#fff7dd!important;border:1px solid #ead29a!important;color:#745c1f!important;padding:14px 16px!important;margin-bottom:20px!important}
+
+/* Improve dense sections without hiding anything */
+.adminContent>div.adminOnly,
+.adminContent>.adminOnly{margin-bottom:0!important}
+.adminContent section[id],.adminContent .adminPanel[id]{scroll-margin-top:110px}
+
+@media(max-width:1100px){
+  .adminShell{grid-template-columns:210px minmax(0,1fr)!important;gap:18px!important}
+  .adminMetrics,.platformMetrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:820px){
+  .adminNav{min-height:70px!important}
+  .adminShell{display:block!important;padding-top:16px!important}
+  .adminSidebar{position:relative!important;top:auto!important;max-height:none!important;display:flex!important;overflow-x:auto!important;gap:7px!important;padding:10px!important;border-radius:16px!important;margin-bottom:16px!important}
+  .adminSidebar strong{display:none!important}
+  .adminSidebar a{flex:0 0 auto!important;white-space:nowrap!important;margin:0!important;background:rgba(255,255,255,.05)!important}
+  .adminSidebar a.adminOnly:after{display:none!important}
+  .adminHeading{padding:24px!important;align-items:flex-start!important;flex-direction:column!important}
+  .adminHeading h1{font-size:37px!important}
+}
+@media(max-width:580px){
+  .adminNavActions{gap:7px!important}
+  .adminNavActions .button{padding-left:11px!important;padding-right:11px!important}
+  .adminMetrics,.platformMetrics{grid-template-columns:1fr!important}
+  .adminHeading{border-radius:18px!important;padding:20px!important}
+  .adminHeading h1{font-size:34px!important}
+  .adminPanel{border-radius:16px!important}
+  .adminPanelHeader{padding:18px!important}
+  .adminPanelHeader h2{font-size:26px!important}
+  .adminTable tbody td,.adminTable thead th{padding:12px!important}
+}
