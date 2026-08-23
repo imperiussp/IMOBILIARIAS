@@ -53,8 +53,6 @@ export default function LoginForm() {
       return;
     }
 
-    // Convites precisam continuar mesmo quando o usuário ainda não possui vínculo com uma imobiliária.
-    // Aceitamos somente rotas internas do mesmo domínio para evitar redirecionamento externo malicioso.
     const redirect = safeRedirectTarget();
     if (redirect) {
       setStatus("Acesso confirmado. Continuando...");
@@ -77,13 +75,8 @@ export default function LoginForm() {
       return;
     }
 
-    const { data: initialAvailable, error: initialError } = await supabaseBrowser.rpc("initial_admin_available");
-    if (!initialError && initialAvailable === true) {
-      setStatus("Primeira instalação detectada. Abrindo configuração do administrador da plataforma...");
-      window.location.href = "../primeiro-acesso/";
-      return;
-    }
-
+    // O bootstrap administrativo legado foi encerrado no hardening do banco.
+    // Contas sem vínculo ativo não recebem qualquer fallback de primeiro acesso.
     await supabaseBrowser.auth.signOut();
     setStatus("Sua conta existe, mas ainda não possui vínculo ativo com uma imobiliária.");
     setLoading(false);
