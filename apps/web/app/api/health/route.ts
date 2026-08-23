@@ -3,12 +3,14 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
+const OFFICIAL_SUPABASE_PROJECT_REF = "rvjsonspplqelktzwusu";
+
 export async function GET(){
   const url=String(process.env.NEXT_PUBLIC_SUPABASE_URL||"").trim();
   const publicKey=String(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"").trim();
-  const expectedRef=String(process.env.IMOBILIARIAS_SUPABASE_PROJECT_REF||process.env.SUPABASE_PROJECT_REF||"").trim();
+  const expectedRef=String(process.env.IMOBILIARIAS_SUPABASE_PROJECT_REF||process.env.SUPABASE_PROJECT_REF||OFFICIAL_SUPABASE_PROJECT_REF).trim();
   const allowIndexing=String(process.env.NEXT_PUBLIC_ALLOW_INDEXING||"false").toLowerCase()==="true";
-  const commitSha=String(process.env.NEXT_PUBLIC_COMMIT_SHA||"").trim().toLowerCase()||null;
+  const commitSha=String(process.env.NEXT_PUBLIC_COMMIT_SHA||process.env.VERCEL_GIT_COMMIT_SHA||"").trim().toLowerCase()||null;
   const buildLabel=String(process.env.NEXT_PUBLIC_BUILD_LABEL||"").trim()||null;
 
   const checks={
