@@ -23,13 +23,39 @@ function firstRow<T>(value: unknown): T | null {
   return null;
 }
 
+function detectBuildIdentity() {
+  const commitSha = String(
+    process.env.NEXT_PUBLIC_COMMIT_SHA ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.COMMIT_REF ||
+    ""
+  ).trim().toLowerCase() || null;
+
+  const explicitLabel = String(process.env.NEXT_PUBLIC_BUILD_LABEL || "").trim();
+  if (explicitLabel) return { commitSha, buildLabel: explicitLabel, provider: "explicit" };
+
+  if (String(process.env.NETLIFY || "").toLowerCase() === "true") {
+    const seed = String(process.env.BUILD_ID || process.env.DEPLOY_ID || commitSha || "build").trim();
+    return { commitSha, buildLabel: `netlify-${seed.slice(0, 12)}`, provider: "netlify" };
+  }
+
+  const vercelDeploymentId = String(process.env.VERCEL_DEPLOYMENT_ID || "").trim();
+  if (vercelDeploymentId || process.env.VERCEL === "1") {
+    const seed = vercelDeploymentId || commitSha || "build";
+    return { commitSha, buildLabel: `vercel-${seed.slice(0, 12)}`, provider: "vercel" };
+  }
+
+  return { commitSha, buildLabel: commitSha ? `build-${commitSha.slice(0, 12)}` : null, provider: "unknown" };
+}
+
 export async function GET(){
   const url=String(process.env.NEXT_PUBLIC_SUPABASE_URL||"").trim();
   const publicKey=String(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"").trim();
   const expectedRef=String(process.env.IMOBILIARIAS_SUPABASE_PROJECT_REF||process.env.SUPABASE_PROJECT_REF||OFFICIAL_SUPABASE_PROJECT_REF).trim();
   const allowIndexing=String(process.env.NEXT_PUBLIC_ALLOW_INDEXING||"false").toLowerCase()==="true";
-  const commitSha=String(process.env.NEXT_PUBLIC_COMMIT_SHA||process.env.VERCEL_GIT_COMMIT_SHA||"").trim().toLowerCase()||null;
-  const buildLabel=String(process.env.NEXT_PUBLIC_BUILD_LABEL||"").trim()||null;
+  const buildIdentity=detectBuildIdentity();
+  const commitSha=buildIdentity.commitSha;
+  const buildLabel=buildIdentity.buildLabel;
 
   const checks={
     web:true,
@@ -90,7 +116,7 @@ export async function GET(){
     service:"LENOY IMOBILIÁRIAS",
     status:healthy?"ok":"degraded",
     environment:appEnvironment,
-    runtime:{node_env:process.env.NODE_ENV||"unknown"},
+    runtime:{node_env:process.env.NODE_ENV||"unknown",hosting_provider:buildIdentity.provider},
     build:{commit_sha:commitSha,build_label:buildLabel,release_label:releaseLabel},
     release:{
       public_registration_enabled:registration?.enabled??null,
