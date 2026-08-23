@@ -45,7 +45,7 @@ begin
 
     select count(*)::bigint into tenant_security_critical
     from public.platform_tenant_security_audit()
-    where critical=true and ok=false;
+    where status='critical';
     if tenant_security_critical > 0 then
       raise exception 'Produção bloqueada: existem % falha(s) crítica(s) na auditoria multi-imobiliária.', tenant_security_critical;
     end if;
