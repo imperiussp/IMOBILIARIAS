@@ -1,0 +1,157 @@
+/* LENOY IMOBILIÁRIAS — Tenant Premium V4
+   Visual-only override layer. Keeps existing tenant/catalog logic intact. */
+
+:root{
+  --tenant-navy:#07182d;
+  --tenant-navy-2:#0c2748;
+  --tenant-gold:#d6ac58;
+  --tenant-gold-soft:#f0dfb9;
+  --tenant-paper:#f6f3ed;
+  --tenant-ink:#10233a;
+  --tenant-muted:#6e7b89;
+  --tenant-line:#e7e0d4;
+  --tenant-white:#fff;
+  --tenant-shadow:0 24px 70px rgba(7,24,45,.14);
+}
+
+body{background:var(--tenant-paper);color:var(--tenant-ink)}
+
+/* Header */
+body:has(.hero) .topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(7,24,45,.95)!important;
+  border-bottom:1px solid rgba(255,255,255,.08)!important;
+  box-shadow:0 10px 35px rgba(3,13,26,.16);
+  backdrop-filter:blur(14px);
+}
+body:has(.hero) .topbar .nav{min-height:82px}
+body:has(.hero) .topbar .brand{color:#fff!important;font-weight:800;letter-spacing:.01em}
+body:has(.hero) .topbar .brandLogo{max-height:54px;width:auto;filter:drop-shadow(0 5px 16px rgba(0,0,0,.16))}
+body:has(.hero) .topbar .brandMark{background:var(--tenant-gold)!important;color:var(--tenant-navy)!important}
+body:has(.hero) .topbar .navLinks a,
+body:has(.hero) .topbar .adminLink{color:rgba(255,255,255,.82)!important;font-weight:650}
+body:has(.hero) .topbar .navLinks a:hover,
+body:has(.hero) .topbar .adminLink:hover{color:var(--tenant-gold)!important}
+body:has(.hero) .topbar .button.primary{background:var(--tenant-gold)!important;color:var(--tenant-navy)!important;border-color:var(--tenant-gold)!important;box-shadow:none}
+
+/* Hero */
+body:has(.hero) .hero{
+  position:relative;
+  min-height:720px;
+  padding:86px 0 105px!important;
+  background:
+    linear-gradient(90deg,rgba(3,15,29,.93) 0%,rgba(6,25,45,.83) 43%,rgba(6,25,45,.38) 70%,rgba(6,25,45,.18) 100%),
+    url('https://lenoy.com.br/wp-content/uploads/2026/08/banner-imobi.jpg') center/cover no-repeat!important;
+  color:#fff;
+  overflow:visible;
+}
+body:has(.hero) .hero:after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:120px;
+  background:linear-gradient(to bottom,rgba(246,243,237,0),var(--tenant-paper));
+  pointer-events:none;
+}
+body:has(.hero) .heroGrid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(390px,.72fr);gap:70px;align-items:center}
+body:has(.hero) .heroGrid>div:first-child{max-width:760px;padding:22px 0 78px}
+body:has(.hero) .hero .eyebrow{display:inline-flex;color:var(--tenant-gold)!important;letter-spacing:.16em;font-weight:800;margin-bottom:22px}
+body:has(.hero) .hero h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(50px,6.2vw,84px);line-height:.98;letter-spacing:-.045em;color:#fff!important;max-width:800px;margin:0 0 26px}
+body:has(.hero) .hero p{font-size:19px;line-height:1.75;max-width:650px;color:rgba(255,255,255,.78)!important}
+body:has(.hero) .heroStats{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap}
+body:has(.hero) .heroStats span,
+body:has(.hero) .favoriteSummary{border:1px solid rgba(255,255,255,.17)!important;background:rgba(255,255,255,.08)!important;color:#fff!important;backdrop-filter:blur(9px);border-radius:999px!important;padding:11px 16px!important}
+body:has(.hero) .heroStats strong{color:var(--tenant-gold)}
+
+/* Search card */
+body:has(.hero) .searchBox{
+  background:rgba(255,255,255,.97)!important;
+  border:1px solid rgba(255,255,255,.55)!important;
+  border-radius:26px!important;
+  padding:24px!important;
+  box-shadow:0 30px 80px rgba(0,0,0,.28)!important;
+  transform:translateY(32px);
+}
+body:has(.hero) .searchTabs{background:#f0eee9!important;border-radius:14px!important;padding:5px!important;margin-bottom:19px}
+body:has(.hero) .searchTabs button{border-radius:10px!important;font-weight:800!important;color:var(--tenant-muted)!important}
+body:has(.hero) .searchTabs button.active{background:var(--tenant-navy)!important;color:#fff!important;box-shadow:0 6px 18px rgba(7,24,45,.18)}
+body:has(.hero) .searchBox label{font-size:12px!important;text-transform:uppercase;letter-spacing:.07em;color:#566678!important;font-weight:800!important}
+body:has(.hero) .searchBox input,
+body:has(.hero) .searchBox select{margin-top:7px!important;border:1px solid #dfe4e8!important;background:#fff!important;border-radius:12px!important;min-height:46px!important;color:var(--tenant-ink)!important}
+body:has(.hero) .searchBox input:focus,
+body:has(.hero) .searchBox select:focus{outline:none!important;border-color:var(--tenant-gold)!important;box-shadow:0 0 0 3px rgba(214,172,88,.14)!important}
+body:has(.hero) .searchBox .button.primary{background:var(--tenant-gold)!important;color:var(--tenant-navy)!important;border-color:var(--tenant-gold)!important;font-weight:900!important}
+body:has(.hero) .clearButton{color:#6c7885!important}
+
+/* Quick filters */
+.quickFilters{position:relative;z-index:5;margin-top:-34px!important;padding:0 0 28px!important;display:flex!important;gap:10px!important;flex-wrap:wrap!important}
+.quickFilterButton{background:#fff!important;border:1px solid var(--tenant-line)!important;border-radius:999px!important;box-shadow:0 8px 25px rgba(7,24,45,.08)!important;padding:12px 18px!important;font-weight:750!important;color:var(--tenant-ink)!important;transition:.2s ease}
+.quickFilterButton:hover,.quickFilterButton.selected{transform:translateY(-2px);border-color:var(--tenant-gold)!important;background:#fffaf0!important;color:var(--tenant-navy)!important}
+
+/* Sections */
+.section{padding-top:82px!important;padding-bottom:82px!important}
+.sectionHeading .eyebrow{color:#a17626!important;letter-spacing:.13em!important;font-weight:850!important}
+.sectionHeading h2,.trustSection h2{font-family:Georgia,'Times New Roman',serif!important;font-size:clamp(34px,4vw,54px)!important;line-height:1.04!important;letter-spacing:-.025em!important;color:var(--tenant-navy)!important;margin-top:9px!important}
+.sectionIntro,.resultCount{color:var(--tenant-muted)!important}
+
+/* Property cards */
+.propertyGrid{gap:28px!important}
+.propertyCard{background:#fff!important;border:1px solid rgba(7,24,45,.08)!important;border-radius:22px!important;overflow:hidden!important;box-shadow:0 14px 45px rgba(7,24,45,.08)!important;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.propertyCard:hover{transform:translateY(-7px);box-shadow:0 28px 65px rgba(7,24,45,.15)!important;border-color:rgba(214,172,88,.52)!important}
+.propertyImage{min-height:265px!important}
+.latestPropertyCard .propertyImage{min-height:285px!important}
+.propertyImage:after{content:"";position:absolute;inset:auto 0 0;height:46%;background:linear-gradient(to top,rgba(4,19,35,.46),transparent);pointer-events:none}
+.propertyCard .badge{background:var(--tenant-gold)!important;color:var(--tenant-navy)!important;border-radius:999px!important;font-weight:900!important;box-shadow:0 4px 12px rgba(0,0,0,.13)}
+.propertyCard .favorite{background:rgba(255,255,255,.94)!important;color:var(--tenant-navy)!important;border:none!important;box-shadow:0 7px 18px rgba(0,0,0,.15)}
+.propertyCard .favorite.isFavorite{color:#a96855!important}
+.propertyBody{padding:22px 22px 20px!important}
+.propertyCode{color:#a17a31!important;font-size:11px!important;font-weight:850!important;letter-spacing:.08em!important;text-transform:uppercase}
+.propertyBody h3{font-family:Georgia,'Times New Roman',serif!important;font-size:24px!important;line-height:1.15!important;margin:8px 0 10px!important;color:var(--tenant-navy)!important}
+.propertyBody h3 a{color:inherit!important}
+.propertyBody .location{color:#687786!important;margin-bottom:11px!important}
+.propertyBody .meta{color:#475767!important;line-height:1.6!important}
+.propertyFooter{border-top:1px solid #eee9e0!important;margin-top:18px!important;padding-top:17px!important;align-items:center!important}
+.propertyFooter strong{font-size:22px!important;color:var(--tenant-navy)!important}
+.propertyFooter a{color:#9b7227!important;font-weight:850!important}
+
+/* Results controls */
+.sortControl select{background:#fff!important;border-color:var(--tenant-line)!important;border-radius:12px!important}
+.button.secondary{border-color:#d8d0c2!important;color:var(--tenant-navy)!important;background:#fff!important}
+.button.secondary:hover{border-color:var(--tenant-gold)!important;background:#fffaf2!important}
+
+/* Steps and trust */
+.softSection{background:#eee9e0!important}
+.steps article,.trustGrid article{background:#fff!important;border:1px solid rgba(7,24,45,.07)!important;border-radius:20px!important;box-shadow:0 12px 38px rgba(7,24,45,.06)!important;padding:30px!important;transition:.2s ease}
+.steps article:hover,.trustGrid article:hover{transform:translateY(-4px);box-shadow:0 20px 45px rgba(7,24,45,.11)!important}
+.steps article>span{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--tenant-navy)!important;color:var(--tenant-gold)!important;font-weight:900!important}
+.steps h3,.trustGrid strong{color:var(--tenant-navy)!important;font-family:Georgia,'Times New Roman',serif!important}
+.trustSection{display:grid!important;grid-template-columns:.85fr 1.6fr!important;gap:55px!important;align-items:start!important}
+
+/* Forms */
+body:has(.hero) form:not(.loginCard),body:has(.hero) .contactForm{background:#fff;border:1px solid var(--tenant-line);border-radius:22px;box-shadow:0 18px 50px rgba(7,24,45,.08);padding:28px}
+body:has(.hero) form input,body:has(.hero) form select,body:has(.hero) form textarea{border-radius:12px!important;border-color:#dfe4e8!important}
+body:has(.hero) form input:focus,body:has(.hero) form select:focus,body:has(.hero) form textarea:focus{outline:none!important;border-color:var(--tenant-gold)!important;box-shadow:0 0 0 3px rgba(214,172,88,.13)!important}
+
+/* Footer */
+body:has(.hero) footer{background:var(--tenant-navy)!important;color:rgba(255,255,255,.74)!important;border-top:none!important}
+body:has(.hero) footer a{color:#fff!important}
+
+@media(max-width:1020px){
+  body:has(.hero) .hero{min-height:auto;padding:65px 0 95px!important}
+  body:has(.hero) .heroGrid{grid-template-columns:1fr!important;gap:24px!important}
+  body:has(.hero) .heroGrid>div:first-child{padding-bottom:10px}
+  body:has(.hero) .searchBox{transform:none;max-width:760px}
+  .quickFilters{margin-top:-26px!important}
+  .trustSection{grid-template-columns:1fr!important}
+}
+@media(max-width:720px){
+  body:has(.hero) .topbar .nav{min-height:68px}
+  body:has(.hero) .hero{padding:54px 0 72px!important}
+  body:has(.hero) .hero h1{font-size:48px!important}
+  body:has(.hero) .hero p{font-size:16px!important}
+  body:has(.hero) .searchBox{padding:17px!important;border-radius:20px!important}
+  body:has(.hero) .searchRow{grid-template-columns:1fr!important}
+  .quickFilters{overflow-x:auto!important;flex-wrap:nowrap!important;padding-bottom:18px!important}
+  .quickFilterButton{white-space:nowrap}
+  .section{padding-top:58px!important;padding-bottom:58px!important}
+  .sectionHeading h2,.trustSection h2{font-size:37px!important}
+  .propertyGrid{grid-template-columns:1fr!important}
+  .propertyImage,.latestPropertyCard .propertyImage{min-height:250px!important}
+}
