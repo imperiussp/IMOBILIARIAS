@@ -54,13 +54,13 @@ if(!migrations.length)errors.push("nenhuma migration encontrada");
 else{
   const latest=migrations.at(-1);
   const n=Number(latest.slice(0,4));
-  if(n<133)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
+  if(n<134)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
   const requiredMigrationNames=[
     "0109_platform_release_controls.sql",
     "0116_runtime_action_gate.sql",
     "0118_platform_tenant_security_audit.sql",
     "0120_release_validation_evidence.sql",
-    "0123_inherited_tenant_audit.sql",
+    "0123_tenant_security_audit_inherited_scope.sql",
     "0124_platform_deployment_checkpoints.sql",
     "0125_deployment_readiness_in_release_gate.sql",
     "0126_deployment_checkpoint_history.sql",
@@ -68,9 +68,10 @@ else{
     "0128_platform_deployment_releases.sql",
     "0129_production_requires_smoke_validated_release.sql",
     "0130_final_rpc_execute_hardening.sql",
-    "0131_revoke_public_execute_inherited.sql",
-    "0132_revoke_trigger_rpc_execution.sql",
+    "0131_revoke_implicit_public_function_execute.sql",
+    "0132_trigger_function_rpc_hardening.sql",
     "0133_fix_property_storage_tenant_policies.sql",
+    "0134_drop_duplicate_leads_broker_status_index.sql",
   ];
   for(const file of requiredMigrationNames){if(!migrations.includes(file))errors.push(`migration de homologação ausente: ${file}`);}
 }
