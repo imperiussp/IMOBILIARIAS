@@ -97,6 +97,14 @@ export default function AdminPage() {
           <section className="adminContent" id="visao-geral">
             <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos, documentos, arquivos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
 
+            <nav className="adminQuickActions" aria-label="Atalhos do painel">
+              <a href="#imoveis"><span>▦</span><div><strong>Imóveis</strong><small>Catálogo e desempenho</small></div></a>
+              <a href="#funil-comercial"><span>◎</span><div><strong>CRM</strong><small>Funil e contatos</small></div></a>
+              <a href="#agenda-visitas"><span>◷</span><div><strong>Visitas</strong><small>Agenda comercial</small></div></a>
+              <a className="adminOnly" href="#oportunidades-ia"><span>✦</span><div><strong>Oportunidades IA</strong><small>Matches e retornos</small></div></a>
+              <a className="adminOnly" href="#novo-imovel"><span>＋</span><div><strong>Novo imóvel</strong><small>Cadastrar agora</small></div></a>
+            </nav>
+
             <AdminLiveData />
             <AdminOperationalAlerts />
             <AdminCommercialFunnel />
