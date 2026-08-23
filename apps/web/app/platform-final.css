@@ -1,0 +1,138 @@
+/* LENOY IMOBILIARIAS — visual final da landing.
+   Folha unica para a plataforma publica. Sem dependencias de preview. */
+
+.platformLanding{background:#f4f0e8;color:#0b1b30;min-height:100vh}
+.platformLanding::before{content:none!important;display:none!important}
+
+.platformTopbar{position:sticky;top:0;z-index:80;background:rgba(7,23,43,.98)!important;border-bottom:1px solid rgba(216,178,100,.18)!important;backdrop-filter:blur(16px)}
+.platformNav{min-height:78px}
+.platformNav .brand img{filter:drop-shadow(0 7px 16px rgba(0,0,0,.24))}
+.platformNav nav{display:flex;align-items:center;gap:24px}
+.platformNav nav a{color:#cbd4dd!important;font-size:12px;font-weight:800}
+.platformNav nav a:hover{color:#d8b264!important}
+.platformActions .button.secondary{background:transparent!important;color:#fff!important;border-color:rgba(255,255,255,.24)!important}
+.platformActions .button.primary{background:#d8b264!important;color:#07172b!important;border-color:#d8b264!important}
+
+.platformLanding .platformHero{
+  position:relative!important;
+  isolation:isolate!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  min-height:610px!important;
+  margin:0!important;
+  padding:74px max(24px,calc((100vw - 1180px)/2)) 78px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1.15fr) minmax(340px,440px)!important;
+  gap:58px!important;
+  align-items:center!important;
+  overflow:hidden!important;
+  color:#fff!important;
+  background:linear-gradient(90deg,rgba(5,17,33,.97) 0%,rgba(5,17,33,.88) 48%,rgba(5,17,33,.28) 100%),url('https://lenoy.com.br/wp-content/uploads/2026/08/banner-imobi.jpg') center/cover no-repeat!important;
+}
+.platformLanding .platformHero>div:first-child{
+  display:block!important;
+  position:relative!important;
+  inset:auto!important;
+  float:none!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:720px!important;
+  margin:0!important;
+  padding:0!important;
+  transform:none!important;
+  order:0!important;
+  grid-column:auto!important;
+}
+.platformLanding .platformHero .eyebrow{display:block!important;color:#d8b264!important;font-size:11px!important;letter-spacing:.17em!important;font-weight:900!important}
+.platformLanding .platformHero h1{display:block!important;width:auto!important;max-width:720px!important;margin:14px 0 20px!important;padding:0!important;font-family:Georgia,'Times New Roman',serif!important;font-size:clamp(48px,5.1vw,72px)!important;line-height:.98!important;letter-spacing:-.045em!important;color:#fff!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important}
+.platformLanding .platformHero p{display:block!important;width:auto!important;max-width:650px!important;margin:0!important;font-size:17px!important;line-height:1.68!important;color:#cbd4dd!important;white-space:normal!important}
+.platformHeroActions{display:flex!important;gap:12px!important;flex-wrap:wrap!important;margin:28px 0 0!important}
+.platformHeroActions .button{min-height:48px!important;padding:0 20px!important;border-radius:11px!important}
+.platformHeroActions .primary{background:#d8b264!important;color:#07172b!important;border-color:#d8b264!important}
+.platformHeroActions .secondary{background:rgba(255,255,255,.08)!important;color:#fff!important;border-color:rgba(255,255,255,.24)!important}
+.platformTrustLine{display:flex!important;flex-wrap:wrap!important;gap:9px!important;margin-top:22px!important}
+.platformTrustLine span{display:inline-flex!important;border:1px solid rgba(255,255,255,.16)!important;background:rgba(255,255,255,.07)!important;color:#dfe5ea!important;border-radius:999px!important;padding:8px 11px!important;font-size:10px!important;font-weight:850!important}
+
+.platformLanding .platformHeroCard{
+  display:block!important;
+  position:relative!important;
+  inset:auto!important;
+  float:none!important;
+  order:1!important;
+  grid-column:auto!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:440px!important;
+  margin:0!important;
+  padding:24px!important;
+  transform:none!important;
+  visibility:visible!important;
+  opacity:1!important;
+  overflow:visible!important;
+  background:rgba(255,255,255,.98)!important;
+  color:#0c2037!important;
+  border:1px solid rgba(216,178,100,.38)!important;
+  border-radius:22px!important;
+  box-shadow:0 30px 72px rgba(0,0,0,.32)!important;
+}
+.platformLanding .platformHeroCard *{visibility:visible!important;opacity:1!important}
+.platformHeroCardTop{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:16px!important;padding-bottom:15px!important;border-bottom:1px solid #e6e0d5!important}
+.platformHeroCardTop>div>span{display:block!important;color:#8c7447!important;font-size:9px!important;font-weight:900!important;letter-spacing:.12em!important}
+.platformHeroCardTop>div>strong{display:block!important;margin-top:5px!important;font-family:Georgia,serif!important;font-size:24px!important;color:#07172b!important}
+.platformOnlineDot{color:#327a52!important;background:#edf8f1!important;border:1px solid #d2eadb!important;border-radius:999px!important;padding:7px 9px!important;font-size:10px!important;font-weight:900!important;white-space:nowrap!important}
+.platformMiniGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:17px 0!important}
+.platformMiniGrid article{background:#f7f3eb!important;border:1px solid #e7dfd1!important;border-radius:14px!important;padding:14px!important}
+.platformMiniGrid small{display:block!important;color:#7a7164!important}
+.platformMiniGrid b{display:block!important;margin-top:5px!important;font-size:26px!important;color:#07172b!important}
+.platformHeroStatus,.platformHeroActivity{display:block!important;margin-top:10px!important;padding:13px 14px!important;border:1px solid #e6dece!important;border-radius:13px!important;background:#fff!important;color:#0c2037!important}
+.platformHeroStatus span,.platformHeroActivity>span{display:block!important;margin-bottom:4px!important;color:#9a7227!important;font-size:9px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.08em!important}
+.platformHeroActivity p{margin:0!important;color:#526273!important;font-size:12px!important;line-height:1.45!important}
+
+.platformStrip{background:#07172b!important;color:#fff!important;border-top:1px solid rgba(216,178,100,.2)!important;border-bottom:1px solid rgba(216,178,100,.2)!important}
+.platformStripGrid{padding-top:20px!important;padding-bottom:20px!important}
+.platformStripGrid strong{color:#d8b264!important;font-family:Georgia,serif!important}
+.platformStripGrid span{color:#b9c4ce!important}
+
+.platformLanding .softSection{background:#ebe5da!important}
+.platformLanding .section{padding-top:76px!important;padding-bottom:76px!important}
+.platformLanding .sectionHeading h2,.appShowcaseCopy h2{font-family:Georgia,'Times New Roman',serif!important;color:#07172b!important;letter-spacing:-.035em!important}
+.platformLanding .sectionHeading h2{font-size:clamp(34px,4vw,48px)!important}
+.platformLanding .sectionHeading .eyebrow{color:#9b742d!important}
+.platformLanding .sectionIntro{color:#68737d!important}
+.platformLanding .trustGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important}
+.platformLanding .trustGrid article{background:#fff!important;border:1px solid #ded6c9!important;border-radius:18px!important;padding:24px!important;box-shadow:0 12px 32px rgba(14,29,47,.05)!important}
+.platformLanding .trustGrid article strong{font-family:Georgia,serif!important;font-size:21px!important;color:#07172b!important}
+.platformLanding .trustGrid article p{color:#6d7780!important;line-height:1.62!important}
+.demoDashboard{border-radius:22px!important;border:1px solid #d8cfbf!important;box-shadow:0 24px 58px rgba(13,29,47,.11)!important;overflow:hidden!important;background:#fff!important}
+.demoSidebar{background:linear-gradient(180deg,#07172b,#0c2745)!important;color:#cbd5de!important}
+.demoContent{background:#f8f6f1!important}
+.demoTopline h3{font-family:Georgia,serif!important;color:#07172b!important}
+.demoMetricGrid article,.demoTableCard,.demoInsightGrid article{background:#fff!important;border-color:#e2dbcf!important}
+.phoneMock{border-color:#07172b!important;box-shadow:0 30px 68px rgba(7,23,43,.23)!important}
+.phonePrimary{background:#d8b264!important;color:#07172b!important}
+.planCard{background:#fff!important;border-color:#dcd3c4!important}
+.planCard.featured{border-color:#c89d4d!important;box-shadow:0 22px 50px rgba(163,119,38,.13)!important}
+
+@media(max-width:1100px){
+  .platformLanding .platformHero{grid-template-columns:1fr!important;min-height:auto!important;gap:30px!important;padding-top:62px!important;padding-bottom:68px!important}
+  .platformLanding .platformHero>div:first-child{max-width:760px!important}
+  .platformLanding .platformHeroCard{max-width:620px!important}
+}
+@media(max-width:980px){
+  .platformNav nav{display:none!important}
+  .platformLanding .trustGrid{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:700px){
+  .platformLanding .platformHero{padding:48px 20px 56px!important;gap:26px!important}
+  .platformLanding .platformHero h1{font-size:42px!important;line-height:1.02!important}
+  .platformLanding .platformHero p{font-size:15px!important}
+  .platformLanding .platformHeroCard{padding:18px!important;border-radius:18px!important}
+  .platformLanding .trustGrid{grid-template-columns:1fr!important}
+  .platformLanding .section{padding-top:58px!important;padding-bottom:58px!important}
+}
+@media(max-width:480px){
+  .platformActions .secondary{display:none!important}
+  .platformMiniGrid{grid-template-columns:1fr 1fr!important}
+  .platformLanding .platformHero h1{font-size:38px!important}
+}
