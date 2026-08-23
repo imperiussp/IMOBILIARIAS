@@ -7,15 +7,20 @@ export async function isImobiliariasBackend() {
   if (cached !== null) return cached;
   if (!supabaseBrowser) return false;
   if (pending) return pending;
-  pending = supabaseBrowser.rpc("project_identity").then(({ data, error }) => {
-    cached = !error && data === "IMOBILIARIAS";
-    pending = null;
-    return cached;
-  }).catch(() => {
-    cached = false;
-    pending = null;
-    return false;
-  });
+
+  pending = (async () => {
+    try {
+      const { data, error } = await supabaseBrowser.rpc("project_identity");
+      cached = !error && data === "IMOBILIARIAS";
+      return cached;
+    } catch {
+      cached = false;
+      return false;
+    } finally {
+      pending = null;
+    }
+  })();
+
   return pending;
 }
 
