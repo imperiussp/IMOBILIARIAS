@@ -54,7 +54,7 @@ if(!migrations.length)errors.push("nenhuma migration encontrada");
 else{
   const latest=migrations.at(-1);
   const n=Number(latest.slice(0,4));
-  if(n<129)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
+  if(n<133)errors.push(`migration mais recente inesperadamente antiga: ${latest}`);
   const requiredMigrationNames=[
     "0109_platform_release_controls.sql",
     "0116_runtime_action_gate.sql",
@@ -67,6 +67,10 @@ else{
     "0127_deployment_rollback_and_smoke_checks.sql",
     "0128_platform_deployment_releases.sql",
     "0129_production_requires_smoke_validated_release.sql",
+    "0130_final_rpc_execute_hardening.sql",
+    "0131_revoke_public_execute_inherited.sql",
+    "0132_revoke_trigger_rpc_execution.sql",
+    "0133_fix_property_storage_tenant_policies.sql",
   ];
   for(const file of requiredMigrationNames){if(!migrations.includes(file))errors.push(`migration de homologação ausente: ${file}`);}
 }
