@@ -11,34 +11,81 @@
   --vr-muted:#6d7b88;
 }
 
-/* PLATFORM LANDING — ensure the Premium V4 composition wins over legacy layers. */
 .platformLanding{background:var(--vr-paper)!important;color:var(--vr-ink)!important}
+
+/* HERO STABILITY — remove legacy grid/order conflicts completely. */
 .platformLanding .platformHero{
-  min-height:690px!important;
-  grid-template-columns:minmax(0,1.08fr) minmax(400px,.72fr)!important;
-  gap:72px!important;
-  align-items:center!important;
-  padding-top:92px!important;
-  padding-bottom:98px!important;
+  display:block!important;
+  grid-template-columns:none!important;
+  grid-auto-flow:row!important;
+  min-height:auto!important;
+  padding:76px max(24px,calc((100vw - 1220px)/2)) 84px!important;
   overflow:hidden!important;
 }
-.platformLanding .platformHero>div:first-child{min-width:0!important;width:100%!important;max-width:800px!important;position:relative!important;z-index:2!important}
-.platformLanding .platformHero h1{max-width:760px!important;width:100%!important;text-wrap:balance!important}
-.platformLanding .platformHero p{max-width:690px!important}
+.platformLanding .platformHero>div:first-child{
+  display:block!important;
+  position:relative!important;
+  inset:auto!important;
+  order:0!important;
+  grid-area:auto!important;
+  float:none!important;
+  clear:none!important;
+  width:min(100%,780px)!important;
+  max-width:780px!important;
+  min-width:0!important;
+  margin:0!important;
+  columns:auto!important;
+  column-width:auto!important;
+  writing-mode:horizontal-tb!important;
+  direction:ltr!important;
+  z-index:2!important;
+}
+.platformLanding .platformHero h1{
+  display:block!important;
+  width:100%!important;
+  max-width:760px!important;
+  margin:14px 0 22px!important;
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  writing-mode:horizontal-tb!important;
+  text-wrap:balance!important;
+}
+.platformLanding .platformHero p{
+  display:block!important;
+  width:100%!important;
+  max-width:690px!important;
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+}
+.platformLanding .platformHeroActions,
+.platformLanding .platformTrustLine{
+  width:100%!important;
+  max-width:760px!important;
+}
 .platformLanding .platformHeroCard{
   display:block!important;
   visibility:visible!important;
   opacity:1!important;
+  position:relative!important;
+  inset:auto!important;
+  order:0!important;
+  grid-area:auto!important;
+  float:none!important;
+  clear:both!important;
+  width:min(100%,620px)!important;
+  max-width:620px!important;
   min-width:0!important;
-  width:100%!important;
-  max-width:500px!important;
-  justify-self:end!important;
+  margin:34px 0 0 auto!important;
+  transform:none!important;
+  justify-self:auto!important;
+  align-self:auto!important;
   padding:26px!important;
   color:var(--vr-ink)!important;
   background:rgba(255,255,255,.98)!important;
   border:1px solid rgba(214,172,88,.44)!important;
   box-shadow:0 34px 85px rgba(0,0,0,.32)!important;
-  position:relative!important;
   z-index:1!important;
 }
 .platformLanding .platformHeroCard *{visibility:visible!important;opacity:1!important}
@@ -58,7 +105,7 @@
 .platformLanding .trustGrid article strong{font-size:22px!important}
 .platformLanding .trustGrid article p{font-size:14px!important}
 
-/* TENANT/ADMIN — restore width, hierarchy and comfortable density. */
+/* TENANT/ADMIN — preserve the visual recovery already applied. */
 .adminPage .container{max-width:1480px!important}
 .adminPage .adminNav{width:calc(100% - 36px)!important;max-width:1480px!important;margin:0 auto!important}
 .adminPage .adminShell{
@@ -91,42 +138,23 @@
 .adminPage .adminMetrics strong,.adminPage .platformMetrics strong{font-size:35px!important}
 .adminPage .adminTable thead th{font-size:10px!important;padding:14px 16px!important}
 .adminPage .adminTable tbody td{font-size:12px!important;padding:16px!important}
-
-/* Keep forms readable on wide desktop instead of looking like a narrow mobile card. */
 .adminPage .adminContent>.adminPanel,
 .adminPage .adminContent>.formCard,
 .adminPage .adminContent>form{width:100%!important;max-width:none!important}
-
-/* A half-screen desktop window must not squeeze the hero copy against the preview card. */
-@media(max-width:1280px){
-  .platformLanding .platformHero{
-    grid-template-columns:1fr!important;
-    min-height:auto!important;
-    gap:34px!important;
-    align-items:start!important;
-    padding-top:68px!important;
-    padding-bottom:72px!important;
-  }
-  .platformLanding .platformHero>div:first-child{max-width:780px!important}
-  .platformLanding .platformHero h1{max-width:760px!important}
-  .platformLanding .platformHeroCard{justify-self:start!important;max-width:620px!important;margin-top:4px!important}
-}
 
 @media(max-width:1180px){
   .adminPage .adminShell{grid-template-columns:220px minmax(0,1fr)!important;gap:20px!important}
 }
 @media(max-width:980px){
-  .platformLanding .platformHero{gap:30px!important}
-  .platformLanding .platformHeroCard{justify-self:start!important;max-width:680px!important}
   .adminPage .adminShell{display:block!important}
   .adminPage .adminSidebar{position:relative!important;top:auto!important;display:flex!important;overflow-x:auto!important;gap:6px!important;margin-bottom:18px!important}
   .adminPage .adminSidebar>strong{display:none!important}
   .adminPage .adminSidebar a{flex:0 0 auto!important;white-space:nowrap!important}
 }
-@media(max-width:700px){
-  .platformLanding .platformHero{padding-left:20px!important;padding-right:20px!important;padding-top:54px!important;padding-bottom:62px!important}
+@media(max-width:760px){
+  .platformLanding .platformHero{padding:54px 20px 62px!important}
   .platformLanding .platformHero h1{font-size:44px!important}
-  .platformLanding .platformHeroCard{padding:19px!important;border-radius:20px!important}
+  .platformLanding .platformHeroCard{margin-left:0!important;padding:19px!important;border-radius:20px!important}
   .adminPage .adminNav,.adminPage .adminShell{width:calc(100% - 24px)!important}
   .adminPage .adminHeading{padding:24px!important;min-height:auto!important}
   .adminPage .adminHeading h1{font-size:36px!important}
