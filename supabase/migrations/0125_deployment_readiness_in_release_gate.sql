@@ -45,7 +45,7 @@ begin
 
     select count(*)::bigint into tenant_security_failures
     from public.platform_tenant_security_audit()
-    where critical and not ok;
+    where status='critical';
     if tenant_security_failures > 0 then
       raise exception 'Produção bloqueada: a auditoria multi-imobiliária encontrou % falha(s) crítica(s).', tenant_security_failures;
     end if;
@@ -89,7 +89,7 @@ with controls as (
 ), domains as (
   select count(*) filter(where kind='custom' and verified=false)::bigint as pending_custom from public.agency_domains
 ), tenant_security as (
-  select count(*) filter(where critical and not ok)::bigint as critical_failures from public.platform_tenant_security_audit()
+  select count(*) filter(where status='critical')::bigint as critical_failures from public.platform_tenant_security_audit()
 ), validations as (
   select count(*) filter(where required_for_production and not validated)::bigint as required_pending from public.platform_release_validations
 ), deployment as (
