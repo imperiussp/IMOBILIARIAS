@@ -5,6 +5,24 @@ export const dynamic = "force-dynamic";
 
 const OFFICIAL_SUPABASE_PROJECT_REF = "rvjsonspplqelktzwusu";
 
+type RegistrationStatus = {
+  enabled: boolean;
+  environment_mode: string;
+  release_label: string | null;
+};
+
+type CatalogStatus = {
+  enabled: boolean;
+  maintenance_mode: boolean;
+  environment_mode: string;
+};
+
+function firstRow<T>(value: unknown): T | null {
+  if (Array.isArray(value) && value.length > 0) return value[0] as T;
+  if (value && typeof value === "object") return value as T;
+  return null;
+}
+
 export async function GET(){
   const url=String(process.env.NEXT_PUBLIC_SUPABASE_URL||"").trim();
   const publicKey=String(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"").trim();
@@ -18,6 +36,7 @@ export async function GET(){
     supabase_configured:Boolean(url&&publicKey),
     project_identity:false,
     project_ref_matches:false,
+    release_controls_available:false,
     indexing_enabled:allowIndexing,
     build_identity_present:Boolean(commitSha&&buildLabel),
   };
@@ -25,6 +44,8 @@ export async function GET(){
   let identity:string|null=null;
   let supabaseError:string|null=null;
   let urlRef:string|null=null;
+  let registration:RegistrationStatus|null=null;
+  let catalog:CatalogStatus|null=null;
 
   try{
     if(url){
@@ -39,23 +60,43 @@ export async function GET(){
   if(url&&publicKey){
     try{
       const client=createClient(url,publicKey,{auth:{persistSession:false,autoRefreshToken:false}});
-      const result=await client.rpc("project_identity");
-      if(result.error)supabaseError="project_identity_unavailable";
-      else{
-        identity=typeof result.data==="string"?result.data:null;
+      const [identityResult,registrationResult,catalogResult]=await Promise.all([
+        client.rpc("project_identity"),
+        client.rpc("platform_registration_status"),
+        client.rpc("platform_public_catalog_status"),
+      ]);
+
+      if(identityResult.error){
+        supabaseError="project_identity_unavailable";
+      }else{
+        identity=typeof identityResult.data==="string"?identityResult.data:null;
         checks.project_identity=identity==="IMOBILIARIAS";
       }
+
+      if(!registrationResult.error)registration=firstRow<RegistrationStatus>(registrationResult.data);
+      if(!catalogResult.error)catalog=firstRow<CatalogStatus>(catalogResult.data);
+      checks.release_controls_available=Boolean(registration&&catalog);
+
+      if(!supabaseError&&(registrationResult.error||catalogResult.error))supabaseError="release_controls_unavailable";
     }catch{
       supabaseError="supabase_unreachable";
     }
   }
 
+  const appEnvironment=registration?.environment_mode||catalog?.environment_mode||"unknown";
+  const releaseLabel=registration?.release_label||buildLabel;
   const healthy=checks.web&&checks.supabase_configured&&checks.project_identity&&checks.project_ref_matches;
   const body={
     service:"LENOY IMOBILIÁRIAS",
     status:healthy?"ok":"degraded",
-    environment:process.env.NODE_ENV||"unknown",
-    build:{commit_sha:commitSha,build_label:buildLabel},
+    environment:appEnvironment,
+    runtime:{node_env:process.env.NODE_ENV||"unknown"},
+    build:{commit_sha:commitSha,build_label:buildLabel,release_label:releaseLabel},
+    release:{
+      public_registration_enabled:registration?.enabled??null,
+      public_catalog_enabled:catalog?.enabled??null,
+      maintenance_mode:catalog?.maintenance_mode??null,
+    },
     checks,
     identity,
     error:supabaseError,
