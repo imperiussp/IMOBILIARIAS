@@ -16,7 +16,7 @@ export default function FirstAdminSetup() {
       setStatus("O Supabase exclusivo do IMOBILIARIAS ainda não está configurado.");
       return;
     }
-    const validBackend = await isImobiliariasBackend();
+    const validBackend = Boolean(await isImobiliariasBackend());
     setBackendValid(validBackend);
     if (!validBackend) {
       setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
@@ -40,7 +40,7 @@ export default function FirstAdminSetup() {
   async function claim() {
     if (!supabaseBrowser || !backendValid) return;
     setWorking(true);
-    const validBackend = await isImobiliariasBackend();
+    const validBackend = Boolean(await isImobiliariasBackend());
     if (!validBackend) {
       setWorking(false);
       setBackendValid(false);
