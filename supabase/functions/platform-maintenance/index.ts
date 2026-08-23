@@ -54,8 +54,12 @@ Deno.serve(async(request)=>{
 
   results.push(await callFunction("reconcile-outreach-provider-events",{"x-platform-maintenance-secret":maintenanceSecret}));
 
-  if(!billingSecret) results.push({name:"process-subscription-expiry",ok:false,configuration_error:true,error:"BILLING_MAINTENANCE_SECRET não configurado"});
-  else results.push(await callFunction("process-subscription-expiry",{"x-billing-maintenance-secret":billingSecret}));
+  if(controls.real_billing_enabled===true){
+    if(!billingSecret) results.push({name:"process-subscription-expiry",ok:false,configuration_error:true,error:"BILLING_MAINTENANCE_SECRET não configurado"});
+    else results.push(await callFunction("process-subscription-expiry",{"x-billing-maintenance-secret":billingSecret}));
+  } else {
+    results.push({name:"process-subscription-expiry",ok:true,skipped:true,reason:"release_gate_disabled"});
+  }
 
   const pendingDomains=await admin.from("agency_domains").select("id",{count:"exact",head:true}).eq("kind","custom").eq("verified",false);
   if(pendingDomains.error){
