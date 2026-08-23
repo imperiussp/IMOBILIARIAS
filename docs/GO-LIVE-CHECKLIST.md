@@ -11,7 +11,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Supabase exclusivo criado e identificado como `IMOBILIÁRIAS`.
 - [ ] `IMOBILIARIAS_SUPABASE_PROJECT_REF` e `SUPABASE_PROJECT_REF` configurados e coerentes com a URL do projeto.
 - [ ] `pnpm supabase:guard` aprovado.
-- [ ] Todas as migrations aplicadas em ordem até `0140_tenant_property_asset_read_isolation.sql`.
+- [ ] Todas as migrations aplicadas em ordem até `0141_core_rls_and_fk_performance_hardening.sql`.
 - [ ] `project_identity()` retorna `IMOBILIARIAS`.
 - [ ] `environment_mode=homologation`.
 - [ ] Novos cadastros, cobrança real, mensageria externa, IA e push desligados.
@@ -25,7 +25,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Typecheck mobile aprovado.
 - [ ] Migration safety aprovada.
 - [ ] Edge guards aprovados.
-- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0140`.
+- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0141`.
 
 ## Proteções de release implementadas
 
@@ -49,7 +49,12 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [x] `0134` — remoção conservadora de índice duplicado.
 - [x] `0139` — isolamento de leitura de imóveis publicados por tenant.
 - [x] `0140` — isolamento de leitura de assets/fotos de imóveis por tenant.
+- [x] `0141` — otimização conservadora de RLS e índices de FK para memberships, sincronização, favoritos e filtros de imóveis, sem ampliar escopo de acesso.
 - [x] agendador nativo seguro de manutenção — autenticação via Vault e execução sem secret exposto em código ou SQL aberto.
+
+### Observação sobre tabelas internas
+
+As tabelas `inbound_email_events`, `platform_maintenance_auth` e `platform_owner_bootstrap_tokens` usam RLS sem políticas de acesso público de forma intencional. `anon` e `authenticated` não devem receber privilégios diretos nessas tabelas. Não criar policies permissivas apenas para eliminar aviso do linter.
 
 ## Deploy web
 
