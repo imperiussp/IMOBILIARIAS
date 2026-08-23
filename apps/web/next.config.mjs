@@ -1,6 +1,7 @@
 const isPages = process.env.GITHUB_ACTIONS === "true";
 
 // Vercel rebuild marker after correcting the project Framework Preset to Next.js.
+// Production cleanup rebuild: temporary homologation routes removed from main.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: isPages,
