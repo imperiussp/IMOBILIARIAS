@@ -2,11 +2,15 @@ const isPages = process.env.GITHUB_ACTIONS === "true";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
-  trailingSlash: true,
-  images: { unoptimized: true },
-  basePath: isPages ? "/IMOBILIARIAS" : "",
-  assetPrefix: isPages ? "/IMOBILIARIAS/" : "",
+  trailingSlash: isPages,
+  images: { unoptimized: isPages },
+  ...(isPages
+    ? {
+        output: "export",
+        basePath: "/IMOBILIARIAS",
+        assetPrefix: "/IMOBILIARIAS/",
+      }
+    : {}),
 };
 
 export default nextConfig;
