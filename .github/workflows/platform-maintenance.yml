@@ -1,0 +1,46 @@
+name: Platform maintenance
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-maintenance
+  cancel-in-progress: false
+
+jobs:
+  run-maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require maintenance secret
+        shell: bash
+        env:
+          PLATFORM_MAINTENANCE_SECRET: ${{ secrets.PLATFORM_MAINTENANCE_SECRET }}
+        run: |
+          if [ -z "$PLATFORM_MAINTENANCE_SECRET" ]; then
+            echo "PLATFORM_MAINTENANCE_SECRET is not configured in GitHub Actions secrets."
+            exit 1
+          fi
+
+      - name: Run platform maintenance
+        shell: bash
+        env:
+          PLATFORM_MAINTENANCE_SECRET: ${{ secrets.PLATFORM_MAINTENANCE_SECRET }}
+        run: |
+          response_file="$(mktemp)"
+          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
+            --request POST \
+            --header 'content-type: application/json' \
+            --header "x-platform-maintenance-secret: $PLATFORM_MAINTENANCE_SECRET" \
+            'https://rvjsonspplqelktzwusu.supabase.co/functions/v1/platform-maintenance')"
+          cat "$response_file"
+          echo
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "platform-maintenance returned HTTP $status"
+            exit 1
+          fi
