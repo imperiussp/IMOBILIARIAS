@@ -11,7 +11,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Supabase exclusivo criado e identificado como `IMOBILIÁRIAS`.
 - [ ] `IMOBILIARIAS_SUPABASE_PROJECT_REF` e `SUPABASE_PROJECT_REF` configurados e coerentes com a URL do projeto.
 - [ ] `pnpm supabase:guard` aprovado.
-- [ ] Todas as migrations aplicadas em ordem até `0134_drop_duplicate_leads_broker_status_index.sql`.
+- [ ] Todas as migrations aplicadas em ordem até `0140_tenant_property_asset_read_isolation.sql`.
 - [ ] `project_identity()` retorna `IMOBILIARIAS`.
 - [ ] `environment_mode=homologation`.
 - [ ] Novos cadastros, cobrança real, mensageria externa, IA e push desligados.
@@ -25,7 +25,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Typecheck mobile aprovado.
 - [ ] Migration safety aprovada.
 - [ ] Edge guards aprovados.
-- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0134`.
+- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0140`.
 
 ## Proteções de release implementadas
 
@@ -47,6 +47,9 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [x] `0129` — produção exige release ativa com smoke aprovado.
 - [x] `0130–0133` — hardening final de RPC/permissões/storage.
 - [x] `0134` — remoção conservadora de índice duplicado.
+- [x] `0139` — isolamento de leitura de imóveis publicados por tenant.
+- [x] `0140` — isolamento de leitura de assets/fotos de imóveis por tenant.
+- [x] agendador nativo seguro de manutenção — autenticação via Vault e execução sem secret exposto em código ou SQL aberto.
 
 ## Deploy web
 
