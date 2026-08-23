@@ -30,14 +30,14 @@ O CI do `main` executa o mesmo caminho de validação. Não considerar um commit
 
 O deploy web deve receber:
 
-- `NEXT_PUBLIC_COMMIT_SHA=<sha do commit implantado>`
-- `NEXT_PUBLIC_BUILD_LABEL=<rótulo humano da release>`
+- `NEXT_PUBLIC_COMMIT_SHA=<sha do commit implantado>` ou usar o fallback seguro `VERCEL_GIT_COMMIT_SHA` na Vercel;
+- `NEXT_PUBLIC_BUILD_LABEL=<rótulo humano da release>`.
 
 O endpoint `/api/health` expõe esses valores. O smoke pós-deploy pode receber `EXPECTED_COMMIT_SHA` e falhar se o host estiver servindo outro commit.
 
 ## 4. Banco de dados
 
-1. Aplicar todas as migrations do repositório em ordem, atualmente até `0129_production_requires_smoke_validated_release.sql`.
+1. Aplicar todas as migrations do repositório em ordem, atualmente até `0134_drop_duplicate_leads_broker_status_index.sql`.
 2. Executar `select public.project_identity();` e confirmar retorno `IMOBILIARIAS`.
 3. Confirmar `environment_mode=homologation`.
 4. Manter novos cadastros, cobrança real, mensageria externa, IA e push desligados durante a primeira homologação.
@@ -56,14 +56,14 @@ Meta, Resend, InfinitePay, IA e push podem permanecer sem credenciais enquanto s
 Configurar pelo menos:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (preferencial) ou `NEXT_PUBLIC_SUPABASE_ANON_KEY` para compatibilidade
 - `NEXT_PUBLIC_PLATFORM_HOST=imoveis.lenoy.com.br`
 - `NEXT_PUBLIC_SITE_URL=https://imoveis.lenoy.com.br`
 - `NEXT_PUBLIC_ALLOW_INDEXING=false`
-- `NEXT_PUBLIC_COMMIT_SHA`
 - `NEXT_PUBLIC_BUILD_LABEL`
+- `NEXT_PUBLIC_COMMIT_SHA` quando o host não fornecer automaticamente o SHA
 
-Publicar a aplicação Next.js. GitHub Pages é apenas a prévia visual e não substitui o deploy real.
+Publicar a aplicação Next.js com Framework Preset **Next.js** e Root Directory `apps/web`. GitHub Pages é apenas a prévia visual e não substitui o deploy real.
 
 ## 7. DNS e HTTPS
 
@@ -75,7 +75,7 @@ Executar com HTTPS:
 
 `DEPLOYMENT_URL=https://SEU-HOST EXPECTED_COMMIT_SHA=<sha> pnpm smoke:deploy`
 
-O smoke valida home, login, `/api/health`, identidade do Supabase, status saudável, commit esperado e política de indexação.
+O smoke valida home, login, cadastro, imóvel, admin, `/api/health`, identidade do Supabase, status saudável, commit esperado, configuração do projeto e política de indexação.
 
 Somente um deploy com smoke `passed` pode ser marcado como release ativa em produção.
 
@@ -92,7 +92,9 @@ Não excluir releases históricas.
 
 ## 10. Manutenção automática
 
-Configurar `platform-maintenance` com `PLATFORM_MAINTENANCE_SECRET` e confirmar pelo menos uma execução `success=true` nas últimas 24 horas antes da promoção para produção.
+Configurar `platform-maintenance` com `PLATFORM_MAINTENANCE_SECRET` e um agendador seguro. Nunca gravar o secret no repositório ou em SQL em texto aberto.
+
+Confirmar pelo menos uma execução `success=true` nas últimas 24 horas antes da promoção para produção. Se `pg_cron`/`pg_net` não estiverem habilitados, manter o checkpoint como pendente até existir outro agendador seguro e comprovado.
 
 ## 11. Teste multi-imobiliária
 
@@ -118,7 +120,7 @@ Antes de produção, revisar:
 
 ## 14. Promoção para produção
 
-A proteção no banco deve recusar a promoção se faltarem requisitos obrigatórios. A partir da migration `0129`, produção também exige uma release ativa com smoke aprovado.
+A proteção no banco deve recusar a promoção se faltarem requisitos obrigatórios. As migrations de hardening posteriores a `0129` continuam obrigatórias e devem permanecer aplicadas.
 
 Somente depois da promoção validada habilite integrações comerciais deliberadamente, uma por vez. `NEXT_PUBLIC_ALLOW_INDEXING=true` só deve ser ligado no lançamento público intencional.
 
