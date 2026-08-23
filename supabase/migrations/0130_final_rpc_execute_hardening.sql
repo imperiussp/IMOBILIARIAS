@@ -3,8 +3,10 @@
 -- Também corrige search_path de trigger utilitário e endurece o registro de releases.
 -- EXCLUSIVO do Supabase IMOBILIARIAS.
 
--- PostgreSQL concede EXECUTE em novas funções para PUBLIC por padrão. Removemos o acesso
--- do papel anon de todas as funções existentes e reabrimos explicitamente só a superfície pública.
+-- PostgreSQL concede EXECUTE em novas funções para PUBLIC por padrão. Removemos primeiro
+-- o privilégio global implícito e também qualquer grant direto do papel anon; depois
+-- reabrimos explicitamente somente a superfície pública necessária ao site/onboarding.
+revoke execute on all functions in schema public from public;
 revoke execute on all functions in schema public from anon;
 
 -- RPCs deliberadamente públicos do site/onboarding.
