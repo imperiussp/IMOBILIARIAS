@@ -11,7 +11,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Supabase exclusivo criado e identificado como `IMOBILIÁRIAS`.
 - [ ] `IMOBILIARIAS_SUPABASE_PROJECT_REF` e `SUPABASE_PROJECT_REF` configurados e coerentes com a URL do projeto.
 - [ ] `pnpm supabase:guard` aprovado.
-- [ ] Todas as migrations aplicadas em ordem até `0141_core_rls_and_fk_performance_hardening.sql`.
+- [ ] Todas as migrations aplicadas em ordem até `0149_remove_redundant_lead_followup_select_policy.sql`.
 - [ ] `project_identity()` retorna `IMOBILIARIAS`.
 - [ ] `environment_mode=homologation`.
 - [ ] Novos cadastros, cobrança real, mensageria externa, IA e push desligados.
@@ -25,7 +25,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Typecheck mobile aprovado.
 - [ ] Migration safety aprovada.
 - [ ] Edge guards aprovados.
-- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0141`.
+- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0149`.
 
 ## Proteções de release implementadas
 
@@ -50,11 +50,27 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [x] `0139` — isolamento de leitura de imóveis publicados por tenant.
 - [x] `0140` — isolamento de leitura de assets/fotos de imóveis por tenant.
 - [x] `0141` — otimização conservadora de RLS e índices de FK para memberships, sincronização, favoritos e filtros de imóveis, sem ampliar escopo de acesso.
+- [x] `0142` — encerramento do bootstrap administrativo legado exposto ao cliente.
+- [x] `0143` — otimização de RLS em caminhos quentes de imóveis, fotos, leads, notificações e vínculos; índices de FK selecionados.
+- [x] `0144` — conclusão das otimizações `auth_rls_initplan` e correção do vínculo tenant em metas de corretores.
+- [x] `0145` — negação explícita de acesso cliente às tabelas internas sensíveis.
+- [x] `0146` — consolidação conservadora das primeiras policies permissivas duplicadas.
+- [x] `0147` — consolidação de RLS em imóveis, fotos, características vinculadas, leads, domínios, documentos, versões e assets.
+- [x] `0148` — consolidação operacional de RLS em assinatura, faturamento, convites, e-mails, IA, metas e catálogos auxiliares, mais índices de FK de CRM/visitas.
+- [x] `0149` — remoção da última policy permissiva duplicada em `lead_followups`.
 - [x] agendador nativo seguro de manutenção — autenticação via Vault e execução sem secret exposto em código ou SQL aberto.
 
 ### Observação sobre tabelas internas
 
-As tabelas `inbound_email_events`, `platform_maintenance_auth` e `platform_owner_bootstrap_tokens` usam RLS sem políticas de acesso público de forma intencional. `anon` e `authenticated` não devem receber privilégios diretos nessas tabelas. Não criar policies permissivas apenas para eliminar aviso do linter.
+As tabelas `inbound_email_events`, `platform_maintenance_auth` e `platform_owner_bootstrap_tokens` são internas. `anon` e `authenticated` não possuem privilégios diretos e, desde a migration `0145`, também existem policies explícitas de negação para esses papéis como defesa em profundidade. Não criar policies permissivas nessas tabelas apenas para eliminar avisos do linter.
+
+### Estado atual do linter de RLS
+
+- [x] Nenhum aviso `auth_rls_initplan` remanescente.
+- [x] Nenhum aviso `multiple_permissive_policies` remanescente após `0149`.
+- [ ] Avisos de `unindexed_foreign_keys` restantes devem ser tratados por prioridade de uso, sem criar índices indiscriminadamente.
+- [ ] Avisos de `SECURITY DEFINER` devem ser auditados função por função; funções públicas necessárias ao catálogo/lead não devem ser revogadas sem análise de fluxo.
+- [ ] Proteção contra senhas vazadas do Supabase Auth ainda precisa ser habilitada antes do go-live.
 
 ## Deploy web
 
