@@ -65,9 +65,10 @@ export default function RegisterForm() {
       setSlugState("idle");
       return;
     }
+    const client = supabaseBrowser;
     const timer = window.setTimeout(() => {
       setSlugState("checking");
-      void supabaseBrowser.rpc("agency_slug_available", { p_slug: slug }).then(({ data, error }) => {
+      void client.rpc("agency_slug_available", { p_slug: slug }).then(({ data, error }) => {
         if (error) setSlugState("idle");
         else setSlugState(data === true ? "available" : "unavailable");
       });
