@@ -9,9 +9,9 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 ## Preparação do ambiente
 
 - [ ] Supabase exclusivo criado e identificado como `IMOBILIÁRIAS`.
-- [ ] `IMOBILIARIAS_SUPABASE_PROJECT_REF` e `SUPABASE_PROJECT_REF` configurados e iguais.
+- [ ] `IMOBILIARIAS_SUPABASE_PROJECT_REF` e `SUPABASE_PROJECT_REF` configurados e coerentes com a URL do projeto.
 - [ ] `pnpm supabase:guard` aprovado.
-- [ ] Todas as migrations aplicadas em ordem até `0129_production_requires_smoke_validated_release.sql`.
+- [ ] Todas as migrations aplicadas em ordem até `0134_drop_duplicate_leads_broker_status_index.sql`.
 - [ ] `project_identity()` retorna `IMOBILIARIAS`.
 - [ ] `environment_mode=homologation`.
 - [ ] Novos cadastros, cobrança real, mensageria externa, IA e push desligados.
@@ -25,7 +25,7 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [ ] Typecheck mobile aprovado.
 - [ ] Migration safety aprovada.
 - [ ] Edge guards aprovados.
-- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md` e migration `0123`.
+- [ ] Kit de homologação íntegro, incluindo `POST-DEPLOY-CHECKLIST.md`, migration `0123` e migrations de hardening até `0134`.
 
 ## Proteções de release implementadas
 
@@ -45,12 +45,14 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [x] `0127` — rollback e smoke checks.
 - [x] `0128` — registro auditável de releases implantadas.
 - [x] `0129` — produção exige release ativa com smoke aprovado.
+- [x] `0130–0133` — hardening final de RPC/permissões/storage.
+- [x] `0134` — remoção conservadora de índice duplicado.
 
 ## Deploy web
 
-- [ ] `NEXT_PUBLIC_COMMIT_SHA` definido com o SHA implantado.
+- [ ] Build identifica o SHA implantado por `NEXT_PUBLIC_COMMIT_SHA` ou fallback seguro do host (`VERCEL_GIT_COMMIT_SHA`).
 - [ ] `NEXT_PUBLIC_BUILD_LABEL` definido com o rótulo da release.
-- [ ] Web publicado em host real de Next.js, não apenas GitHub Pages.
+- [ ] Web publicado em host real de Next.js, com Framework Preset Next.js e Root Directory `apps/web`.
 - [ ] `imoveis.lenoy.com.br` apontado para o host correto.
 - [ ] HTTPS/TLS válido.
 - [ ] `/api/health` retorna identidade `IMOBILIARIAS`, status saudável, commit e build label esperados.
@@ -63,6 +65,9 @@ Executar:
 
 - [ ] Home reconhecida.
 - [ ] Login reconhecido.
+- [ ] Cadastro reconhecido.
+- [ ] Imóvel reconhecido.
+- [ ] Admin reconhecido.
 - [ ] Health saudável.
 - [ ] Project identity correta.
 - [ ] Commit servido é exatamente o esperado.
@@ -72,7 +77,7 @@ Executar:
 
 - [ ] Commit, label, ambiente e URL registrados em **Versões implantadas**.
 - [ ] Smoke registrado como `passed` somente depois do teste real.
-- [ ] Release ativa somente depois de smoke aprovado.
+- [ ] Release ativa somente depois de smoke aprovado e demais evidências críticas.
 - [ ] Candidato a rollback somente se já validado anteriormente.
 - [ ] Histórico preservado, sem exclusão.
 
@@ -105,8 +110,8 @@ Criar duas imobiliárias e duas contas independentes.
 
 ## Manutenção e saúde
 
-- [ ] `PLATFORM_MAINTENANCE_SECRET` configurado.
-- [ ] Cron seguro apontando para `platform-maintenance`.
+- [ ] `PLATFORM_MAINTENANCE_SECRET` configurado no ambiente seguro da função.
+- [ ] Cron/agendador seguro apontando para `platform-maintenance` sem secret em código ou SQL aberto.
 - [ ] Pelo menos uma execução `success=true` nas últimas 24h.
 - [ ] Nenhum evento crítico de provedor atrasado.
 - [ ] Saúde de push/provedores sem falha crítica.
@@ -135,7 +140,7 @@ Depois de cada teste, manter o gate OFF se o lançamento comercial ainda não oc
 
 ## Promoção para produção
 
-A mudança para `production` deve ser recusada pelo banco se faltar requisito obrigatório. Desde `0129`, produção também exige release ativa com smoke aprovado.
+A mudança para `production` deve ser recusada pelo banco se faltar requisito obrigatório. A migration `0129` introduziu a exigência de release ativa com smoke aprovado e as migrations posteriores de hardening continuam obrigatórias.
 
 - [ ] Promoção executada sem burlar gates.
 - [ ] Integrações comerciais liberadas deliberadamente, uma por vez.
