@@ -1,6 +1,5 @@
 -- Evita que um domínio consulte diretamente o catálogo de outra imobiliária.
 -- O acesso público ao catálogo passa pelos RPCs que validam hostname + agency_id.
--- Esta migration substitui o antigo arquivo duplicado 0034_tenant_public_access_only.sql.
 
 revoke select on public.property_catalog from anon, authenticated;
 
@@ -22,13 +21,12 @@ as $$
   limit 1
 $$;
 
--- Fotos públicas também devem pertencer ao imóvel resolvido para o hostname.
 create or replace function public.public_property_photos_for_host(p_hostname text, p_property_id uuid)
 returns table (
   id uuid,
   storage_path text,
   thumbnail_path text,
-  position integer,
+  "position" integer,
   is_cover boolean,
   alt_text text
 )
@@ -51,7 +49,6 @@ as $$
   order by pp.is_cover desc, pp.position asc, pp.created_at asc
 $$;
 
--- SECURITY DEFINER: somente os papéis públicos necessários recebem EXECUTE.
 revoke all on function public.public_property_for_host(text, uuid) from public;
 revoke all on function public.public_property_photos_for_host(text, uuid) from public;
 grant execute on function public.public_property_for_host(text, uuid) to anon, authenticated;
