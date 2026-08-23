@@ -111,7 +111,10 @@ export default function AdminPropertyForm() {
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setMessage("");
+    event.preventDefault();
+    setMessage("");
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     if (!supabaseBrowser) return setMessage("Supabase ainda não configurado. O formulário está pronto, mas precisa das chaves do projeto para gravar.");
     if (!agencyId) return setMessage("Não foi possível identificar a imobiliária desta conta.");
 
@@ -119,7 +122,6 @@ export default function AdminPropertyForm() {
     if (limitResult.error) return setMessage(`Não foi possível validar o limite do plano: ${limitResult.error.message}`);
     if (limitResult.data === false) return setMessage("Seu plano atingiu o limite de imóveis ativos. Arquive um imóvel ou altere o plano antes de cadastrar outro.");
 
-    const form = new FormData(event.currentTarget);
     const title = String(form.get("title") || "").trim();
     const cityId = String(form.get("city_id") || "");
     const neighborhoodName = String(form.get("neighborhood") || "").trim();
@@ -170,7 +172,9 @@ export default function AdminPropertyForm() {
       await saveFeatures(result.data.id);
 
       setMessage(`Imóvel ${result.data.code} ${publicationState === "draft" ? "salvo como rascunho" : "publicado"}${photos.length ? ` com ${photos.length} foto(s)` : ""} em ${agencyName}.`);
-      event.currentTarget.reset(); setPhotos([]); setSelectedFeatures([]);
+      formElement.reset();
+      setPhotos([]);
+      setSelectedFeatures([]);
     } catch (error) {
       if (uploadedStoragePaths.length) await supabaseBrowser.storage.from("property-photos").remove(uploadedStoragePaths);
       if (createdPropertyId) {
