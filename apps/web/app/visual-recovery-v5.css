@@ -20,9 +20,10 @@
   align-items:center!important;
   padding-top:92px!important;
   padding-bottom:98px!important;
+  overflow:hidden!important;
 }
-.platformLanding .platformHero>div:first-child{min-width:0!important;max-width:800px!important}
-.platformLanding .platformHero h1{max-width:760px!important;text-wrap:balance!important}
+.platformLanding .platformHero>div:first-child{min-width:0!important;width:100%!important;max-width:800px!important;position:relative!important;z-index:2!important}
+.platformLanding .platformHero h1{max-width:760px!important;width:100%!important;text-wrap:balance!important}
 .platformLanding .platformHero p{max-width:690px!important}
 .platformLanding .platformHeroCard{
   display:block!important;
@@ -37,6 +38,8 @@
   background:rgba(255,255,255,.98)!important;
   border:1px solid rgba(214,172,88,.44)!important;
   box-shadow:0 34px 85px rgba(0,0,0,.32)!important;
+  position:relative!important;
+  z-index:1!important;
 }
 .platformLanding .platformHeroCard *{visibility:visible!important;opacity:1!important}
 .platformLanding .platformHeroCardTop{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:16px!important}
@@ -94,12 +97,26 @@
 .adminPage .adminContent>.formCard,
 .adminPage .adminContent>form{width:100%!important;max-width:none!important}
 
+/* A half-screen desktop window must not squeeze the hero copy against the preview card. */
+@media(max-width:1280px){
+  .platformLanding .platformHero{
+    grid-template-columns:1fr!important;
+    min-height:auto!important;
+    gap:34px!important;
+    align-items:start!important;
+    padding-top:68px!important;
+    padding-bottom:72px!important;
+  }
+  .platformLanding .platformHero>div:first-child{max-width:780px!important}
+  .platformLanding .platformHero h1{max-width:760px!important}
+  .platformLanding .platformHeroCard{justify-self:start!important;max-width:620px!important;margin-top:4px!important}
+}
+
 @media(max-width:1180px){
-  .platformLanding .platformHero{grid-template-columns:minmax(0,1fr) 420px!important;gap:42px!important}
   .adminPage .adminShell{grid-template-columns:220px minmax(0,1fr)!important;gap:20px!important}
 }
 @media(max-width:980px){
-  .platformLanding .platformHero{grid-template-columns:1fr!important;min-height:auto!important;gap:34px!important}
+  .platformLanding .platformHero{gap:30px!important}
   .platformLanding .platformHeroCard{justify-self:start!important;max-width:680px!important}
   .adminPage .adminShell{display:block!important}
   .adminPage .adminSidebar{position:relative!important;top:auto!important;display:flex!important;overflow-x:auto!important;gap:6px!important;margin-bottom:18px!important}
