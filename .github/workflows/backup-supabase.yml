@@ -1,3 +1,4 @@
+# Backup operacional do Supabase IMOBILIARIAS
 name: Backup Supabase
 
 on:
@@ -38,9 +39,58 @@ jobs:
       - name: Create database backup
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p backup/database backup/storage
-          pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-acl --file=backup/database/imobiliarias.dump
-          pg_dump "$SUPABASE_DB_URL" --schema-only --no-owner --no-acl --file=backup/database/schema.sql
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from urllib.parse import unquote
+
+          uri = os.environ["SUPABASE_DB_URL"].strip()
+          if uri.startswith("postgresql://"):
+              raw = uri[len("postgresql://"):]
+          elif uri.startswith("postgres://"):
+              raw = uri[len("postgres://"):]
+          else:
+              raise SystemExit("SUPABASE_DB_URL must start with postgresql:// or postgres://")
+
+          authority, database = raw.rsplit("/", 1)
+          userinfo, hostport = authority.rsplit("@", 1)
+          username, password = userinfo.split(":", 1)
+          host, port = hostport.rsplit(":", 1)
+
+          username = unquote(username)
+          password = unquote(password)
+          database = unquote(database.split("?", 1)[0]) or "postgres"
+
+          if not host.endswith(".pooler.supabase.com"):
+              raise SystemExit("SUPABASE_DB_URL is not a Supabase pooler URI")
+
+          env = os.environ.copy()
+          env["PGPASSWORD"] = password
+          env["PGSSLMODE"] = "require"
+
+          common = [
+              "pg_dump",
+              f"--host={host}",
+              f"--port={port}",
+              f"--username={username}",
+              f"--dbname={database}",
+              "--no-owner",
+              "--no-acl",
+          ]
+
+          subprocess.run(
+              common + ["--format=custom", "--file=backup/database/imobiliarias.dump"],
+              env=env,
+              check=True,
+          )
+          subprocess.run(
+              common + ["--schema-only", "--file=backup/database/schema.sql"],
+              env=env,
+              check=True,
+          )
+          PY
 
       - name: Backup Storage objects
         shell: bash
@@ -53,7 +103,7 @@ jobs:
           find backup/storage -type f | sort > backup/STORAGE_FILES.txt
           sha256sum backup/database/imobiliarias.dump backup/database/schema.sql > backup/SHA256SUMS.txt
 
-      - name: Upload encrypted-retention artifact
+      - name: Upload retention artifact
         uses: actions/upload-artifact@v4
         with:
           name: imobiliarias-supabase-backup-${{ github.run_id }}
