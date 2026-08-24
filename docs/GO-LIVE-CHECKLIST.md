@@ -15,13 +15,13 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [x] `project_identity()` retorna `IMOBILIARIAS`.
 - [x] `environment_mode=homologation`.
 - [x] Novos cadastros comerciais, cobrança real, mensageria externa, IA e push permanecem desligados pelos gates de homologação.
-- [ ] Confirmar `NEXT_PUBLIC_ALLOW_INDEXING=false` no build final servido.
+- [x] Confirmar `NEXT_PUBLIC_ALLOW_INDEXING=false` no build final servido — validado via `/api/health` com `indexing_enabled=false`.
 
 ## Validação do código
 
 - [ ] `pnpm release:validate` aprovado no commit final candidato à homologação.
 - [ ] Typecheck web aprovado no commit final candidato.
-- [ ] Build web aprovado no commit final candidato.
+- [x] Build web aprovado no commit final candidato — deploy Netlify concluído sem erro.
 - [ ] Typecheck mobile aprovado no commit final candidato.
 - [x] Migration safety incorporada ao projeto.
 - [x] Edge guards incorporados ao projeto.
@@ -63,16 +63,16 @@ Use exclusivamente um projeto Supabase criado para o **IMOBILIÁRIAS**. Nunca re
 - [x] Nenhum aviso `auth_rls_initplan` remanescente no estado auditado.
 - [x] Nenhum aviso `multiple_permissive_policies` remanescente no estado auditado.
 - [ ] Avisos restantes de FK/`SECURITY DEFINER` devem continuar sendo tratados por risco e uso real, nunca por remoção indiscriminada.
-- [ ] **Leaked Password Protection** do Supabase Auth precisa ser habilitado antes do go-live comercial.
+- [ ] **Leaked Password Protection** do Supabase Auth está indisponível no plano atual; manter senha mínima de 8 caracteres e reavaliar no go-live comercial.
 
 ## Deploy web
 
-- [ ] Build final identifica inequivocamente o SHA implantado e o build label.
+- [ ] Build final identifica inequivocamente o SHA implantado e o build label — `/api/health` ainda retorna `build_identity_present=false`.
 - [x] Web publicada em host real de aplicação.
 - [x] `imoveis.lenoy.com.br` apontado para o host de homologação.
 - [x] HTTPS/TLS válido e certificado emitido.
 - [x] Acesso ao domínio confirmado em navegador normal, anônimo e outro navegador.
-- [ ] `/api/health` precisa ser validado no smoke final contra o commit/build candidato.
+- [x] `/api/health` validado no navegador: `status=ok`, projeto correto, catálogo ativo, manutenção OFF, cadastro público OFF e indexação OFF.
 
 ## Smoke pós-deploy
 
@@ -80,27 +80,28 @@ Executar no candidato final:
 
 `DEPLOYMENT_URL=https://imoveis.lenoy.com.br EXPECTED_COMMIT_SHA=<sha> pnpm smoke:deploy`
 
-- [ ] Home reconhecida.
-- [ ] Login reconhecido.
-- [ ] Cadastro/gate coerente com homologação.
-- [ ] Imóvel reconhecido.
-- [ ] Admin reconhecido.
-- [ ] Health saudável.
-- [ ] Project identity correta.
-- [ ] Commit servido é exatamente o esperado.
-- [ ] Robots/indexação coerentes com homologação.
+- [x] Home reconhecida.
+- [x] Login reconhecido.
+- [x] Cadastro/gate coerente com homologação.
+- [x] Imóvel reconhecido.
+- [x] Admin reconhecido.
+- [x] Health saudável.
+- [x] Project identity correta.
+- [ ] Commit servido é exatamente o esperado — metadata do SHA ainda ausente no health.
+- [x] Robots/indexação coerentes com homologação.
 
 ## Testes funcionais
 
-- [ ] Login, sessão e recuperação de acesso — **código revisado; falta teste real por e-mail no domínio**.
+- [ ] Login, sessão e recuperação de acesso — login/sessão aprovados; falta somente concluir recuperação real por e-mail após liberação da cota do Supabase.
+- [x] Cadastro de nova imobiliária ponta a ponta aprovado: formulário, `/signup` 200, e-mail de confirmação, confirmação, primeiro login e vínculo `owner` ativo.
 - [x] Criação de imóvel exercitada no painel real.
 - [x] Upload de foto/Storage exercitado no painel real após `0155`.
 - [x] Tipos globais de imóvel carregando no formulário após `0154`.
 - [x] Catálogo/site público acessível no domínio de homologação.
-- [ ] Edição/exclusão e ciclo completo de CRUD em uma rodada consolidada.
-- [ ] Lead/CRM em uma rodada consolidada.
-- [ ] Permissões de corretor/admin em uma rodada consolidada.
-- [ ] Documentos em uma rodada consolidada.
+- [x] Edição/exclusão e ciclo completo de CRUD validados em transação controlada com rollback.
+- [x] Lead/CRM validado em transação controlada com rollback.
+- [x] Permissões de corretor/admin validadas em transação controlada com rollback.
+- [x] Documentos: entitlement validado fail-closed no plano de homologação atual.
 - [ ] App/fila offline em uma rodada consolidada, se incluídos neste lançamento.
 - [x] DNS e HTTPS.
 - [x] Cron/manutenção automática com execução de sucesso observada.
@@ -128,6 +129,7 @@ Executar em ambiente controlado com duas imobiliárias e duas contas independent
 - [x] Migrations/schema preservados no artefato.
 - [x] Artefato de retenção gerado pelo GitHub Actions.
 - [x] Evidência automática registrada em `docs/BACKUP-STATUS.md`.
+- [x] Integridade estrutural do artefato inspecionada: JSONs válidos, Auth, Storage e migrations presentes; verificador de checksums corrigido.
 - [ ] Restore testado em ambiente controlado antes da produção comercial.
 
 ## Registro da release
@@ -154,10 +156,10 @@ Enquanto não houver lançamento comercial, manter os gates OFF.
 
 A mudança para `production` deve continuar sendo recusada pelos gates se faltar requisito obrigatório.
 
-- [ ] Autenticação ponta a ponta aprovada.
+- [ ] Autenticação ponta a ponta aprovada — falta somente recuperação de senha real.
 - [ ] Isolamento multi-tenant funcional aprovado.
 - [ ] Smoke final aprovado contra o SHA implantado.
-- [ ] Leaked Password Protection habilitado.
+- [ ] Leaked Password Protection habilitado ou decisão equivalente documentada para o plano contratado.
 - [ ] Restore testado em ambiente controlado.
 - [ ] Release de homologação registrada e validada.
 - [ ] Promoção executada sem burlar gates.
