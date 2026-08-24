@@ -26,6 +26,12 @@ function safeRedirectTarget() {
   } catch { return ""; }
 }
 
+function safeBootstrapToken() {
+  if (typeof window === "undefined") return "";
+  const value = new URLSearchParams(window.location.search).get("bootstrap") || "";
+  return /^[A-Za-z0-9_-]{20,200}$/.test(value) ? value : "";
+}
+
 export default function RegisterForm() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,14 +43,16 @@ export default function RegisterForm() {
   const [registrationChecked,setRegistrationChecked]=useState(false);
   const [releaseLabel,setReleaseLabel]=useState("Homologação interna");
   const redirect = typeof window !== "undefined" ? safeRedirectTarget() : "";
+  const bootstrapToken = typeof window !== "undefined" ? safeBootstrapToken() : "";
   const invitationMode = redirect.startsWith("/convite/");
+  const bootstrapMode = !invitationMode && Boolean(bootstrapToken);
 
   useEffect(() => {
     if (!invitationMode && !slugTouched) setAgencySlug(slugify(agencyName));
   }, [agencyName, slugTouched, invitationMode]);
 
   useEffect(()=>{
-    if(invitationMode){setRegistrationOpen(true);setRegistrationChecked(true);return;}
+    if(invitationMode||bootstrapMode){setRegistrationOpen(true);setRegistrationChecked(true);return;}
     if(!isSupabaseConfigured||!supabaseBrowser){setRegistrationOpen(false);setRegistrationChecked(true);return;}
     let active=true;
     void supabaseBrowser.rpc("platform_registration_status").then(({data,error})=>{
@@ -56,7 +64,7 @@ export default function RegisterForm() {
       setRegistrationChecked(true);
     });
     return()=>{active=false;};
-  },[invitationMode]);
+  },[invitationMode,bootstrapMode]);
 
   useEffect(() => {
     if (invitationMode || !registrationOpen) { setSlugState("idle"); return; }
@@ -92,7 +100,7 @@ export default function RegisterForm() {
       setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
       return;
     }
-    if(!invitationMode){
+    if(!invitationMode&&!bootstrapMode){
       const gate=await supabaseBrowser.rpc("platform_registration_status");
       const row=Array.isArray(gate.data)?gate.data[0]:gate.data as any;
       if(gate.error||row?.enabled!==true){
@@ -142,6 +150,7 @@ export default function RegisterForm() {
           onboarding_kind: "agency_owner",
           agency_name: normalizedAgencyName,
           agency_slug: normalizedSlug,
+          ...(bootstrapMode ? { bootstrap_token: bootstrapToken } : {}),
         },
         emailRedirectTo: redirectTo,
       },
@@ -161,13 +170,13 @@ export default function RegisterForm() {
   }
 
   const loginHref = redirect ? `../login/?redirect=${encodeURIComponent(redirect)}` : "../login/";
-  const blocked=!invitationMode&&registrationChecked&&!registrationOpen;
+  const blocked=!invitationMode&&registrationChecked&&!registrationOpen&&!bootstrapMode;
 
   return (
     <form className="loginCard" onSubmit={submit}>
-      <span className="eyebrow">{invitationMode ? "CONVITE PARA EQUIPE" : "COMECE SUA IMOBILIÁRIA DIGITAL"}</span>
+      <span className="eyebrow">{invitationMode ? "CONVITE PARA EQUIPE" : bootstrapMode ? "HOMOLOGAÇÃO CONTROLADA" : "COMECE SUA IMOBILIÁRIA DIGITAL"}</span>
       <h1>{invitationMode ? "Criar conta para aceitar convite" : "Criar minha imobiliária"}</h1>
-      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Crie sua conta e receba automaticamente um site exclusivo dentro da plataforma."}</p>
+      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : bootstrapMode ? "Cadastro de teste autorizado por token de homologação de uso único." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Crie sua conta e receba automaticamente um site exclusivo dentro da plataforma."}</p>
 
       <label>Seu nome completo<input name="full_name" autoComplete="name" required maxLength={160} disabled={blocked} /></label>
       {!invitationMode ? <>
