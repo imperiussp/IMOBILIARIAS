@@ -36,13 +36,18 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - name: Remove dynamic health route from static package
-        run: rm -rf apps/web/app/api
-      - name: Build cPanel static package
-        run: pnpm build:web
-      - name: Add Apache defaults
+      - name: Prepare static build
         run: |
-          cat > apps/web/out/.htaccess <<'EOF'
+          rm -rf apps/web/app/api
+          mkdir -p cpanel-build
+      - name: Build and publish diagnostic/package
+        run: |
+          set +e
+          pnpm build:web > cpanel-build/build.log 2>&1
+          CODE=$?
+          echo "$CODE" > cpanel-build/status.txt
+          if [ "$CODE" -eq 0 ]; then
+            cat > apps/web/out/.htaccess <<'EOF'
           Options -Indexes
           DirectoryIndex index.html
           RewriteEngine On
@@ -54,17 +59,13 @@ jobs:
             Header always set Referrer-Policy "strict-origin-when-cross-origin"
           </IfModule>
           EOF
-          printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
-      - name: Create ZIP
-        run: |
-          mkdir -p cpanel-build
-          cd apps/web/out
-          zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .
-      - name: Publish ZIP in repository
-        run: |
+            printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
+            (cd apps/web/out && zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .)
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f cpanel-build/imobiliarias-cpanel.zip
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "build: publish cPanel package [skip netlify]"
-          git push
+          git add -f cpanel-build/status.txt cpanel-build/build.log
+          [ -f cpanel-build/imobiliarias-cpanel.zip ] && git add -f cpanel-build/imobiliarias-cpanel.zip
+          git commit -m "build: cPanel package result [skip netlify]" || true
+          git push || true
+          exit "$CODE"
