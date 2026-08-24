@@ -27,6 +27,7 @@ function money(value: number) { return new Intl.NumberFormat("pt-BR", { style: "
 export default function AdminLiveData() {
   const [agencyId, setAgencyId] = useState("");
   const [agencyName, setAgencyName] = useState("");
+  const [agencySlug, setAgencySlug] = useState("");
   const [liveProperties, setLiveProperties] = useState<LiveProperty[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -42,18 +43,22 @@ export default function AdminLiveData() {
   const [purposeFilter, setPurposeFilter] = useState("");
   const [publicationFilter, setPublicationFilter] = useState("");
 
+  const publicSiteUrl = agencySlug ? `https://${agencySlug}.imoveis.lenoy.com.br` : "";
+  const propertyUrl = (id: string) => publicSiteUrl ? `${publicSiteUrl}/imovel/?id=${encodeURIComponent(id)}` : "";
+
   async function load() {
     if (!supabaseBrowser) return;
     setLoading(true); setMessage("");
     const currentAgency = await getCurrentAgency();
     if (!currentAgency) {
-      setAgencyId(""); setAgencyName(""); setLiveProperties([]); setLeads([]); setBrokers([]);
+      setAgencyId(""); setAgencyName(""); setAgencySlug(""); setLiveProperties([]); setLeads([]); setBrokers([]);
       setMessage("Não foi possível identificar a imobiliária desta conta.");
       setLoading(false);
       return;
     }
     setAgencyId(currentAgency.agencyId);
     setAgencyName(currentAgency.agencyName);
+    setAgencySlug(currentAgency.agencySlug);
 
     const [propertyResult, leadResult, cityResult, typeResult, brokerResult] = await Promise.all([
       supabaseBrowser.from("properties").select("id,code,title,purpose,segment,zone,publication_state,status,price,bedrooms,suites,bathrooms,parking_spaces,built_area_m2,land_area_m2,featured,description,address,address_public,created_at,broker_id,city_id,neighborhood_id,property_type_id,cities(name,state_code),neighborhoods(name),property_types(name),brokers(name)").eq("agency_id", currentAgency.agencyId).order("created_at", { ascending: false }),
@@ -163,7 +168,7 @@ export default function AdminLiveData() {
 
   return (
     <>
-      {agencyName ? <div className="formNotice">Dados exibidos somente de <strong>{agencyName}</strong>.</div> : null}
+      {agencyName ? <div className="formNotice">Painel da imobiliária <strong>{agencyName}</strong>. {publicSiteUrl ? <><span>Site público: </span><a href={publicSiteUrl} target="_blank" rel="noreferrer">{publicSiteUrl.replace("https://", "")}</a></> : null}</div> : null}
       <div className="adminMetrics">
         <article><span>Total de imóveis</span><strong>{stats.total}</strong><small>{isSupabaseConfigured ? "Base desta imobiliária" : "Base demonstrativa"}</small></article>
         <article><span>Em negociação</span><strong>{stats.active}</strong><small>Disponíveis ou reservados</small></article>
@@ -172,17 +177,17 @@ export default function AdminLiveData() {
       </div>
 
       <div className="adminPanel" id="imoveis">
-        <div className="adminPanelHeader"><div><span className="eyebrow">CATÁLOGO</span><h2>Imóveis cadastrados</h2></div><div className="adminPanelTools"><span>{loading ? "Carregando..." : `${filteredProperties.length} exibido(s)`}</span>{isSupabaseConfigured && <button className="miniButton" type="button" onClick={() => void load()}>Atualizar</button>}</div></div>
+        <div className="adminPanelHeader"><div><span className="eyebrow">CATÁLOGO</span><h2>Imóveis cadastrados</h2></div><div className="adminPanelTools">{publicSiteUrl ? <a className="miniButton" href={publicSiteUrl} target="_blank" rel="noreferrer">Ver site da imobiliária</a> : null}<span>{loading ? "Carregando..." : `${filteredProperties.length} exibido(s)`}</span>{isSupabaseConfigured && <button className="miniButton" type="button" onClick={() => void load()}>Atualizar</button>}</div></div>
         {message && <div className="formMessage">{message}</div>}
         {isSupabaseConfigured ? <div className="adminFilters"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar código, título, cidade ou bairro" /><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="">Todos os status</option>{Object.entries(statusLabels).map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select><select value={purposeFilter} onChange={(e) => setPurposeFilter(e.target.value)}><option value="">Venda e locação</option><option value="sale">Venda</option><option value="rent">Locação</option></select><select value={publicationFilter} onChange={(e) => setPublicationFilter(e.target.value)}><option value="">Publicados e rascunhos</option><option value="published">Publicado</option><option value="draft">Rascunho</option></select><button className="miniButton" onClick={() => { setSearch(""); setStatusFilter(""); setPurposeFilter(""); setPublicationFilter(""); }}>Limpar</button></div> : null}
         <div className="adminTableWrap"><table className="adminTable"><thead><tr><th>Código</th><th>Imóvel</th><th>Local</th><th>Finalidade</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody>
           {!isSupabaseConfigured && demoProperties.map((property) => <tr key={property.code}><td><strong>{property.code}</strong></td><td>{property.title}</td><td>{property.city}</td><td>{property.purpose}</td><td>{property.price}</td><td><span className="statusPill">Disponível</span></td><td>Demo</td></tr>)}
-          {isSupabaseConfigured && filteredProperties.map((property) => <tr key={property.id}><td><strong>{property.code}</strong></td><td>{property.title}{property.publication_state === "draft" ? <span className="draftTag">Rascunho</span> : null}</td><td>{property.cities?.name ? `${property.cities.name}${property.cities.state_code ? ` - ${property.cities.state_code}` : ""}` : "—"}</td><td>{property.purpose === "sale" ? "Venda" : "Locação"}</td><td>{money(property.price)}</td><td><select className={`statusSelect status-${property.status}`} value={property.status} onChange={(event) => void changeStatus(property.id, event.target.value as LiveProperty["status"])}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td><div className="tableActions"><button className="miniButton" onClick={() => openEditing(property)}>Editar</button><button className="miniButton muted" onClick={() => void archiveProperty(property)} disabled={property.status === "inactive"}>Arquivar</button></div></td></tr>)}
+          {isSupabaseConfigured && filteredProperties.map((property) => <tr key={property.id}><td><strong>{property.code}</strong></td><td>{property.title}{property.publication_state === "draft" ? <span className="draftTag">Rascunho</span> : null}</td><td>{property.cities?.name ? `${property.cities.name}${property.cities.state_code ? ` - ${property.cities.state_code}` : ""}` : "—"}</td><td>{property.purpose === "sale" ? "Venda" : "Locação"}</td><td>{money(property.price)}</td><td><select className={`statusSelect status-${property.status}`} value={property.status} onChange={(event) => void changeStatus(property.id, event.target.value as LiveProperty["status"])}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td><div className="tableActions">{property.publication_state === "published" && property.status !== "inactive" && propertyUrl(property.id) ? <a className="miniButton" href={propertyUrl(property.id)} target="_blank" rel="noreferrer">Ver anúncio</a> : null}<button className="miniButton" onClick={() => openEditing(property)}>Editar</button><button className="miniButton muted" onClick={() => void archiveProperty(property)} disabled={property.status === "inactive"}>Arquivar</button></div></td></tr>)}
           {isSupabaseConfigured && !loading && filteredProperties.length === 0 && <tr><td colSpan={7}>Nenhum imóvel corresponde aos filtros.</td></tr>}
         </tbody></table></div>
       </div>
 
-      {editing ? <div className="adminPanel editPanel"><div className="adminPanelHeader"><div><span className="eyebrow">EDIÇÃO COMPLETA</span><h2>{editing.code} · {editing.title}</h2></div><button className="miniButton" onClick={() => setEditing(null)}>Fechar</button></div>
+      {editing ? <div className="adminPanel editPanel"><div className="adminPanelHeader"><div><span className="eyebrow">EDIÇÃO COMPLETA</span><h2>{editing.code} · {editing.title}</h2></div><div className="tableActions">{editing.publication_state === "published" && editing.status !== "inactive" && propertyUrl(editing.id) ? <a className="miniButton" href={propertyUrl(editing.id)} target="_blank" rel="noreferrer">Ver anúncio</a> : null}<button className="miniButton" onClick={() => setEditing(null)}>Fechar</button></div></div>
         <div className="propertyForm">
           <label>Título<input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} /></label>
           <div className="formGrid three"><label>Finalidade<select value={editing.purpose} onChange={(e) => setEditing({ ...editing, purpose: e.target.value as LiveProperty["purpose"] })}><option value="sale">Venda</option><option value="rent">Locação</option></select></label><label>Uso<select value={editing.segment || "residential"} onChange={(e) => setEditing({ ...editing, segment: e.target.value as LiveProperty["segment"] })}><option value="residential">Residencial</option><option value="commercial">Comercial</option></select></label><label>Zona<select value={editing.zone || "urban"} onChange={(e) => setEditing({ ...editing, zone: e.target.value as LiveProperty["zone"] })}><option value="urban">Urbana</option><option value="rural">Rural</option></select></label></div>
