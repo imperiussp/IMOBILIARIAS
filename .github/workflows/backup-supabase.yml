@@ -63,8 +63,11 @@ jobs:
           if [ -f supabase/config.toml ]; then cp supabase/config.toml backup/schema/config.toml; fi
 
           printf 'backup_type=logical-operational\ncommit=%s\ncreated_utc=%s\nproject=rvjsonspplqelktzwusu\nrestore_schema_from=supabase/migrations\nauth_passwords_included=no\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > backup/MANIFEST.txt
-          find backup/storage -type f | sort > backup/STORAGE_FILES.txt
-          find backup -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > backup/SHA256SUMS.txt
+          (
+            cd backup || exit 96
+            find storage -type f | sort > STORAGE_FILES.txt
+            find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum | sed 's#  \./#  #' > SHA256SUMS.txt
+          )
 
           echo "data_exit=$DATA_EXIT" >> "$GITHUB_OUTPUT"
           echo "storage_exit=$STORAGE_EXIT" >> "$GITHUB_OUTPUT"
