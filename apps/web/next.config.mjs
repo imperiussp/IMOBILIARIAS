@@ -1,5 +1,6 @@
 const cpanelExport = process.env.CPANEL_EXPORT === "1";
-const isPages = process.env.GITHUB_ACTIONS === "true" && !cpanelExport;
+const cpanelStandalone = process.env.CPANEL_STANDALONE === "1";
+const isPages = process.env.GITHUB_ACTIONS === "true" && !cpanelExport && !cpanelStandalone;
 const isStaticExport = isPages || cpanelExport;
 
 const commitSha =
@@ -21,11 +22,12 @@ const nextConfig = {
   images: { unoptimized: isStaticExport },
   env: {
     NEXT_PUBLIC_COMMIT_SHA: commitSha,
-    NEXT_PUBLIC_BUILD_LABEL: buildSeed ? `${cpanelExport ? "cpanel" : "netlify"}-${buildSeed.slice(0, 12)}` : "",
+    NEXT_PUBLIC_BUILD_LABEL: buildSeed ? `${cpanelExport ? "cpanel" : cpanelStandalone ? "cpanel-standalone" : "netlify"}-${buildSeed.slice(0, 12)}` : "",
     NEXT_PUBLIC_ALLOW_INDEXING: "true",
     NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br",
   },
   ...(isStaticExport ? { output: "export" } : {}),
+  ...(cpanelStandalone ? { output: "standalone" } : {}),
   ...(isPages
     ? {
         basePath: "/IMOBILIARIAS",
