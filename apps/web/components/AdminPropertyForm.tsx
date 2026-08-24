@@ -22,6 +22,7 @@ function propertyCode() {
 export default function AdminPropertyForm() {
   const [agencyId, setAgencyId] = useState("");
   const [agencyName, setAgencyName] = useState("");
+  const [agencySlug, setAgencySlug] = useState("");
   const [cities, setCities] = useState<Option[]>([]);
   const [types, setTypes] = useState<Option[]>([]);
   const [brokers, setBrokers] = useState<BrokerOption[]>([]);
@@ -30,6 +31,10 @@ export default function AdminPropertyForm() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [createdPropertyId, setCreatedPropertyId] = useState("");
+
+  const publicSiteUrl = agencySlug ? `https://${agencySlug}.imoveis.lenoy.com.br` : "";
+  const createdPropertyUrl = createdPropertyId && publicSiteUrl ? `${publicSiteUrl}/imovel/?id=${encodeURIComponent(createdPropertyId)}` : "";
 
   useEffect(() => {
     if (!supabaseBrowser) return;
@@ -43,6 +48,7 @@ export default function AdminPropertyForm() {
       }
       setAgencyId(currentAgency.agencyId);
       setAgencyName(currentAgency.agencyName);
+      setAgencySlug(currentAgency.agencySlug);
 
       const [cityResult, typeResult, brokerResult, featureResult] = await Promise.all([
         supabaseBrowser.from("cities").select("id,name,state_code").order("name"),
@@ -113,13 +119,14 @@ export default function AdminPropertyForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    setCreatedPropertyId("");
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    if (!supabaseBrowser) return setMessage("Supabase ainda não configurado. O formulário está pronto, mas precisa das chaves do projeto para gravar.");
+    if (!supabaseBrowser) return setMessage("O cadastro está temporariamente indisponível. Tente novamente em instantes.");
     if (!agencyId) return setMessage("Não foi possível identificar a imobiliária desta conta.");
 
     const limitResult = await supabaseBrowser.rpc("agency_can_create_property", { p_agency_id: agencyId });
-    if (limitResult.error) return setMessage(`Não foi possível validar o limite do plano: ${limitResult.error.message}`);
+    if (limitResult.error) return setMessage("Não foi possível validar o limite do plano agora. Tente novamente.");
     if (limitResult.data === false) return setMessage("Seu plano atingiu o limite de imóveis ativos. Arquive um imóvel ou altere o plano antes de cadastrar outro.");
 
     const title = String(form.get("title") || "").trim();
@@ -136,7 +143,7 @@ export default function AdminPropertyForm() {
     if (photos.length > 20) return setMessage("Use no máximo 20 fotos por imóvel.");
 
     setSaving(true);
-    let createdPropertyId = "";
+    let createdPropertyIdLocal = "";
     let uploadedStoragePaths: string[] = [];
     try {
       let neighborhoodId: string | null = null;
@@ -166,30 +173,31 @@ export default function AdminPropertyForm() {
 
       const result = await supabaseBrowser.from("properties").insert(payload).select("id,code").single();
       if (result.error) throw result.error;
-      createdPropertyId = result.data.id;
+      createdPropertyIdLocal = result.data.id;
 
       uploadedStoragePaths = await uploadPhotos(result.data.id, title);
       await saveFeatures(result.data.id);
 
-      setMessage(`Imóvel ${result.data.code} ${publicationState === "draft" ? "salvo como rascunho" : "publicado"}${photos.length ? ` com ${photos.length} foto(s)` : ""} em ${agencyName}.`);
+      setCreatedPropertyId(result.data.id);
+      setMessage(publicationState === "draft" ? "Imóvel salvo como rascunho com sucesso." : "Imóvel publicado com sucesso.");
       formElement.reset();
       setPhotos([]);
       setSelectedFeatures([]);
     } catch (error) {
       if (uploadedStoragePaths.length) await supabaseBrowser.storage.from("property-photos").remove(uploadedStoragePaths);
-      if (createdPropertyId) {
-        await supabaseBrowser.from("property_feature_links").delete().eq("property_id", createdPropertyId);
-        await supabaseBrowser.from("property_photos").delete().eq("property_id", createdPropertyId);
-        await supabaseBrowser.from("properties").delete().eq("id", createdPropertyId).eq("agency_id", agencyId);
+      if (createdPropertyIdLocal) {
+        await supabaseBrowser.from("property_feature_links").delete().eq("property_id", createdPropertyIdLocal);
+        await supabaseBrowser.from("property_photos").delete().eq("property_id", createdPropertyIdLocal);
+        await supabaseBrowser.from("properties").delete().eq("id", createdPropertyIdLocal).eq("agency_id", agencyId);
       }
-      setMessage(error instanceof Error ? error.message : String(error));
+      setMessage("Não foi possível salvar o imóvel. Revise os dados e tente novamente.");
     } finally { setSaving(false); }
   }
 
   return (
     <form className="propertyForm" onSubmit={submit}>
-      {!isSupabaseConfigured && <div className="formNotice">Modo demonstração: configure o Supabase para ativar a gravação real.</div>}
-      {agencyName ? <div className="formNotice">Imobiliária: <strong>{agencyName}</strong> · o limite do plano é validado antes de cada novo cadastro.</div> : null}
+      {!isSupabaseConfigured && <div className="formNotice">Cadastro temporariamente indisponível neste ambiente.</div>}
+      {agencyName ? <div className="formNotice">Imobiliária: <strong>{agencyName}</strong>{publicSiteUrl ? <> · <a href={publicSiteUrl} target="_blank" rel="noreferrer">Abrir site público</a></> : null}</div> : null}
       <label>Título do imóvel<input name="title" placeholder="Ex.: Casa com 3 quartos no Centro" required /></label>
       <div className="formGrid three"><label>Finalidade<select name="purpose" defaultValue="sale"><option value="sale">Venda</option><option value="rent">Locação</option></select></label><label>Uso<select name="segment" defaultValue="residential"><option value="residential">Residencial</option><option value="commercial">Comercial</option></select></label><label>Zona<select name="zone" defaultValue="urban"><option value="urban">Urbana</option><option value="rural">Rural</option></select></label></div>
       <div className="formGrid"><label>Cidade<select name="city_id" required defaultValue=""><option value="">Selecione</option>{cities.map((city) => <option key={city.id} value={city.id}>{city.name}{city.state_code ? ` - ${city.state_code}` : ""}</option>)}</select></label><label>Bairro<input name="neighborhood" placeholder="Centro" /></label></div>
@@ -203,8 +211,8 @@ export default function AdminPropertyForm() {
       {features.length > 0 ? <fieldset className="featurePicker"><legend>Características</legend><div>{features.map((feature) => <label className="featureOption" key={feature.id}><input type="checkbox" checked={selectedFeatures.includes(feature.id)} onChange={(event) => setSelectedFeatures((current) => event.target.checked ? [...current, feature.id] : current.filter((id) => id !== feature.id))} /> {feature.name}</label>)}</div></fieldset> : null}
       <label className="uploadBox">Fotos do imóvel<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPhotos(Array.from(event.target.files || []).slice(0, 20))} /><span>{photos.length ? `${photos.length} foto(s) selecionada(s). A primeira será a capa.` : "Selecione até 20 fotos. O sistema otimiza as imagens e gera miniaturas automaticamente."}</span></label>
       <label className="checkLabel"><input type="checkbox" name="featured" /> Destacar imóvel na vitrine</label>
-      {message && <div className="formMessage">{message}</div>}
-      <div className="formActions"><button type="reset" className="button secondary" onClick={() => { setPhotos([]); setSelectedFeatures([]); }}>Limpar</button><button type="submit" className="button primary" disabled={saving || !agencyId}>{saving ? "Salvando..." : "Salvar imóvel"}</button></div>
+      {message && <div className="formMessage">{message}{createdPropertyUrl ? <div className="formActions" style={{ marginTop: 10 }}><a className="button secondary" href="#imoveis">Ver imóveis cadastrados</a><a className="button primary" href={createdPropertyUrl} target="_blank" rel="noreferrer">Ver anúncio</a></div> : null}</div>}
+      <div className="formActions"><button type="reset" className="button secondary" onClick={() => { setPhotos([]); setSelectedFeatures([]); setCreatedPropertyId(""); setMessage(""); }}>Limpar</button><button type="submit" className="button primary" disabled={saving || !agencyId}>{saving ? "Salvando..." : "Salvar imóvel"}</button></div>
     </form>
   );
 }
