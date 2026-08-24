@@ -14,7 +14,7 @@ on:
     - cron: "17 6 * * *"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: backup-supabase
@@ -30,39 +30,98 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate backup secret
+      - name: Run logical backup
+        id: logical_backup
         shell: bash
         run: |
-          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "Missing SUPABASE_SERVICE_ROLE_KEY secret"; exit 1; }
+          set +e
+          mkdir -p backup/database backup/storage backup/schema backup/logs
 
-      - name: Export application data
-        shell: bash
-        run: |
-          mkdir -p backup/database backup/storage backup/schema
-          python3 scripts/backup_supabase_data.py backup/database
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Missing SUPABASE_SERVICE_ROLE_KEY secret" > backup/logs/data.log
+            DATA_EXIT=99
+          else
+            python3 scripts/backup_supabase_data.py backup/database > backup/logs/data.log 2>&1
+            DATA_EXIT=$?
+          fi
 
-      - name: Backup Storage objects
-        shell: bash
-        run: python3 scripts/backup_supabase_storage.py backup/storage
+          if [ "$DATA_EXIT" -eq 0 ]; then
+            python3 scripts/backup_supabase_storage.py backup/storage > backup/logs/storage.log 2>&1
+            STORAGE_EXIT=$?
+          else
+            echo "Skipped because data export failed." > backup/logs/storage.log
+            STORAGE_EXIT=98
+          fi
 
-      - name: Preserve schema migrations
-        shell: bash
-        run: |
-          mkdir -p backup/schema
-          cp -a supabase/migrations backup/schema/migrations
+          if [ -d supabase/migrations ]; then
+            cp -a supabase/migrations backup/schema/migrations
+            SCHEMA_EXIT=0
+          else
+            echo "supabase/migrations directory missing" > backup/logs/schema.log
+            SCHEMA_EXIT=97
+          fi
           if [ -f supabase/config.toml ]; then cp supabase/config.toml backup/schema/config.toml; fi
 
-      - name: Write manifest and checksums
-        shell: bash
-        run: |
           printf 'backup_type=logical-operational\ncommit=%s\ncreated_utc=%s\nproject=rvjsonspplqelktzwusu\nrestore_schema_from=supabase/migrations\nauth_passwords_included=no\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > backup/MANIFEST.txt
           find backup/storage -type f | sort > backup/STORAGE_FILES.txt
           find backup -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > backup/SHA256SUMS.txt
 
-      - name: Upload retention artifact
+          echo "data_exit=$DATA_EXIT" >> "$GITHUB_OUTPUT"
+          echo "storage_exit=$STORAGE_EXIT" >> "$GITHUB_OUTPUT"
+          echo "schema_exit=$SCHEMA_EXIT" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload backup artifact
+        if: steps.logical_backup.outputs.data_exit == '0' && steps.logical_backup.outputs.storage_exit == '0' && steps.logical_backup.outputs.schema_exit == '0'
         uses: actions/upload-artifact@v4
         with:
           name: imobiliarias-supabase-backup-${{ github.run_id }}
           path: backup/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Record backup status
+        shell: bash
+        env:
+          DATA_EXIT: ${{ steps.logical_backup.outputs.data_exit }}
+          STORAGE_EXIT: ${{ steps.logical_backup.outputs.storage_exit }}
+          SCHEMA_EXIT: ${{ steps.logical_backup.outputs.schema_exit }}
+        run: |
+          mkdir -p docs
+          if [ "$DATA_EXIT" = "0" ] && [ "$STORAGE_EXIT" = "0" ] && [ "$SCHEMA_EXIT" = "0" ]; then
+            RESULT="SUCCESS"
+          else
+            RESULT="FAILURE"
+          fi
+          {
+            echo "# Supabase Backup Status"
+            echo
+            echo "- Result: **$RESULT**"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Run: \`$GITHUB_RUN_ID\`"
+            echo "- Checked at UTC: \`$(date -u +%FT%TZ)\`"
+            echo "- Data export exit: \`$DATA_EXIT\`"
+            echo "- Storage export exit: \`$STORAGE_EXIT\`"
+            echo "- Schema copy exit: \`$SCHEMA_EXIT\`"
+            echo
+            echo "## Diagnostic tail"
+            echo '```text'
+            echo "[data]"
+            tail -n 12 backup/logs/data.log 2>/dev/null || true
+            echo "[storage]"
+            tail -n 12 backup/logs/storage.log 2>/dev/null || true
+            echo "[schema]"
+            tail -n 12 backup/logs/schema.log 2>/dev/null || true
+            echo '```'
+          } > docs/BACKUP-STATUS.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/BACKUP-STATUS.md
+          git diff --cached --quiet || git commit -m "chore: record Supabase backup status [skip netlify]"
+          git push
+
+      - name: Fail workflow when backup is incomplete
+        if: steps.logical_backup.outputs.data_exit != '0' || steps.logical_backup.outputs.storage_exit != '0' || steps.logical_backup.outputs.schema_exit != '0'
+        shell: bash
+        run: exit 1
