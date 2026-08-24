@@ -6,7 +6,7 @@ import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Profile = { user_id: string; email: string | null; full_name: string | null; phone: string | null; created_at: string };
 type Membership = { user_id: string; role: "owner" | "admin" | "broker" | "staff"; active: boolean; created_at: string };
-type Broker = { id: string; name: string; user_id: string | null; active: boolean };
+type Broker = { id: string; name: string; user_id: string | null; photo_url: string | null; active: boolean };
 
 export default function AdminUsers() {
   const [agencyId, setAgencyId] = useState("");
@@ -25,7 +25,7 @@ export default function AdminUsers() {
 
     const [membershipResult, brokersResult] = await Promise.all([
       supabaseBrowser.from("agency_memberships").select("user_id,role,active,created_at").eq("agency_id", resolvedAgencyId).eq("active", true).order("created_at"),
-      supabaseBrowser.from("brokers").select("id,name,user_id,active").eq("agency_id", resolvedAgencyId).order("name"),
+      supabaseBrowser.from("brokers").select("id,name,user_id,photo_url,active").eq("agency_id", resolvedAgencyId).order("name"),
     ]);
 
     if (membershipResult.error || brokersResult.error) {
@@ -113,8 +113,12 @@ export default function AdminUsers() {
         const linkedBroker = brokerByUser.get(profile.user_id);
         const role = membership?.role;
         const protectedOwner = role === "owner";
+        const displayName = profile.full_name || linkedBroker?.name || "Usuário sem nome";
         return <article className="accessRow" key={profile.user_id}>
-          <div className="accessIdentity"><strong>{profile.full_name || "Usuário sem nome"}</strong><span>{profile.email || "E-mail não disponível"}</span><small>{role === "owner" ? "Proprietário" : role === "admin" ? "Administrador" : role === "broker" ? `Corretor${linkedBroker ? ` · ${linkedBroker.name}` : ""}` : "Equipe"}</small></div>
+          <div className="accessIdentityWithPhoto">
+            {linkedBroker?.photo_url ? <img className="accessAvatar" src={linkedBroker.photo_url} alt={linkedBroker.name} /> : <div className="accessAvatar accessAvatarFallback">{displayName.slice(0,1).toUpperCase()}</div>}
+            <div className="accessIdentity"><strong>{displayName}</strong><span>{profile.email || "E-mail não disponível"}</span><small>{role === "owner" ? "Proprietário" : role === "admin" ? "Administrador" : role === "broker" ? `Corretor${linkedBroker ? ` · ${linkedBroker.name}` : ""}` : "Equipe"}</small></div>
+          </div>
           <div className="accessActions">
             {!protectedOwner && canManage ? <>
               {currentRole === "owner" ? <button className="miniButton" disabled={working === profile.user_id} onClick={() => void grant(profile.user_id, "admin")}>Administrador</button> : null}
