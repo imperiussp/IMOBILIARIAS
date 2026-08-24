@@ -12,9 +12,6 @@ const buildSeed =
   commitSha ||
   "";
 
-// Vercel rebuild marker after correcting the project Framework Preset to Next.js.
-// Production cleanup rebuild: temporary homologation routes removed from main.
-// Synchronize Vercel production with the latest hardened main branch.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: isPages,
@@ -22,6 +19,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_COMMIT_SHA: commitSha,
     NEXT_PUBLIC_BUILD_LABEL: buildSeed ? `netlify-${buildSeed.slice(0, 12)}` : "",
+    NEXT_PUBLIC_ALLOW_INDEXING: "true",
+    NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br",
   },
   ...(isPages
     ? {
