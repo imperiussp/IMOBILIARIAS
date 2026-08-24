@@ -43,6 +43,30 @@
 .adminPage .adminPropertyCell strong{display:block!important}
 .adminPage .adminPropertyCell .tableSub{display:block!important;margin-top:3px!important}
 
+/* Cards que citam um imóvel também recebem capa + nome como identidade principal. */
+.adminPage .adminPropertyCardIdentity{
+  display:grid!important;
+  grid-template-columns:76px minmax(0,1fr)!important;
+  column-gap:11px!important;
+  align-items:center!important;
+}
+.adminPage .adminPropertyCardIdentity .adminPropertyThumb{
+  grid-row:1 / span 4!important;
+  width:76px!important;
+  height:56px!important;
+  margin:0!important;
+}
+.adminPage .adminPropertyCardIdentity strong,
+.adminPage .adminPropertyCardIdentity span,
+.adminPage .adminPropertyCardIdentity small{
+  grid-column:2!important;
+}
+.adminPage .adminPropertyCardIdentity .adminPropertyCode{
+  color:#87919a!important;
+  font-size:10px!important;
+  letter-spacing:.025em!important;
+}
+
 /* Ações do imóvel na mesma linha, sem empilhar desnecessariamente. */
 .adminPage #imoveis .adminPropertyActionsCell,
 .adminPage #imoveis .adminPropertyActionsRow{
