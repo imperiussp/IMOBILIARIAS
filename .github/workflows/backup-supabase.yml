@@ -3,6 +3,13 @@ name: Backup Supabase
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/backup-supabase.yml"
+      - "scripts/backup_supabase_data.py"
+      - "scripts/backup_supabase_storage.py"
   schedule:
     - cron: "17 6 * * *"
 
