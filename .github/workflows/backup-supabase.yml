@@ -1,0 +1,62 @@
+name: Backup Supabase
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-supabase
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: https://rvjsonspplqelktzwusu.supabase.co
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate backup secrets
+        shell: bash
+        run: |
+          test -n "$SUPABASE_DB_URL" || { echo "Missing SUPABASE_DB_URL secret"; exit 1; }
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "Missing SUPABASE_SERVICE_ROLE_KEY secret"; exit 1; }
+
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Create database backup
+        shell: bash
+        run: |
+          mkdir -p backup/database backup/storage
+          pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-acl --file=backup/database/imobiliarias.dump
+          pg_dump "$SUPABASE_DB_URL" --schema-only --no-owner --no-acl --file=backup/database/schema.sql
+
+      - name: Backup Storage objects
+        shell: bash
+        run: python3 scripts/backup_supabase_storage.py backup/storage
+
+      - name: Write manifest
+        shell: bash
+        run: |
+          printf 'commit=%s\ncreated_utc=%s\nproject=rvjsonspplqelktzwusu\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > backup/MANIFEST.txt
+          find backup/storage -type f | sort > backup/STORAGE_FILES.txt
+          sha256sum backup/database/imobiliarias.dump backup/database/schema.sql > backup/SHA256SUMS.txt
+
+      - name: Upload encrypted-retention artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: imobiliarias-supabase-backup-${{ github.run_id }}
+          path: backup/
+          if-no-files-found: error
+          retention-days: 14
