@@ -11,22 +11,19 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: cpanel-node-package
-  cancel-in-progress: true
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  NODE_ENV: "production"
+  NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br"
+  NEXT_PUBLIC_ALLOW_INDEXING: "true"
+  NEXT_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
+  IMOBILIARIAS_SUPABASE_PROJECT_REF: "rvjsonspplqelktzwusu"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-      NODE_ENV: "production"
-      NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br"
-      NEXT_PUBLIC_ALLOW_INDEXING: "true"
-      NEXT_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
-      IMOBILIARIAS_SUPABASE_PROJECT_REF: "rvjsonspplqelktzwusu"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -34,50 +31,39 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
       - name: Build production web
         run: pnpm --filter @imobiliarias/web build
-      - name: Create cPanel startup file
+      - name: Create startup file
         run: |
           cat > apps/web/server.js <<'EOF'
           const http = require('http');
           const next = require('next');
           const { parse } = require('url');
-
-          const dev = false;
           const hostname = '0.0.0.0';
           const port = Number(process.env.PORT || 3000);
-          const app = next({ dev, hostname, port });
+          const app = next({ dev: false, hostname, port });
           const handle = app.getRequestHandler();
-
           app.prepare().then(() => {
-            http.createServer((req, res) => {
-              handle(req, res, parse(req.url, true));
-            }).listen(port, hostname, () => {
-              console.log(`LENOY IMOBILIARIAS running on port ${port}`);
-            });
-          }).catch((error) => {
-            console.error(error);
-            process.exit(1);
-          });
+            http.createServer((req, res) => handle(req, res, parse(req.url, true)))
+              .listen(port, hostname, () => console.log(`LENOY IMOBILIARIAS running on port ${port}`));
+          }).catch((error) => { console.error(error); process.exit(1); });
           EOF
-      - name: Write deployment marker
-        run: |
-          printf "commit=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/cpanel-build.txt
-      - name: Create ZIP
+      - name: Package precompiled app
         run: |
           rm -rf cpanel-node-build
           mkdir -p cpanel-node-build
           cd apps/web
           zip -qr ../../cpanel-node-build/imobiliarias-node-cpanel.zip . \
             -x "node_modules/*" ".next/cache/*" "*.log"
-      - name: Publish ZIP in repository
+          cd ../..
+          printf "run_id=%s\ncommit=%s\nbuilt_at=%s\n" "$GITHUB_RUN_ID" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > cpanel-node-build/status.txt
+      - name: Publish package in repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f cpanel-node-build/imobiliarias-node-cpanel.zip
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "build: publish Node cPanel package [skip netlify]"
+          git add -f cpanel-node-build/imobiliarias-node-cpanel.zip cpanel-node-build/status.txt
+          git commit -m "build: publish precompiled cPanel package [skip netlify]" || exit 0
           git push
