@@ -1,109 +1,73 @@
 # LENOY IMOBILIÁRIAS — Status de lançamento
 
-Atualizado em 22/08/2026.
+Atualizado em 23/08/2026.
 
 ## Estado atual
 
-O projeto está em **homologação técnica**. O banco real e o backend Supabase já foram implantados no projeto exclusivo do IMOBILIÁRIAS, mas o produto ainda **não deve ser considerado produção** enquanto deploy web, DNS/TLS, segredos operacionais e evidências funcionais não forem concluídos.
+O projeto permanece em **homologação**, com aplicação web publicada e acessível em `https://imoveis.lenoy.com.br`. O lançamento comercial ainda não deve ser ativado: os gates de produção e integrações externas permanecem deliberadamente fechados até a conclusão das últimas evidências funcionais.
 
-## Concluído no código e banco
+## Concluído e comprovado
 
-- Identidade visual premium V3 aplicada à plataforma e ao site público das imobiliárias.
-- Catálogo, filtros, favoritos, detalhe de imóvel e administração preservados.
-- App mantém fila offline, drafts, câmera/galeria, limite de 20 fotos e sincronização.
-- Guard de destino impede misturar o Supabase do IMOBILIÁRIAS com outros projetos.
-- Health `/api/health` possui identidade, project ref, commit SHA e build label.
-- Smoke pós-deploy pode exigir o SHA exato implantado.
-- Registro de releases é auditável, sem exclusão pelo fluxo administrativo e não permite ativação antes de smoke aprovado.
-- `pnpm release:validate` reúne checks críticos de pré-lançamento.
-- Migrations originais `0001–0129` foram aplicadas no ambiente exclusivo.
-- Hardening adicional `0130–0132` foi criado após auditoria real e também aplicado.
-- Bugs de instalação limpa encontrados durante a implantação foram corrigidos no repositório antes de prosseguir.
+- Supabase exclusivo do **IMOBILIÁRIAS**: `rvjsonspplqelktzwusu`, região `sa-east-1`.
+- `project_identity() = 'IMOBILIARIAS'` confirmado.
+- Migrations aplicadas e repositório alinhado até `0155_fix_property_storage_insert_policy_alias.sql`.
+- 17 Edge Functions previstas no projeto implantadas.
+- Ambiente continua em `homologation`; cadastro comercial, cobrança real, mensageria externa, IA e push permanecem bloqueados pelos gates.
+- Catálogo público liberado somente para homologação visual.
+- Web publicada em host real e domínio `imoveis.lenoy.com.br` resolvendo para a aplicação.
+- HTTPS/TLS válido no domínio, com certificado emitido e acesso confirmado também em janela anônima/outro navegador.
+- Tipos globais padrão de imóvel semeados e disponíveis no formulário administrativo.
+- Criação de imóvel exercitada no painel real.
+- Upload de foto/Storage exercitado no painel real após correção da policy de Storage da migration `0155`.
+- Rotina de manutenção segura configurada e com execução bem-sucedida observada em homologação.
+- Hardening de RLS concluído sem avisos `auth_rls_initplan` e sem `multiple_permissive_policies` no estado auditado.
+- Backup operacional lógico concluído com sucesso pelo GitHub Actions: dados, Storage e migrations preservados; evidência em `docs/BACKUP-STATUS.md`.
+- O backup não depende mais de senha de Postgres/pooler; utiliza a chave secreta de servidor do projeto e gera artefato de retenção no GitHub Actions.
 
-## Supabase exclusivo
+## Autenticação — estado do código
 
-Projeto: **IMOBILIARIAS**  
-Project ref: `rvjsonspplqelktzwusu`  
-Região: São Paulo (`sa-east-1`)  
-Identidade confirmada: `project_identity() = 'IMOBILIARIAS'`.
+O fluxo está implementado no web:
 
-O projeto `MOTO-CONNECT` permanece separado e não recebeu migrations, Edge Functions ou credenciais do IMOBILIÁRIAS.
+- login por e-mail/senha;
+- link **Esqueci minha senha**;
+- envio de recuperação pelo Supabase Auth para `/nova-senha/`;
+- validação da sessão de recuperação;
+- criação e confirmação de nova senha;
+- logout automático após a troca;
+- novo login obrigatório;
+- bloqueio de backend que não seja o projeto IMOBILIÁRIAS;
+- sanitização de redirecionamentos do login.
 
-## Edge Functions
+Falta somente a **evidência funcional real ponta a ponta**: solicitar um e-mail de recuperação em `imoveis.lenoy.com.br`, abrir o link recebido, trocar a senha e autenticar novamente.
 
-As **17 Edge Functions previstas no repositório estão implantadas e ACTIVE** no projeto novo:
+## Bloqueadores reais restantes para fechar a homologação
 
-- buyer-outreach-health
-- buyer-outreach-webhook
-- confirm-infinitepay-payment
-- create-infinitepay-checkout
-- deliver-buyer-outreach
-- generate-buyer-opportunity-message
-- generate-property-description
-- infinitepay-webhook
-- ingest-inbound-email
-- meta-whatsapp-webhook
-- platform-maintenance
-- process-buyer-opportunities
-- process-subscription-expiry
-- push-broker-notifications
-- reconcile-outreach-provider-events
-- resend-outreach-webhook
-- verify-custom-domains
+1. Teste ponta a ponta de login/sessão/recuperação de senha no domínio real.
+2. Smoke final do deploy, incluindo `/api/health`, identidade do projeto e identificação inequívoca do commit/build servido.
+3. Teste funcional multi-imobiliária controlado: duas contas/tenants, incluindo leitura e escrita cruzada recusadas e Storage isolado.
+4. Revisão funcional consolidada das permissões administrativas/corretor e CRM que ainda não tenham evidência manual registrada.
+5. Habilitar **Leaked Password Protection** no Supabase Auth antes de produção.
+6. Registrar a release de homologação e o smoke como `passed` somente depois dos testes reais.
+7. Manter InfinitePay, Meta/WhatsApp, Resend, IA e Push desligados até ativação comercial deliberada.
 
-O checkpoint `edge_functions_deployed` foi marcado concluído somente depois da confirmação 17/17 ACTIVE.
+## Não são mais bloqueadores
 
-## Freios atuais de homologação
+Os itens abaixo já foram concluídos e não devem voltar para a fila como se estivessem pendentes:
 
-- `environment_mode = homologation`
-- novos cadastros: **OFF**
-- cobrança real: **OFF**
-- mensageria externa: **OFF**
-- IA: **OFF**
-- push: **OFF**
-- catálogo público: **ON** para homologação visual
+- publicação inicial da aplicação;
+- DNS de `imoveis.lenoy.com.br`;
+- HTTPS/TLS;
+- seed dos tipos de imóvel;
+- correção de gravação de imóvel;
+- correção do upload de foto/Storage;
+- rotina de manutenção segura;
+- implantação das Edge Functions;
+- backup operacional do Supabase.
 
-Portanto, implantar as Functions **não libera cobrança, WhatsApp/e-mail, IA ou push automaticamente**.
+## Regra para produção
 
-## Segurança
+O ambiente não deve ser promovido para `production` enquanto faltar qualquer evidência obrigatória de segurança, isolamento, smoke ou autenticação. Os gates de banco existentes devem continuar sendo respeitados; não contornar validações apenas para antecipar o lançamento.
 
-- Advisors do Supabase foram executados durante e após a implantação.
-- Views críticas usam `security_invoker` onde aplicável.
-- Execução anônima implícita de RPCs administrativos foi removida (`0130/0131`).
-- Funções `SECURITY DEFINER` usadas exclusivamente por triggers deixaram de ser RPCs chamáveis por usuários autenticados (`0132`).
-- RPCs públicos necessários ao site permanecem explicitamente liberados.
-- O aviso `inbound_email_events` com RLS sem policy é informativo: a tabela é operada pelo backend/service role e não possui leitura pública prevista.
+## Separação de projetos
 
-## Checkpoints comprovados
-
-Concluídos:
-
-1. Supabase exclusivo confirmado;
-2. migrations aplicadas;
-3. identidade do projeto confirmada;
-4. 17/17 Edge Functions implantadas.
-
-Estado atual do checklist persistente:
-
-- rede/homologação online: **4 de 12 concluídos**;
-- produção: **4 de 14 concluídos**;
-- pendentes de rede: **8**;
-- pendentes de produção: **10**.
-
-## Próximos bloqueadores reais
-
-1. configurar os segredos privados das Edge Functions no projeto Supabase;
-2. configurar variáveis públicas do web/app com URL e chave publishable do Supabase exclusivo;
-3. publicar o Next.js de homologação com commit SHA/build label;
-4. apontar `imoveis.lenoy.com.br` para o host real e validar TLS;
-5. configurar e executar a manutenção real com sucesso;
-6. executar health e smoke pós-deploy exigindo o SHA correto;
-7. criar usuários/tenants de teste e executar isolamento multi-imobiliária funcional;
-8. validar Auth, CRUD de imóveis, fotos/Storage, CRM e permissões;
-9. registrar evidências e uma release ativa de homologação com smoke aprovado;
-10. validar backup/rollback;
-11. somente então avaliar promoção para produção e ativação individual das integrações.
-
-## Regra de segurança
-
-Nenhuma migration, Edge Function, credencial ou configuração do IMOBILIÁRIAS deve ser aplicada ao Supabase `MOTO-CONNECT` ou a qualquer outro projeto existente.
+Nenhuma migration, Edge Function, chave, bucket, usuário administrativo ou configuração do IMOBILIÁRIAS deve ser aplicada ao Moto Connect, LENOY Match, Lê+ ou qualquer outro projeto.
