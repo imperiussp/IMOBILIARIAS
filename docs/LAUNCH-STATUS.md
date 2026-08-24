@@ -23,6 +23,7 @@ O projeto permanece em **homologação**, com aplicação web publicada e acess�
 - Hardening de RLS concluído sem avisos `auth_rls_initplan` e sem `multiple_permissive_policies` no estado auditado.
 - Backup operacional lógico concluído com sucesso pelo GitHub Actions: dados, Storage e migrations preservados; evidência em `docs/BACKUP-STATUS.md`.
 - O backup não depende mais de senha de Postgres/pooler; utiliza a chave secreta de servidor do projeto e gera artefato de retenção no GitHub Actions.
+- Isolamento multi-imobiliária validado diretamente sob papel `authenticated` com as contas de homologação: leitura cruzada de vínculos bloqueada nos dois sentidos, imóvel da imobiliária `teste` invisível para `homologacao-b`, tentativa de UPDATE cruzado retornando zero linhas e objetos do bucket `property-photos` do tenant `teste` invisíveis para a outra imobiliária. Os testes de escrita foram executados dentro de transação com rollback.
 
 ## Autenticação — estado do código
 
@@ -44,11 +45,10 @@ Falta somente a **evidência funcional real ponta a ponta**: solicitar um e-mail
 
 1. Teste ponta a ponta de login/sessão/recuperação de senha no domínio real.
 2. Smoke final do deploy, incluindo `/api/health`, identidade do projeto e identificação inequívoca do commit/build servido.
-3. Teste funcional multi-imobiliária controlado: duas contas/tenants, incluindo leitura e escrita cruzada recusadas e Storage isolado.
-4. Revisão funcional consolidada das permissões administrativas/corretor e CRM que ainda não tenham evidência manual registrada.
-5. Habilitar **Leaked Password Protection** no Supabase Auth antes de produção.
-6. Registrar a release de homologação e o smoke como `passed` somente depois dos testes reais.
-7. Manter InfinitePay, Meta/WhatsApp, Resend, IA e Push desligados até ativação comercial deliberada.
+3. Revisão funcional consolidada das permissões administrativas/corretor e CRM que ainda não tenham evidência manual registrada.
+4. Habilitar **Leaked Password Protection** no Supabase Auth antes de produção.
+5. Registrar a release de homologação e o smoke como `passed` somente depois dos testes reais.
+6. Manter InfinitePay, Meta/WhatsApp, Resend, IA e Push desligados até ativação comercial deliberada.
 
 ## Não são mais bloqueadores
 
@@ -62,7 +62,8 @@ Os itens abaixo já foram concluídos e não devem voltar para a fila como se es
 - correção do upload de foto/Storage;
 - rotina de manutenção segura;
 - implantação das Edge Functions;
-- backup operacional do Supabase.
+- backup operacional do Supabase;
+- isolamento multi-imobiliária de leitura, escrita cruzada e Storage.
 
 ## Regra para produção
 
