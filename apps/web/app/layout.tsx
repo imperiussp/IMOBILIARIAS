@@ -18,6 +18,7 @@ import "./admin-premium-v4.css";
 import "./experience-premium-v4.css";
 import "./platform-final.css";
 import "./landing-hotfix.css";
+import "./landing-enhancements.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
