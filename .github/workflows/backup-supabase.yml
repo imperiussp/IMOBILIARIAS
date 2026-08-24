@@ -2,6 +2,12 @@ name: Backup Supabase
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - finalizacao-hoje
+    paths:
+      - ".github/workflows/backup-supabase.yml"
+      - "scripts/backup_supabase_storage.py"
   schedule:
     - cron: "17 6 * * *"
 
@@ -46,8 +52,6 @@ jobs:
           set -euo pipefail
           mkdir -p backup/database backup/storage
 
-          # The secret may contain reserved URL characters in the password.
-          # Extract credentials manually using the LAST @, then decode percent escapes.
           raw="${SUPABASE_DB_URL#postgresql://}"
           userpass="${raw%@*}"
           raw_password="${userpass#*:}"
