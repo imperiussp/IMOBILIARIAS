@@ -6,7 +6,7 @@ import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Props = { children: ReactNode };
-type GateState = "checking" | "allowed" | "blocked" | "demo" | "wrong_backend" | "inactive_broker";
+type GateState = "checking" | "allowed" | "blocked" | "unconfirmed" | "demo" | "wrong_backend" | "inactive_broker";
 type TenantRole = "owner" | "admin" | "broker" | "staff" | "platform_admin" | "";
 
 function roleLabel(role: TenantRole) {
@@ -36,10 +36,16 @@ export default function AdminGate({ children }: Props) {
       if (!active) return;
       if (!validBackend) { setState("wrong_backend"); return; }
 
-      const { data } = await supabaseBrowser.auth.getSession();
+      const { data: userData, error: userError } = await supabaseBrowser.auth.getUser();
       if (!active) return;
-      const user = data.session?.user;
-      if (!user) { setState("blocked"); return; }
+      const user = userData.user;
+      if (userError || !user) { setState("blocked"); return; }
+
+      const confirmedAt = user.email_confirmed_at || user.confirmed_at;
+      if (!confirmedAt) {
+        setState("unconfirmed");
+        return;
+      }
 
       const platformCheck = await supabaseBrowser.rpc("is_platform_admin");
       if (!active) return;
@@ -82,6 +88,7 @@ export default function AdminGate({ children }: Props) {
 
     const { data: listener } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
       if (!session) setState("blocked");
+      else if (!(session.user.email_confirmed_at || session.user.confirmed_at)) setState("unconfirmed");
     });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
@@ -93,6 +100,7 @@ export default function AdminGate({ children }: Props) {
 
   if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso e imobiliária...</strong></div></div></main>;
   if (state === "wrong_backend") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">PROTEÇÃO DE PROJETO</span><h1>Conexão bloqueada</h1><p>O backend configurado não se identificou como IMOBILIARIAS. Nenhum dado será acessado por este painel até a conexão correta ser configurada.</p><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
+  if (state === "unconfirmed") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">CONFIRMAÇÃO NECESSÁRIA</span><h1>Confirme seu e-mail</h1><p>Seu cadastro foi recebido, mas o painel só é liberado depois da confirmação do endereço de e-mail.</p><button className="button secondary full" onClick={() => void signOut()}>Voltar ao login</button></div></div></main>;
   if (state === "inactive_broker") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO DO CORRETOR</span><h1>Perfil não liberado</h1><p>Sua conta está vinculada à imobiliária selecionada, mas o perfil de corretor ainda não está ativo nela.</p><button className="button secondary full" onClick={() => void signOut()}>Sair</button><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
   if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login ou vínculo necessário</h1><p>Entre com uma conta vinculada a uma imobiliária ativa.</p><a className="button primary full" href="../login/">Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
 
