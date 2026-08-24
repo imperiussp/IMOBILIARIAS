@@ -1,0 +1,114 @@
+/* LENOY IMOBILIARIAS — hotfix da landing 2026-08-24.
+   Mantido separado para vencer conflitos antigos de cascata no build estatico/cPanel. */
+
+/* Cabecalho: logo realmente menor */
+.platformLanding .platformTopbar .platformNav{
+  min-height:64px!important;
+  height:64px!important;
+}
+.platformLanding .platformNav .brand{
+  display:flex!important;
+  align-items:center!important;
+  flex:0 0 auto!important;
+}
+.platformLanding .platformNav .brand img{
+  width:48px!important;
+  max-width:48px!important;
+  height:auto!important;
+  display:block!important;
+}
+
+/* Plano Pro: força todo o conteudo a ficar visivel e legivel. */
+.platformLanding .plansGrid .planCard.featured{
+  background:#fffaf1!important;
+  color:#07172b!important;
+  border:2px solid #d8b264!important;
+  box-shadow:0 22px 50px rgba(163,119,38,.14)!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+.platformLanding .plansGrid .planCard.featured *{
+  opacity:1!important;
+  visibility:visible!important;
+  color:#07172b!important;
+}
+.platformLanding .plansGrid .planCard.featured .planTag{
+  color:#9b742d!important;
+}
+.platformLanding .plansGrid .planCard.featured .planPrice span{
+  color:#74808a!important;
+}
+.platformLanding .plansGrid .planCard.featured .planLimits{
+  background:#f7f1e5!important;
+  color:#07172b!important;
+}
+.platformLanding .plansGrid .planCard.featured .planFeatureList .no{
+  color:#7b8791!important;
+  opacity:.58!important;
+}
+.platformLanding .plansGrid .planCard.featured .button.secondary{
+  background:#07172b!important;
+  color:#fff!important;
+  border-color:#07172b!important;
+}
+
+/* Rodape: remove o aspecto de bloco alto e reduz a logo. */
+.platformLanding .platformFooter{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:1180px!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:18px 24px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:24px!important;
+  border-top:1px solid #ded6c9!important;
+}
+.platformLanding .platformFooter>div:first-child{
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+.platformLanding .platformFooter img{
+  width:48px!important;
+  max-width:48px!important;
+  height:auto!important;
+  display:block!important;
+}
+.platformLanding .platformFooter p{
+  margin:0!important;
+  color:#66737d!important;
+  line-height:1.35!important;
+}
+.platformLanding .platformFooter>div:last-child{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  white-space:nowrap!important;
+}
+
+@media(max-width:650px){
+  .platformLanding .platformTopbar .platformNav{
+    min-height:58px!important;
+    height:58px!important;
+  }
+  .platformLanding .platformNav .brand img{
+    width:42px!important;
+    max-width:42px!important;
+  }
+  .platformLanding .platformFooter{
+    padding:16px 20px!important;
+    gap:14px!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+  }
+  .platformLanding .platformFooter img{
+    width:42px!important;
+    max-width:42px!important;
+  }
+  .platformLanding .platformFooter>div:last-child{
+    white-space:normal!important;
+  }
+}
