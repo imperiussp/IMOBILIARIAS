@@ -1,0 +1,70 @@
+name: Build cPanel package
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/build-cpanel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cpanel-package
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      CPANEL_EXPORT: "1"
+      NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br"
+      NEXT_PUBLIC_ALLOW_INDEXING: "true"
+      NEXT_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Remove dynamic health route from static package
+        run: rm -rf apps/web/app/api
+      - name: Build cPanel static package
+        run: pnpm build:web
+      - name: Add Apache defaults
+        run: |
+          cat > apps/web/out/.htaccess <<'EOF'
+          Options -Indexes
+          DirectoryIndex index.html
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteRule ^(.+[^/])$ $1/ [R=301,L]
+          <IfModule mod_headers.c>
+            Header always set X-Content-Type-Options "nosniff"
+            Header always set Referrer-Policy "strict-origin-when-cross-origin"
+          </IfModule>
+          EOF
+          printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
+      - name: Create ZIP
+        run: |
+          mkdir -p cpanel-build
+          cd apps/web/out
+          zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .
+      - name: Publish ZIP in repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f cpanel-build/imobiliarias-cpanel.zip
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "build: publish cPanel package [skip netlify]"
+          git push
