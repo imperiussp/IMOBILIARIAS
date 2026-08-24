@@ -13,16 +13,23 @@ DEST = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "backup/storage")
 if not BASE or not KEY:
     raise SystemExit("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
 
-HEADERS = {
-    "Authorization": f"Bearer {KEY}",
-    "apikey": KEY,
-    "Content-Type": "application/json",
-}
+
+def auth_headers(content_type=False):
+    result = {"apikey": KEY}
+    # Modern sb_secret_* keys are opaque and are authenticated through apikey.
+    # Legacy service_role JWTs still support Authorization: Bearer.
+    if KEY.startswith("eyJ"):
+        result["Authorization"] = f"Bearer {KEY}"
+    if content_type:
+        result["Content-Type"] = "application/json"
+    return result
 
 
 def request_json(method: str, path: str, payload=None):
     data = None if payload is None else json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(f"{BASE}{path}", data=data, headers=HEADERS, method=method)
+    req = urllib.request.Request(
+        f"{BASE}{path}", data=data, headers=auth_headers(content_type=True), method=method
+    )
     with urllib.request.urlopen(req, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
 
@@ -32,7 +39,7 @@ def download(bucket: str, object_name: str, target: pathlib.Path):
     encoded_name = urllib.parse.quote(object_name, safe="/")
     req = urllib.request.Request(
         f"{BASE}/storage/v1/object/authenticated/{encoded_bucket}/{encoded_name}",
-        headers={"Authorization": f"Bearer {KEY}", "apikey": KEY},
+        headers=auth_headers(),
     )
     target.parent.mkdir(parents=True, exist_ok=True)
     with urllib.request.urlopen(req, timeout=120) as response, target.open("wb") as output:
