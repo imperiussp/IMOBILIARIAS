@@ -88,6 +88,7 @@ export default function RegisterForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = new FormData(event.currentTarget);
     setStatus("");
     if (!isSupabaseConfigured || !supabaseBrowser) {
       setStatus("O cadastro será ativado quando o Supabase exclusivo do IMOBILIARIAS estiver configurado.");
@@ -110,7 +111,6 @@ export default function RegisterForm() {
         return;
       }
     }
-    const form = new FormData(event.currentTarget);
     const fullName = String(form.get("full_name") || "").trim();
     const email = String(form.get("email") || "").trim().toLowerCase();
     const password = String(form.get("password") || "");
