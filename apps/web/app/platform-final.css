@@ -114,10 +114,29 @@
 .planCard{background:#fff!important;border-color:#dcd3c4!important}
 .planCard.featured{border-color:#c89d4d!important;box-shadow:0 22px 50px rgba(163,119,38,.13)!important}
 
+/* Ajustes finais: logo, plano destacado e rodape */
+.platformNav .brand img{width:76px!important;max-width:22vw!important;height:auto!important}
+.platformLanding .planCard.featured{background:#fffaf1!important;color:#07172b!important;border-color:#d8b264!important;transform:translateY(-8px)!important}
+.platformLanding .planCard.featured .planTag{color:#9b742d!important}
+.platformLanding .planCard.featured .planPrice span{color:#74808a!important}
+.platformLanding .planCard.featured .planLimits{background:#f7f1e5!important;color:#07172b!important}
+.platformLanding .planCard.featured .planFeatureList span{color:#07172b!important}
+.platformLanding .planCard.featured .planFeatureList .no{color:#7b8791!important}
+.platformLanding .planCard.featured .button.secondary{background:#07172b!important;color:#fff!important;border-color:#07172b!important}
+.platformLanding .platformFooter{box-sizing:border-box!important;width:100%!important;max-width:1180px!important;margin:0 auto!important;padding:30px 24px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:32px!important;border-top:1px solid #ded6c9!important}
+.platformLanding .platformFooter>div:first-child{display:flex!important;align-items:center!important;gap:14px!important}
+.platformLanding .platformFooter img{width:68px!important;max-width:20vw!important;height:auto!important}
+.platformLanding .platformFooter p{margin:0!important;color:#66737d!important}
+.platformLanding .platformFooter>div:last-child{display:flex!important;align-items:center!important;gap:8px!important;white-space:nowrap!important}
+.platformLanding .platformFooter a{color:#07172b!important;font-weight:800!important}
+
 @media(max-width:1100px){
   .platformLanding .platformHero{grid-template-columns:1fr!important;min-height:auto!important;gap:30px!important;padding-top:62px!important;padding-bottom:68px!important}
   .platformLanding .platformHero>div:first-child{max-width:760px!important}
   .platformLanding .platformHeroCard{max-width:620px!important}
+}
+@media(max-width:1050px){
+  .platformLanding .planCard.featured{transform:none!important}
 }
 @media(max-width:980px){
   .platformNav nav{display:none!important}
@@ -131,8 +150,15 @@
   .platformLanding .trustGrid{grid-template-columns:1fr!important}
   .platformLanding .section{padding-top:58px!important;padding-bottom:58px!important}
 }
+@media(max-width:650px){
+  .platformLanding .platformFooter{align-items:flex-start!important;flex-direction:column!important;padding:26px 20px!important;gap:18px!important}
+  .platformLanding .platformFooter>div:first-child{align-items:center!important}
+  .platformLanding .platformFooter>div:last-child{white-space:normal!important}
+}
 @media(max-width:480px){
   .platformActions .secondary{display:none!important}
+  .platformNav .brand img{width:64px!important;max-width:24vw!important}
   .platformMiniGrid{grid-template-columns:1fr 1fr!important}
   .platformLanding .platformHero h1{font-size:38px!important}
+  .platformLanding .platformFooter img{width:60px!important}
 }
