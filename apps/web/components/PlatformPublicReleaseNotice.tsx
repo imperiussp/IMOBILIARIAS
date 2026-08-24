@@ -15,6 +15,6 @@ export default function PlatformPublicReleaseNotice(){
     if(!row)return;
     setState({environment:String(row.environment_mode||"unknown"),label:String(row.release_label||"Ambiente controlado"),registrationOpen:row.enabled===true});
   })();},[]);
-  if(!state||state.environment==="production")return null;
-  return <div className="container"><div className="formNotice" style={{marginTop:16}}><strong>AMBIENTE DE HOMOLOGAÇÃO:</strong> {state.label}. {state.registrationOpen?"Cadastros de teste estão liberados.":"Novos cadastros de imobiliárias estão bloqueados."} Recursos externos permanecem sujeitos aos controles globais da plataforma.</div></div>;
+  if(!state||state.environment==="production"||state.registrationOpen)return null;
+  return <div className="container"><div className="formNotice" style={{marginTop:16}}><strong>AMBIENTE DE HOMOLOGAÇÃO:</strong> {state.label}. Novos cadastros de imobiliárias estão bloqueados. Recursos externos permanecem sujeitos aos controles globais da plataforma.</div></div>;
 }
