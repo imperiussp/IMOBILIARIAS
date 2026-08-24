@@ -1,22 +1,27 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { getCurrentAgency } from "../lib/currentAgency";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type City = { id: string; name: string; state_code: string };
 type Neighborhood = { id: string; city_id: string; name: string };
 
 export default function AdminLocations() {
+  const [agencyId, setAgencyId] = useState("");
   const [cities, setCities] = useState<City[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
   const [selectedCity, setSelectedCity] = useState("");
   const [message, setMessage] = useState("");
 
-  async function load() {
+  async function load(targetAgencyId?: string) {
     if (!supabaseBrowser) return;
+    const resolvedAgencyId = targetAgencyId || agencyId;
     const [cityResult, neighborhoodResult] = await Promise.all([
       supabaseBrowser.from("cities").select("id,name,state_code").order("state_code").order("name"),
-      supabaseBrowser.from("neighborhoods").select("id,city_id,name").order("name"),
+      resolvedAgencyId
+        ? supabaseBrowser.from("neighborhoods").select("id,city_id,name").or(`agency_id.is.null,agency_id.eq.${resolvedAgencyId}`).order("name")
+        : supabaseBrowser.from("neighborhoods").select("id,city_id,name").is("agency_id", null).order("name"),
     ]);
     if (cityResult.error || neighborhoodResult.error) {
       setMessage(cityResult.error?.message || neighborhoodResult.error?.message || "Erro ao carregar localidades.");
@@ -27,37 +32,57 @@ export default function AdminLocations() {
     if (!selectedCity && cityResult.data?.[0]?.id) setSelectedCity(cityResult.data[0].id);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void (async () => {
+      if (!supabaseBrowser) return;
+      const agency = await getCurrentAgency();
+      if (!agency) {
+        setMessage("Imobiliária ativa não encontrada.");
+        return;
+      }
+      setAgencyId(agency.agencyId);
+      await load(agency.agencyId);
+    })();
+  }, []);
 
   const cityNeighborhoods = useMemo(() => neighborhoods.filter((item) => item.city_id === selectedCity), [neighborhoods, selectedCity]);
 
   async function addCity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabaseBrowser) return setMessage("Supabase ainda não configurado.");
+    if (!agencyId) return setMessage("Imobiliária ativa não encontrada.");
     const form = new FormData(event.currentTarget);
     const name = String(form.get("city_name") || "").trim();
     const stateCode = String(form.get("state_code") || "").trim().toUpperCase().slice(0, 2);
     if (!name || stateCode.length !== 2) return setMessage("Informe cidade e UF com 2 letras.");
-    const { data, error } = await supabaseBrowser.from("cities").insert({ name, state_code: stateCode }).select("id,name,state_code").single();
+    const { data, error } = await supabaseBrowser.rpc("agency_upsert_city", { p_agency_id: agencyId, p_name: name, p_state_code: stateCode });
     if (error) return setMessage(error.message);
+    const city = Array.isArray(data) ? data[0] as City | undefined : undefined;
+    if (!city) return setMessage("Não foi possível cadastrar a cidade.");
     event.currentTarget.reset();
-    setCities((current) => [...current, data as City].sort((a, b) => `${a.state_code}${a.name}`.localeCompare(`${b.state_code}${b.name}`)));
-    setSelectedCity(data.id);
-    setMessage("Cidade cadastrada.");
+    setCities((current) => {
+      const withoutDuplicate = current.filter((item) => item.id !== city.id);
+      return [...withoutDuplicate, city].sort((a, b) => `${a.state_code}${a.name}`.localeCompare(`${b.state_code}${b.name}`));
+    });
+    setSelectedCity(city.id);
+    setMessage("Cidade disponível para os cadastros.");
   }
 
   async function addNeighborhood(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabaseBrowser) return setMessage("Supabase ainda não configurado.");
+    if (!agencyId) return setMessage("Imobiliária ativa não encontrada.");
     if (!selectedCity) return setMessage("Selecione uma cidade.");
     const form = new FormData(event.currentTarget);
     const name = String(form.get("neighborhood_name") || "").trim();
     if (!name) return setMessage("Informe o bairro.");
-    const { data, error } = await supabaseBrowser.from("neighborhoods").insert({ city_id: selectedCity, name }).select("id,city_id,name").single();
+    const { data, error } = await supabaseBrowser.rpc("agency_upsert_neighborhood", { p_agency_id: agencyId, p_city_id: selectedCity, p_name: name });
     if (error) return setMessage(error.message);
+    const neighborhood = Array.isArray(data) ? data[0] as Neighborhood | undefined : undefined;
+    if (!neighborhood) return setMessage("Não foi possível cadastrar o bairro.");
     event.currentTarget.reset();
-    setNeighborhoods((current) => [...current, data as Neighborhood]);
-    setMessage("Bairro cadastrado.");
+    setNeighborhoods((current) => current.some((item) => item.id === neighborhood.id) ? current : [...current, neighborhood]);
+    setMessage("Bairro disponível para os cadastros.");
   }
 
   async function removeNeighborhood(id: string) {
