@@ -4,19 +4,24 @@
 
 
 > @imobiliarias/web@0.1.0 build /home/runner/work/IMOBILIARIAS/IMOBILIARIAS/apps/web
-> next build
+> next build --webpack
 
-▲ Next.js 16.3.0 (Turbopack)
+▲ Next.js 16.3.0 (webpack)
 ✓ Running next.config.mjs took 15ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 
   Creating an optimized production build ...
-✓ Compiled successfully in 5.0s
+✓ Compiled successfully in 8.3s
   Running TypeScript ...
-  Finished TypeScript in 1389ms ...
+  Finished TypeScript in 1066ms ...
   Collecting page data using 3 workers ...
 Error: export const dynamic = "force-static"/export const revalidate not configured on route "/robots.txt" with "output: export". See more info here: https://nextjs.org/docs/advanced-features/static-html-export
-    at Object.<anonymous> (.next/server/app/robots.txt/route.js:5:3)
+    at 51057 (.next/server/app/robots.txt/route.js:1:1773)
+    at g (.next/server/webpack-runtime.js:1:135)
+    at <unknown> (.next/server/app/robots.txt/route.js:1:8340)
+    at g.X (.next/server/webpack-runtime.js:1:1174)
+    at <unknown> (.next/server/app/robots.txt/route.js:1:8322)
+    at Object.<anonymous> (.next/server/app/robots.txt/route.js:1:8372)
 
 > Build error occurred
 Error: Failed to collect page data for /robots.txt
@@ -24,6 +29,6 @@ Error: Failed to collect page data for /robots.txt
   type: 'Error'
 }
 /home/runner/work/IMOBILIARIAS/IMOBILIARIAS/apps/web:
- ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @imobiliarias/web@0.1.0 build: `next build`
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @imobiliarias/web@0.1.0 build: `next build --webpack`
 Exit status 1
  ELIFECYCLE  Command failed with exit code 1.
