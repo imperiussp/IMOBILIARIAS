@@ -11,9 +11,12 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cpanel-standalone-package
+  cancel-in-progress: true
+
 env:
   NEXT_TELEMETRY_DISABLED: "1"
-  NODE_ENV: "production"
   NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br"
   NEXT_PUBLIC_ALLOW_INDEXING: "true"
   NEXT_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
@@ -26,44 +29,78 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies
+          cache: pnpm
+
+      - name: Install all build dependencies
         run: pnpm install --no-frozen-lockfile
-      - name: Build production web
+
+      - name: Build standalone production runtime
+        env:
+          NODE_ENV: production
+          CPANEL_STANDALONE: "1"
         run: pnpm --filter @imobiliarias/web build
-      - name: Create startup file
+
+      - name: Assemble standalone package
+        shell: bash
         run: |
-          cat > apps/web/server.js <<'EOF'
-          const http = require('http');
-          const next = require('next');
-          const { parse } = require('url');
-          const hostname = '0.0.0.0';
-          const port = Number(process.env.PORT || 3000);
-          const app = next({ dev: false, hostname, port });
-          const handle = app.getRequestHandler();
-          app.prepare().then(() => {
-            http.createServer((req, res) => handle(req, res, parse(req.url, true)))
-              .listen(port, hostname, () => console.log(`LENOY IMOBILIARIAS running on port ${port}`));
-          }).catch((error) => { console.error(error); process.exit(1); });
+          set -euo pipefail
+          rm -rf cpanel-node-build package-cpanel
+          mkdir -p cpanel-node-build package-cpanel
+
+          STANDALONE="apps/web/.next/standalone"
+          test -d "$STANDALONE"
+
+          cp -a "$STANDALONE"/. package-cpanel/
+
+          SERVER=""
+          if [ -f package-cpanel/apps/web/server.js ]; then
+            SERVER="package-cpanel/apps/web/server.js"
+          elif [ -f package-cpanel/server.js ]; then
+            SERVER="package-cpanel/server.js"
+          else
+            SERVER="$(find package-cpanel -type f -name server.js | head -n 1)"
+          fi
+
+          test -n "$SERVER"
+          SERVER_DIR="$(dirname "$SERVER")"
+
+          mkdir -p "$SERVER_DIR/.next/static"
+          cp -a apps/web/.next/static/. "$SERVER_DIR/.next/static/"
+
+          if [ -d apps/web/public ]; then
+            rm -rf "$SERVER_DIR/public"
+            cp -a apps/web/public "$SERVER_DIR/public"
+          fi
+
+          if [ "$SERVER_DIR" != "package-cpanel" ]; then
+            cat > package-cpanel/server.js <<EOF
+          process.chdir(__dirname + '/${SERVER_DIR#package-cpanel/}');
+          require('./${SERVER_DIR#package-cpanel/}/server.js');
           EOF
-      - name: Package precompiled app
-        run: |
-          rm -rf cpanel-node-build
-          mkdir -p cpanel-node-build
-          cd apps/web
-          zip -qr ../../cpanel-node-build/imobiliarias-node-cpanel.zip . \
-            -x "node_modules/*" ".next/cache/*" "*.log"
-          cd ../..
-          printf "run_id=%s\ncommit=%s\nbuilt_at=%s\n" "$GITHUB_RUN_ID" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > cpanel-node-build/status.txt
-      - name: Publish package in repository
+          fi
+
+          printf "commit=%s\nbuilt_at=%s\nmode=standalone\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > package-cpanel/cpanel-build.txt
+
+          cd package-cpanel
+          zip -qr ../cpanel-node-build/imobiliarias-standalone-cpanel.zip . -x "*.log"
+          cd ..
+          ls -lh cpanel-node-build/imobiliarias-standalone-cpanel.zip
+
+      - name: Publish standalone package
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f cpanel-node-build/imobiliarias-node-cpanel.zip cpanel-node-build/status.txt
-          git commit -m "build: publish precompiled cPanel package [skip netlify]" || exit 0
+          git add -f cpanel-node-build/imobiliarias-standalone-cpanel.zip
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "build: publish standalone cPanel package [skip netlify]"
           git push
