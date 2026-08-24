@@ -18,12 +18,81 @@
   display:block!important;
 }
 
+/* Planos: versao mais compacta, inspirada na referencia visual enviada. */
+.platformLanding #planos>.container.section{
+  padding-top:54px!important;
+  padding-bottom:54px!important;
+}
+.platformLanding .plansGrid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  align-items:stretch!important;
+}
+.platformLanding .plansGrid .planCard{
+  padding:16px!important;
+  gap:10px!important;
+  border-radius:16px!important;
+  box-shadow:0 10px 26px rgba(23,32,42,.055)!important;
+}
+.platformLanding .plansGrid .planTag{
+  font-size:8.5px!important;
+  line-height:1.15!important;
+  letter-spacing:.1em!important;
+}
+.platformLanding .plansGrid .planCard h3{
+  margin:0!important;
+  font-size:22px!important;
+  line-height:1!important;
+  letter-spacing:-.025em!important;
+}
+.platformLanding .plansGrid .planPrice{
+  gap:2px!important;
+}
+.platformLanding .plansGrid .planPrice strong{
+  font-size:18px!important;
+  line-height:1.08!important;
+}
+.platformLanding .plansGrid .planPrice span{
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+.platformLanding .plansGrid .planLimits{
+  gap:4px!important;
+  padding:10px!important;
+  border-radius:10px!important;
+}
+.platformLanding .plansGrid .planLimits span{
+  font-size:10.5px!important;
+  line-height:1.2!important;
+}
+.platformLanding .plansGrid .planFeatureList{
+  gap:5px!important;
+}
+.platformLanding .plansGrid .planFeatureList span{
+  font-size:10.5px!important;
+  line-height:1.25!important;
+}
+.platformLanding .plansGrid .planFeatureList .yes:before,
+.platformLanding .plansGrid .planFeatureList .no:before{
+  margin-right:6px!important;
+}
+.platformLanding .plansGrid .planCard .button{
+  min-height:36px!important;
+  padding:0 12px!important;
+  border-radius:9px!important;
+  font-size:11px!important;
+}
+.platformLanding .plansLegend{
+  margin-bottom:12px!important;
+}
+
 /* Plano Pro: força todo o conteudo a ficar visivel e legivel. */
 .platformLanding .plansGrid .planCard.featured{
   background:#fffaf1!important;
   color:#07172b!important;
   border:2px solid #d8b264!important;
-  box-shadow:0 22px 50px rgba(163,119,38,.14)!important;
+  box-shadow:0 18px 40px rgba(163,119,38,.13)!important;
+  transform:translateY(-4px)!important;
   opacity:1!important;
   visibility:visible!important;
 }
@@ -89,6 +158,15 @@
   white-space:nowrap!important;
 }
 
+@media(max-width:1050px){
+  .platformLanding .plansGrid{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .platformLanding .plansGrid .planCard.featured{
+    transform:none!important;
+  }
+}
+
 @media(max-width:650px){
   .platformLanding .platformTopbar .platformNav{
     min-height:58px!important;
@@ -97,6 +175,17 @@
   .platformLanding .platformNav .brand img{
     width:42px!important;
     max-width:42px!important;
+  }
+  .platformLanding #planos>.container.section{
+    padding-top:42px!important;
+    padding-bottom:42px!important;
+  }
+  .platformLanding .plansGrid{
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+  }
+  .platformLanding .plansGrid .planCard{
+    padding:16px!important;
   }
   .platformLanding .platformFooter{
     padding:16px 20px!important;
