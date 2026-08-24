@@ -20,6 +20,11 @@ jobs:
       SUPABASE_URL: https://rvjsonspplqelktzwusu.supabase.co
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      PGHOST: aws-0-sa-east-1.pooler.supabase.com
+      PGPORT: "5432"
+      PGDATABASE: postgres
+      PGUSER: postgres.rvjsonspplqelktzwusu
+      PGSSLMODE: require
     steps:
       - uses: actions/checkout@v4
 
@@ -38,9 +43,26 @@ jobs:
       - name: Create database backup
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p backup/database backup/storage
-          pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-acl --file=backup/database/imobiliarias.dump
-          pg_dump "$SUPABASE_DB_URL" --schema-only --no-owner --no-acl --file=backup/database/schema.sql
+
+          # The secret may contain reserved URL characters in the password.
+          # Extract credentials manually using the LAST @, then decode percent escapes.
+          raw="${SUPABASE_DB_URL#postgresql://}"
+          userpass="${raw%@*}"
+          raw_password="${userpass#*:}"
+          export RAW_PASSWORD="$raw_password"
+          export PGPASSWORD="$(python3 - <<'PY'
+import os
+from urllib.parse import unquote
+print(unquote(os.environ['RAW_PASSWORD']))
+PY
+)"
+          unset RAW_PASSWORD raw_password userpass raw
+
+          pg_dump --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" --dbname="$PGDATABASE" --format=custom --no-owner --no-acl --file=backup/database/imobiliarias.dump
+          pg_dump --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" --dbname="$PGDATABASE" --schema-only --no-owner --no-acl --file=backup/database/schema.sql
+          unset PGPASSWORD
 
       - name: Backup Storage objects
         shell: bash
