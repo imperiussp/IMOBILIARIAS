@@ -1,4 +1,4 @@
-# Backup operacional do Supabase IMOBILIARIAS
+# Backup operacional lógico do Supabase IMOBILIARIAS
 name: Backup Supabase
 
 on:
@@ -19,89 +19,38 @@ jobs:
     timeout-minutes: 30
     env:
       SUPABASE_URL: https://rvjsonspplqelktzwusu.supabase.co
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate backup secrets
+      - name: Validate backup secret
         shell: bash
         run: |
-          test -n "$SUPABASE_DB_URL" || { echo "Missing SUPABASE_DB_URL secret"; exit 1; }
           test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "Missing SUPABASE_SERVICE_ROLE_KEY secret"; exit 1; }
 
-      - name: Install PostgreSQL client
+      - name: Export application data
         shell: bash
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y postgresql-client
-
-      - name: Create database backup
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p backup/database backup/storage
-          python3 - <<'PY'
-          import os
-          import subprocess
-          from urllib.parse import unquote
-
-          uri = os.environ["SUPABASE_DB_URL"].strip()
-          if uri.startswith("postgresql://"):
-              raw = uri[len("postgresql://"):]
-          elif uri.startswith("postgres://"):
-              raw = uri[len("postgres://"):]
-          else:
-              raise SystemExit("SUPABASE_DB_URL must start with postgresql:// or postgres://")
-
-          authority, database = raw.rsplit("/", 1)
-          userinfo, hostport = authority.rsplit("@", 1)
-          username, password = userinfo.split(":", 1)
-          host, port = hostport.rsplit(":", 1)
-
-          username = unquote(username)
-          password = unquote(password)
-          database = unquote(database.split("?", 1)[0]) or "postgres"
-
-          if not host.endswith(".pooler.supabase.com"):
-              raise SystemExit("SUPABASE_DB_URL is not a Supabase pooler URI")
-
-          env = os.environ.copy()
-          env["PGPASSWORD"] = password
-          env["PGSSLMODE"] = "require"
-
-          common = [
-              "pg_dump",
-              f"--host={host}",
-              f"--port={port}",
-              f"--username={username}",
-              f"--dbname={database}",
-              "--no-owner",
-              "--no-acl",
-          ]
-
-          subprocess.run(
-              common + ["--format=custom", "--file=backup/database/imobiliarias.dump"],
-              env=env,
-              check=True,
-          )
-          subprocess.run(
-              common + ["--schema-only", "--file=backup/database/schema.sql"],
-              env=env,
-              check=True,
-          )
-          PY
+          mkdir -p backup/database backup/storage backup/schema
+          python3 scripts/backup_supabase_data.py backup/database
 
       - name: Backup Storage objects
         shell: bash
         run: python3 scripts/backup_supabase_storage.py backup/storage
 
-      - name: Write manifest
+      - name: Preserve schema migrations
         shell: bash
         run: |
-          printf 'commit=%s\ncreated_utc=%s\nproject=rvjsonspplqelktzwusu\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > backup/MANIFEST.txt
+          mkdir -p backup/schema
+          cp -a supabase/migrations backup/schema/migrations
+          if [ -f supabase/config.toml ]; then cp supabase/config.toml backup/schema/config.toml; fi
+
+      - name: Write manifest and checksums
+        shell: bash
+        run: |
+          printf 'backup_type=logical-operational\ncommit=%s\ncreated_utc=%s\nproject=rvjsonspplqelktzwusu\nrestore_schema_from=supabase/migrations\nauth_passwords_included=no\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > backup/MANIFEST.txt
           find backup/storage -type f | sort > backup/STORAGE_FILES.txt
-          sha256sum backup/database/imobiliarias.dump backup/database/schema.sql > backup/SHA256SUMS.txt
+          find backup -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > backup/SHA256SUMS.txt
 
       - name: Upload retention artifact
         uses: actions/upload-artifact@v4
