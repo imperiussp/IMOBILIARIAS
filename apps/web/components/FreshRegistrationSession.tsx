@@ -5,9 +5,10 @@ import { supabaseBrowser } from "../lib/supabaseBrowser";
 
 export default function FreshRegistrationSession() {
   useEffect(() => {
-    if (!supabaseBrowser) return;
-    void supabaseBrowser.auth.getSession().then(({ data }) => {
-      if (data.session) void supabaseBrowser.auth.signOut({ scope: "local" });
+    const client = supabaseBrowser;
+    if (!client) return;
+    void client.auth.getSession().then(({ data }) => {
+      if (data.session) void client.auth.signOut({ scope: "local" });
     });
   }, []);
 
