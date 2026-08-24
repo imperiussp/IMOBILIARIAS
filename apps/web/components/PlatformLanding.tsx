@@ -15,15 +15,15 @@ const appProperties = [
 ];
 
 const plans = [
-  { name:"Start", featured:false, limits:["Até 100 imóveis","1 usuário","1 e-mail profissional","5 fotos por imóvel"], features:["Site exclusivo","Catálogo de imóveis","CRM com funil de vendas","Leads via site e portais","WhatsApp flutuante no site","Site otimizado para SEO"], absent:["Aplicativo do corretor","IA de oportunidades","Central de documentos","Domínio próprio"] },
-  { name:"Pro", featured:true, limits:["Até 500 imóveis","Até 3 usuários","3 e-mails profissionais","50 fotos por imóvel"], features:["Tudo do Start","Gestão completa","Aplicativo do corretor","CRM imobiliário completo","Controle de chaves","Controle de propostas","Vistorias","Agenda e visitas","IA para descrições"], absent:["Domínio próprio"] },
+  { name:"Start", featured:false, limits:["Até 30 imóveis","1 usuário","1 e-mail profissional","5 fotos por imóvel"], features:["Site exclusivo","Catálogo de imóveis","CRM com funil de vendas","Leads via site e portais","WhatsApp flutuante no site","Site otimizado para SEO"], absent:["Aplicativo do corretor","IA de oportunidades","Central de documentos","Domínio próprio"] },
+  { name:"Pro", featured:true, limits:["Até 400 imóveis","Até 3 usuários","3 e-mails profissionais","50 fotos por imóvel"], features:["Tudo do Start","Gestão completa","Aplicativo do corretor","CRM imobiliário completo","Controle de chaves","Controle de propostas","Vistorias","Agenda e visitas","IA para descrições"], absent:["Domínio próprio"] },
   { name:"Gestão", featured:false, limits:["Até 1.000 imóveis","Até 5 usuários","5 e-mails profissionais","50 fotos por imóvel"], features:["Tudo do Pro","IA de oportunidades","Central de documentos","Gestão de vendas","Gestão de clientes","Permissões por usuário","Relatórios estratégicos","Reserva avançada de leads"], absent:[] },
-  { name:"Prime", featured:false, limits:["Até 2.000 imóveis","Até 10 usuários","10 e-mails profissionais","50 fotos por imóvel"], features:["Tudo do Gestão","Domínio próprio","Gestão multi-equipe","Maior capacidade de IA","Prioridade operacional","Recursos avançados de automação"], absent:[] },
+  { name:"Prime", featured:false, limits:["Até 3.000 imóveis","Até 10 usuários","10 e-mails profissionais","50 fotos por imóvel"], features:["Tudo do Gestão","Domínio próprio","Gestão multi-equipe","Maior capacidade de IA","Prioridade operacional","Recursos avançados de automação"], absent:[] },
 ];
 
 const comparisonGroups = [
   { title:"Estrutura", rows:[
-    ["Imóveis","100","500","1.000","2.000"],
+    ["Imóveis","30","400","1.000","3.000"],
     ["Usuários","1","3","5","10"],
     ["E-mails profissionais","1","3","5","10"],
     ["Fotos por imóvel","5","50","50","50"],
