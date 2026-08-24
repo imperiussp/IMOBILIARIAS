@@ -20,9 +20,10 @@ export default function AdminUiEnhancer() {
     void (async () => {
       const agency = await getCurrentAgency();
       if (!agency || disposed || !supabaseBrowser) return;
+      const agencyId = agency.agencyId;
 
       const [propertyResult, cityResult] = await Promise.all([
-        supabaseBrowser.from("properties").select("id,code,title").eq("agency_id", agency.agencyId).order("created_at", { ascending: false }),
+        supabaseBrowser.from("properties").select("id,code,title").eq("agency_id", agencyId).order("created_at", { ascending: false }),
         supabaseBrowser.from("cities").select("id,name,state_code").order("name"),
       ]);
       if (disposed) return;
@@ -49,7 +50,11 @@ export default function AdminUiEnhancer() {
       }
 
       const byId = new Map(properties.map((item) => [item.id, item]));
-      const byCode = new Map(properties.map((item) => [item.code.toLowerCase(), item]));
+
+      function findPropertyInText(text: string) {
+        const raw = text.toLowerCase();
+        return properties.find((item) => raw.includes(item.code.toLowerCase()));
+      }
 
       function makeThumb(property: PropertySummary) {
         const url = photoMap.get(property.id);
@@ -66,8 +71,7 @@ export default function AdminUiEnhancer() {
         document.querySelectorAll<HTMLTableRowElement>(".adminPage .adminTable tbody tr").forEach((row) => {
           const cells = Array.from(row.querySelectorAll<HTMLTableCellElement>("td"));
           if (!cells.length) return;
-          const raw = (row.textContent || "").toLowerCase();
-          const property = properties.find((item) => raw.includes(item.code.toLowerCase()));
+          const property = findPropertyInText(row.textContent || "");
           if (!property) return;
           const identityCell = cells.find((cell) => (cell.textContent || "").toLowerCase().includes(property.code.toLowerCase())) || cells[0];
           if (!identityCell.dataset.propertyDecorated) {
@@ -80,6 +84,31 @@ export default function AdminUiEnhancer() {
             const actions = cells[cells.length - 1];
             actions.classList.add("adminPropertyActionsCell");
             actions.querySelectorAll<HTMLElement>("div,nav").forEach((node) => node.classList.add("adminPropertyActionsRow"));
+          }
+        });
+      }
+
+      function decoratePropertyCards() {
+        document.querySelectorAll<HTMLElement>(".adminPage .accessRow").forEach((row) => {
+          if (row.dataset.propertyDecorated) return;
+          const property = findPropertyInText(row.textContent || "");
+          if (!property) return;
+          const identity = row.querySelector<HTMLElement>(".accessIdentity");
+          if (!identity) return;
+          row.dataset.propertyDecorated = "1";
+          identity.classList.add("adminPropertyCardIdentity");
+          const thumb = makeThumb(property);
+          if (thumb) identity.prepend(thumb);
+          const strong = identity.querySelector("strong");
+          if (strong && (strong.textContent || "").toLowerCase().includes(property.code.toLowerCase())) {
+            strong.textContent = property.title;
+            let code = identity.querySelector<HTMLElement>(".adminPropertyCode");
+            if (!code) {
+              code = document.createElement("small");
+              code.className = "adminPropertyCode";
+              strong.insertAdjacentElement("afterend", code);
+            }
+            code.textContent = property.code;
           }
         });
       }
@@ -230,7 +259,7 @@ export default function AdminUiEnhancer() {
           }
 
           const { data, error } = await supabaseBrowser!.rpc("agency_upsert_city", {
-            p_agency_id: agency.agencyId,
+            p_agency_id: agencyId,
             p_name: cityName,
             p_state_code: stateCode,
           });
@@ -263,6 +292,7 @@ export default function AdminUiEnhancer() {
       function decorate() {
         if (disposed) return;
         decorateTables();
+        decoratePropertyCards();
         decoratePropertySelects();
         clearDefaultZeros();
         setupCityAutocomplete();
