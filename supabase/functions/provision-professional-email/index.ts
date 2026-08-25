@@ -8,11 +8,18 @@ const corsHeaders = {
 };
 
 type CpanelPayload = {
-  result?: { status?: number; errors?: string[] | string | null; messages?: string[] | string | null };
+  result?: {
+    status?: number;
+    errors?: string[] | string | null;
+    messages?: string[] | string | null;
+  };
 };
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 function cpanelBaseUrl() {
@@ -28,24 +35,94 @@ function cpanelBaseUrl() {
   }
 }
 
+function cleanExcerpt(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 220);
+}
+
 async function cpanelCall(module: string, fn: string, params: Record<string, string>) {
   const base = cpanelBaseUrl();
-  const user = String(Deno.env.get("CPANEL_USER") || "").trim();
+  const user = String(Deno.env.get("CPANEL_USER") || "").trim().toLowerCase();
   const token = String(Deno.env.get("CPANEL_API_TOKEN") || "").trim();
-  if (!base || !user || !token) throw new Error("O servidor de e-mails ainda não foi conectado à plataforma.");
+  if (!base || !user || !token) {
+    throw new Error("O servidor de e-mails ainda não foi conectado à plataforma.");
+  }
 
   const query = new URLSearchParams(params);
   const suffix = query.size ? `?${query.toString()}` : "";
-  const response = await fetch(`${base}/execute/${module}/${fn}${suffix}`, {
-    method: "GET",
-    headers: { Authorization: `cpanel ${user}:${token}`, Accept: "application/json" },
-  });
-  const payload = await response.json().catch(() => null) as CpanelPayload | null;
-  if (!response.ok || payload?.result?.status !== 1) {
-    const errors = payload?.result?.errors;
-    const message = Array.isArray(errors) ? errors.join(" · ") : String(errors || "Falha ao executar a operação no servidor de e-mail.");
-    throw new Error(message);
+  const url = `${base}/execute/${module}/${fn}${suffix}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `cpanel ${user}:${token}`,
+        Accept: "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("CPANEL_NETWORK_ERROR", {
+      base,
+      module,
+      fn,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error("Não foi possível alcançar o servidor cPanel na porta 2083. Verifique o host ou se a hospedagem bloqueia conexões externas à API.");
   }
+
+  const raw = await response.text();
+  let payload: CpanelPayload | null = null;
+  try {
+    payload = raw ? JSON.parse(raw) as CpanelPayload : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    console.error("CPANEL_HTTP_ERROR", {
+      base,
+      module,
+      fn,
+      status: response.status,
+      contentType: response.headers.get("content-type"),
+      excerpt: cleanExcerpt(raw),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`O cPanel recusou a autenticação (HTTP ${response.status}). Confira CPANEL_USER e CPANEL_API_TOKEN.`);
+    }
+
+    throw new Error(`O cPanel respondeu com HTTP ${response.status}. ${cleanExcerpt(raw) || "Sem detalhes adicionais."}`);
+  }
+
+  if (!payload) {
+    console.error("CPANEL_NON_JSON_RESPONSE", {
+      base,
+      module,
+      fn,
+      status: response.status,
+      contentType: response.headers.get("content-type"),
+      excerpt: cleanExcerpt(raw),
+    });
+    throw new Error(`O cPanel respondeu, mas não retornou JSON da API. ${cleanExcerpt(raw) || "Verifique o endereço configurado em CPANEL_HOST."}`);
+  }
+
+  if (payload.result?.status !== 1) {
+    const errors = payload.result?.errors;
+    const messages = payload.result?.messages;
+    const errorText = Array.isArray(errors) ? errors.join(" · ") : String(errors || "");
+    const messageText = Array.isArray(messages) ? messages.join(" · ") : String(messages || "");
+    const detail = errorText || messageText || "A operação foi recusada sem detalhes adicionais.";
+    console.error("CPANEL_UAPI_ERROR", { base, module, fn, detail });
+    throw new Error(`A API do cPanel recusou a operação: ${detail}`);
+  }
+
   return payload;
 }
 
@@ -54,7 +131,9 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
 
   const authorization = req.headers.get("Authorization") || "";
-  if (!authorization.toLowerCase().startsWith("bearer ")) return json({ error: "Sessão não informada." }, 401);
+  if (!authorization.toLowerCase().startsWith("bearer ")) {
+    return json({ error: "Sessão não informada." }, 401);
+  }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -95,15 +174,34 @@ Deno.serve(async (req: Request) => {
   if (!usageRow.can_create) return json({ error: "O plano não possui vaga disponível para uma nova conta de e-mail." }, 409);
 
   if (domain !== "imoveis.lenoy.com.br") {
-    const verifiedDomain = await supabase.from("agency_domains").select("hostname,verified").eq("agency_id", agencyId).eq("verified", true).eq("hostname", domain).maybeSingle();
-    if (verifiedDomain.error || !verifiedDomain.data) return json({ error: "Esse domínio próprio ainda não está verificado para a imobiliária." }, 400);
+    const verifiedDomain = await supabase
+      .from("agency_domains")
+      .select("hostname,verified")
+      .eq("agency_id", agencyId)
+      .eq("verified", true)
+      .eq("hostname", domain)
+      .maybeSingle();
+    if (verifiedDomain.error || !verifiedDomain.data) {
+      return json({ error: "Esse domínio próprio ainda não está verificado para a imobiliária." }, 400);
+    }
   }
 
-  const existing = await supabase.from("agency_mailboxes").select("id").eq("agency_id", agencyId).eq("email_address", `${localPart}@${domain}`).is("deleted_at", null).maybeSingle();
+  const existing = await supabase
+    .from("agency_mailboxes")
+    .select("id")
+    .eq("agency_id", agencyId)
+    .eq("email_address", `${localPart}@${domain}`)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (existing.data) return json({ error: "Esse endereço já está cadastrado." }, 409);
 
   try {
-    await cpanelCall("Email", "add_pop", { email: localPart, domain, password, quota: String(quotaMb) });
+    await cpanelCall("Email", "add_pop", {
+      email: localPart,
+      domain,
+      password,
+      quota: String(quotaMb),
+    });
 
     const registered = await supabase.rpc("register_agency_mailbox", {
       p_agency_id: agencyId,
