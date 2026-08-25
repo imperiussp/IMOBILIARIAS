@@ -11,6 +11,10 @@ export type MobileAgencyContext = {
   logoUrl: string | null;
   primaryColor: string;
   secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  themePreset: "classic" | "modern" | "elegant" | "minimal";
+  buttonStyle: "rounded" | "square" | "pill";
   planName: string;
   brokerAppEnabled: boolean;
   pushNotificationsEnabled: boolean;
@@ -23,6 +27,14 @@ const PREFERRED_AGENCY_KEY = "@imobiliarias/mobile-preferred-agency";
 function validHex(value: unknown, fallback: string) {
   const text = typeof value === "string" ? value.trim() : "";
   return /^#[0-9a-f]{6}$/i.test(text) ? text : fallback;
+}
+
+function validPreset(value: unknown): MobileAgencyContext["themePreset"] {
+  return ["classic", "modern", "elegant", "minimal"].includes(String(value)) ? value as MobileAgencyContext["themePreset"] : "classic";
+}
+
+function validButtonStyle(value: unknown): MobileAgencyContext["buttonStyle"] {
+  return ["rounded", "square", "pill"].includes(String(value)) ? value as MobileAgencyContext["buttonStyle"] : "rounded";
 }
 
 export async function setPreferredMobileAgencyId(agencyId: string | null) {
@@ -57,7 +69,7 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
   const [{ data: agencies, error: agencyError }, { data: brokers, error: brokerError }] = await Promise.all([
     mobileSupabase
       .from("agencies")
-      .select("id,name,slug,status,logo_url,primary_color,secondary_color")
+      .select("id,name,slug,status,logo_url,primary_color,secondary_color,background_color,text_color,theme_preset,button_style")
       .in("id", agencyIds),
     mobileSupabase
       .from("brokers")
@@ -87,7 +99,11 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
         brokerId: broker.id,
         logoUrl: agency.logo_url || null,
         primaryColor: validHex(agency.primary_color, "#17202a"),
-        secondaryColor: validHex(agency.secondary_color, "#f4f6f8"),
+        secondaryColor: validHex(agency.secondary_color, "#d6ac58"),
+        backgroundColor: validHex(agency.background_color, "#f4f1eb"),
+        textColor: validHex(agency.text_color, "#07182d"),
+        themePreset: validPreset(agency.theme_preset),
+        buttonStyle: validButtonStyle(agency.button_style),
         planName: String(feature?.plan_name || "Plano indisponível"),
         brokerAppEnabled: featureSnapshotAvailable && feature?.broker_app === true,
         pushNotificationsEnabled: featureSnapshotAvailable && feature?.push_notifications === true,
@@ -96,8 +112,6 @@ export async function getMobileAvailableAgencies(): Promise<MobileAgencyContext[
       } satisfies MobileAgencyContext;
     }));
 
-  // Fail closed: a corretora só aparece no app se o plano confirmar explicitamente
-  // que o recurso broker_app está habilitado. Erros de leitura nunca liberam recurso pago.
   return contexts
     .filter((context) => context.brokerAppEnabled)
     .sort((a, b) => a.agencyName.localeCompare(b.agencyName, "pt-BR"));
