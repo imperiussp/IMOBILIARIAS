@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import AdminUiEnhancer from "../components/AdminUiEnhancer";
 import AdminMobileMenu from "../components/AdminMobileMenu";
 import AdminSidebarActiveTracker from "../components/AdminSidebarActiveTracker";
+import UserDeviceAccessGuard from "../components/UserDeviceAccessGuard";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -66,7 +67,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminSidebarActiveTracker /></body>
+      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /></body>
     </html>
   );
 }
