@@ -1,0 +1,59 @@
+/* Cadastro de imobiliária — largura de desktop sem aparência de tela mobile. */
+.registerPage{
+  padding:40px 24px!important;
+}
+.registerPage .registerShell{
+  width:min(760px,100%)!important;
+}
+.registerPage .loginBrand{
+  justify-content:flex-start!important;
+  margin:0 auto 20px!important;
+  width:min(680px,100%)!important;
+}
+.registerPage .loginCard{
+  width:min(680px,100%)!important;
+  margin:0 auto!important;
+  padding:38px 42px!important;
+  gap:18px!important;
+}
+.registerPage .loginCard h1{
+  font-size:clamp(34px,4vw,46px)!important;
+  line-height:1.02!important;
+}
+.registerPage .loginCard>p{
+  max-width:580px!important;
+  font-size:15px!important;
+}
+.registerPage .loginCard input{
+  min-height:50px!important;
+  font-size:15px!important;
+}
+.registerPage .slugField{
+  grid-template-columns:minmax(0,1fr) auto!important;
+}
+.registerPage .slugField span{
+  min-height:50px!important;
+  display:flex!important;
+  align-items:center!important;
+  padding:0 15px!important;
+}
+.registerPage .button.full{
+  min-height:52px!important;
+  font-size:15px!important;
+}
+
+@media(max-width:760px){
+  .registerPage{padding:24px 16px!important;align-items:start!important}
+  .registerPage .registerShell{width:100%!important}
+  .registerPage .loginBrand{justify-content:center!important;width:100%!important;margin-bottom:16px!important}
+  .registerPage .loginCard{width:100%!important;padding:26px 20px!important;border-radius:20px!important;gap:15px!important}
+  .registerPage .loginCard h1{font-size:34px!important}
+  .registerPage .slugField{grid-template-columns:1fr!important}
+  .registerPage .slugField span{min-height:auto!important;border-left:0!important;border-top:1px solid #e3e8eb!important;padding:9px 12px!important;background:#f8fafb!important}
+}
+
+@media(max-width:420px){
+  .registerPage{padding:18px 12px!important}
+  .registerPage .loginCard{padding:22px 16px!important}
+  .registerPage .loginCard h1{font-size:31px!important}
+}
