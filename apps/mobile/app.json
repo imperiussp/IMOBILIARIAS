@@ -6,6 +6,12 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/lenoy-icon.png",
+    "splash": {
+      "image": "./assets/lenoy-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "plugins": [
       [
         "expo-image-picker",
@@ -32,6 +38,7 @@
       "package": "br.com.lenoy.imobiliarias",
       "versionCode": 1,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/lenoy-icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
