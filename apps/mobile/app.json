@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "LENOY Imobiliárias",
-    "slug": "imobiliarias",
+    "slug": "lenoy-imobiliarias",
+    "owner": "moto-connect",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -30,8 +31,17 @@
     "android": {
       "package": "br.com.lenoy.imobiliarias",
       "versionCode": 1,
-      "adaptiveIcon": { "backgroundColor": "#ffffff" },
-      "permissions": ["POST_NOTIFICATIONS"]
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a229bb02-47fe-40d2-8a06-148e34a7ccab"
+      }
     }
   }
 }
