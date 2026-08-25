@@ -65,6 +65,11 @@ const jobLabel: Record<MailJob["status"], string> = {
   cancelled: "Cancelado",
 };
 
+function mailDomainFromHostname(value: string) {
+  const hostname = value.trim().toLowerCase().replace(/\.$/, "");
+  return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+}
+
 async function edgeErrorMessage(error: unknown) {
   const fallback = error instanceof Error ? error.message : "Não foi possível acessar o servidor de e-mail.";
   const context = (error as { context?: { json?: () => Promise<unknown> } } | null)?.context;
@@ -123,9 +128,21 @@ export default function AdminProfessionalEmails() {
       setJobs(((jobResult.data || []) as MailJob[]).filter((item) => item.status !== "completed" && item.status !== "cancelled"));
     }
 
-    const verifiedCustom = ((domainResult.data || []) as DomainRow[])
-      .map((row) => ({ ...row, hostname: row.hostname.trim().toLowerCase() }))
-      .filter((row) => row.kind === "custom" && row.hostname && row.hostname !== PLATFORM_MAIL_DOMAIN && !row.hostname.endsWith(`.${PLATFORM_MAIL_DOMAIN}`));
+    const domainMap = new Map<string, DomainRow>();
+    for (const row of (domainResult.data || []) as DomainRow[]) {
+      if (row.kind !== "custom") continue;
+      const verifiedHostname = row.hostname.trim().toLowerCase().replace(/\.$/, "");
+      if (!verifiedHostname || verifiedHostname === PLATFORM_MAIL_DOMAIN || verifiedHostname.endsWith(`.${PLATFORM_MAIL_DOMAIN}`)) continue;
+      const mailHostname = mailDomainFromHostname(verifiedHostname);
+      if (!mailHostname) continue;
+      const previous = domainMap.get(mailHostname);
+      domainMap.set(mailHostname, {
+        ...row,
+        hostname: mailHostname,
+        is_primary: Boolean(row.is_primary || previous?.is_primary),
+      });
+    }
+    const verifiedCustom = Array.from(domainMap.values());
 
     setCustomDomains(verifiedCustom);
     setCustomDomain((current) => {
@@ -268,12 +285,12 @@ export default function AdminProfessionalEmails() {
         <p>Primeiro conecte e verifique o domínio da imobiliária. Depois ele será liberado aqui para criação de contas como <b>contato@suaimobiliaria.com.br</b>.</p>
         <button type="button" className="button secondary small" onClick={goToDomains}>Configurar domínio próprio</button>
       </> : <>
-        <p>Escolha abaixo um dos domínios próprios já verificados. Esta escolha aparece somente dentro deste fluxo separado.</p>
+        <p>Escolha abaixo um dos domínios próprios já verificados. Se o site usa <b>www</b>, o e-mail usa automaticamente o domínio principal sem <b>www</b>.</p>
         <div className="accessList" style={{ marginTop: 12 }}>
           {customDomains.map((item) => <article className="accessRow" key={item.hostname}>
             <div className="accessIdentity">
               <strong>{item.hostname}</strong>
-              <span>Domínio verificado</span>
+              <span>Domínio da imobiliária verificado</span>
               <small>{item.is_primary ? "Domínio principal" : "Domínio adicional"}</small>
             </div>
             <div className="accessActions">
