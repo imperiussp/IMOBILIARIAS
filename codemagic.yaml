@@ -1,0 +1,76 @@
+workflows:
+  android-standalone-test:
+    name: LENOY Imobiliárias - Android standalone
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    working_directory: apps/mobile
+    environment:
+      node: 22
+      vars:
+        EXPO_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
+    scripts:
+      - name: Preparar pnpm
+        script: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+      - name: Instalar dependências do monorepo
+        script: |
+          cd ../..
+          pnpm install --no-frozen-lockfile
+      - name: Gerar projeto Android nativo
+        script: |
+          pnpm exec expo prebuild --platform android --clean
+      - name: Compilar APK release standalone
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+    artifacts:
+      - android/app/build/outputs/apk/release/*.apk
+
+  ios-simulator-check:
+    name: LENOY Imobiliárias - iOS compile check
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    working_directory: apps/mobile
+    environment:
+      node: 22
+      xcode: latest
+      cocoapods: default
+      vars:
+        EXPO_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
+    scripts:
+      - name: Preparar pnpm
+        script: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+      - name: Instalar dependências do monorepo
+        script: |
+          cd ../..
+          pnpm install --no-frozen-lockfile
+      - name: Gerar projeto iOS nativo
+        script: |
+          pnpm exec expo prebuild --platform ios --clean
+      - name: Instalar CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Compilar para simulador iOS
+        script: |
+          cd ios
+          WORKSPACE=$(find . -maxdepth 1 -name "*.xcworkspace" -print -quit)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list -json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["workspace"]["schemes"][0])')
+          echo "Workspace: $WORKSPACE"
+          echo "Scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - ios/build/Build/Products/Release-iphonesimulator/*.app
