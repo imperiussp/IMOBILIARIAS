@@ -51,7 +51,7 @@ export default function AppDownloadPanel() {
         <header className="appDownloadHero">
           <span className="appDownloadEyebrow">LENOY IMOBILIÁRIAS</span>
           <h1>Leve sua imobiliária no celular</h1>
-          <p>Cadastre imóveis, fotografe, trabalhe mesmo sem internet e sincronize os dados quando a conexão voltar.</p>
+          <p>No Android, instale o aplicativo. No iPhone, use um atalho do painel na Tela de Início enquanto a versão nativa iOS é finalizada.</p>
         </header>
 
         {platform === "android" && (
@@ -67,7 +67,7 @@ export default function AppDownloadPanel() {
               <div className="appPlatformSymbol android"><AndroidIcon /></div>
               <div><span>ANDROID</span><h2>Instalar aplicativo</h2></div>
             </div>
-            <p>Baixe o aplicativo LENOY Imobiliárias diretamente no seu Android.</p>
+            <p>Baixe o aplicativo LENOY Imobiliárias diretamente no seu Android, com suporte ao fluxo de trabalho offline do app.</p>
             <a className="appDownloadButton" href="/app-imobiliaria.apk">
               <AndroidIcon /> Baixar app para Android
             </a>
@@ -84,14 +84,14 @@ export default function AppDownloadPanel() {
           <article className={`appPlatformCard ${platform === "ios" ? "isRecommended" : ""}`}>
             <div className="appPlatformHeading">
               <div className="appPlatformSymbol apple"><AppleIcon /></div>
-              <div><span>IPHONE / IPAD</span><h2>Adicionar à Tela de Início</h2></div>
+              <div><span>IPHONE / IPAD</span><h2>Adicionar painel à Tela de Início</h2></div>
             </div>
-            <p>Enquanto a versão nativa para iPhone está em preparação, use o acesso rápido pela Tela de Início.</p>
-            <div className="appIosNotice">No iPhone, abra esta página pelo <b>Safari</b>.</div>
+            <p>Enquanto a versão nativa para iPhone está em preparação, crie um atalho direto para o painel LENOY na Tela de Início.</p>
+            <div className="appIosNotice">Este atalho abre o <b>painel web</b>. Ele não substitui ainda o aplicativo nativo com funcionamento offline.</div>
             <div className="appInstructionBox appIosSteps">
               <strong>Como colocar na Tela de Início</strong>
               <ol>
-                <li>Abra <b>imoveis.lenoy.com.br</b> no Safari.</li>
+                <li>Abra <b>imoveis.lenoy.com.br/admin/</b> no Safari.</li>
                 <li>Toque no botão <b>Compartilhar</b> <ShareIcon />.</li>
                 <li>Role as opções e toque em <b>Adicionar à Tela de Início</b>.</li>
                 <li>Confirme em <b>Adicionar</b>.</li>
@@ -102,7 +102,7 @@ export default function AppDownloadPanel() {
         </div>
 
         <div className="appDownloadFootnote">
-          <strong>Android:</strong> aplicativo instalável disponível. <strong>iPhone:</strong> acesso pela Tela de Início enquanto finalizamos a distribuição da versão iOS.
+          <strong>Android:</strong> aplicativo instalável disponível. <strong>iPhone:</strong> atalho para o painel disponível agora; a versão nativa iOS poderá ser distribuída depois por TestFlight/App Store.
         </div>
       </section>
     </main>
