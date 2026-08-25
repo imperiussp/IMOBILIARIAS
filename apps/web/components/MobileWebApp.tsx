@@ -1,54 +1,176 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { getCurrentAgency, type CurrentAgency } from "../lib/currentAgency";
 import { supabaseBrowser } from "../lib/supabaseBrowser";
+import AdminBrokerGoals from "./AdminBrokerGoals";
+import AdminBrokerPerformance from "./AdminBrokerPerformance";
+import AdminBrokers from "./AdminBrokers";
+import AdminBuyerDeliveryMonitor from "./AdminBuyerDeliveryMonitor";
+import AdminBuyerOutreach from "./AdminBuyerOutreach";
+import AdminBuyerPreferences from "./AdminBuyerPreferences";
+import AdminDocuments from "./AdminDocuments";
+import AdminDomains from "./AdminDomains";
+import AdminFollowups from "./AdminFollowups";
+import AdminInfinitePayCheckout from "./AdminInfinitePayCheckout";
+import AdminLeadQualificationBoard from "./AdminLeadQualificationBoard";
+import AdminLeadTimeline from "./AdminLeadTimeline";
+import AdminLiveData from "./AdminLiveData";
+import AdminPlan from "./AdminPlan";
+import AdminProfessionalEmails from "./AdminProfessionalEmails";
+import AdminPropertyForm from "./AdminPropertyForm";
+import AdminSiteSettings from "./AdminSiteSettings";
+import AdminUsers from "./AdminUsers";
+import AdminVisitSchedule from "./AdminVisitSchedule";
+
+const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 
 type PlanState = {
   name: string;
-  status: string;
   renewsAt: string | null;
   endsAt: string | null;
+  features: Record<string, unknown>;
 };
 
+type Summary = {
+  properties: number;
+  contacts: number;
+  pendingFollowups: number;
+  upcomingVisits: number;
+  historyEvents: number;
+  brokerPerformance: number;
+  brokerGoals: number;
+  opportunities: number;
+  deliveryAttempts: number;
+};
+
+type AppView =
+  | "home"
+  | "imoveis"
+  | "novo-imovel"
+  | "contatos"
+  | "classificacao"
+  | "perfil-compra"
+  | "oportunidades"
+  | "entregas"
+  | "acompanhamentos"
+  | "visitas"
+  | "historico-contato"
+  | "documentos"
+  | "desempenho-corretores"
+  | "metas-corretores"
+  | "corretores"
+  | "usuarios"
+  | "meu-plano"
+  | "alterar-plano"
+  | "emails"
+  | "identidade"
+  | "dominios";
+
 type MenuItem = {
+  view: AppView;
   label: string;
   detail: string;
-  href: string;
   adminOnly?: boolean;
+  when?: (summary: Summary, outreachAllowed: boolean) => boolean;
+};
+
+const emptySummary: Summary = {
+  properties: 0,
+  contacts: 0,
+  pendingFollowups: 0,
+  upcomingVisits: 0,
+  historyEvents: 0,
+  brokerPerformance: 0,
+  brokerGoals: 0,
+  opportunities: 0,
+  deliveryAttempts: 0,
 };
 
 const menuItems: MenuItem[] = [
-  { label: "Início", detail: "Painel móvel", href: "/app/" },
-  { label: "Imóveis", detail: "Catálogo e anúncios", href: "/admin/#imoveis" },
-  { label: "Novo imóvel", detail: "Cadastrar imóvel", href: "/admin/#novo-imovel", adminOnly: true },
-  { label: "Contatos", detail: "Leads e interessados", href: "/admin/#contatos" },
-  { label: "Classificação", detail: "Organizar oportunidades", href: "/admin/#qualificacao-contatos" },
-  { label: "Acompanhamentos", detail: "Próximas ações", href: "/admin/#acompanhamentos" },
-  { label: "Agenda de visitas", detail: "Visitas e compromissos", href: "/admin/#agenda-visitas" },
-  { label: "Meu plano", detail: "Plano, vigência e limites", href: "/admin/#meu-plano", adminOnly: true },
-  { label: "Alterar / renovar plano", detail: "Pagamento e mudança de plano", href: "/admin/#pagamento-infinitepay", adminOnly: true },
-  { label: "E-mails profissionais", detail: "Criar e gerenciar caixas", href: "/admin/#emails-profissionais", adminOnly: true },
-  { label: "Identidade e aparência", detail: "Logo, cores e visual", href: "/admin/#configuracoes", adminOnly: true },
-  { label: "Domínios", detail: "Domínio próprio da imobiliária", href: "/admin/#dominios", adminOnly: true },
-  { label: "Usuários", detail: "Acessos da equipe", href: "/admin/#usuarios", adminOnly: true },
-  { label: "Corretores", detail: "Equipe comercial", href: "/admin/#corretores", adminOnly: true },
+  { view: "home", label: "Início", detail: "Resumo do aplicativo" },
+  { view: "imoveis", label: "Imóveis", detail: "Catálogo e anúncios" },
+  { view: "novo-imovel", label: "Novo imóvel", detail: "Cadastrar imóvel", adminOnly: true },
+  { view: "contatos", label: "Contatos", detail: "Leads recebidos", when: (s) => s.contacts > 0 },
+  { view: "classificacao", label: "Classificação", detail: "Organizar contatos", when: (s) => s.contacts > 0 },
+  { view: "perfil-compra", label: "Perfil de compra", detail: "Preferências do comprador", when: (s) => s.contacts > 0 },
+  { view: "oportunidades", label: "Oportunidades automáticas", detail: "Matches permitidos pelo plano", adminOnly: true, when: (s, allowed) => allowed && s.contacts > 0 },
+  { view: "entregas", label: "Entrega das oportunidades", detail: "Envios e retornos", adminOnly: true, when: (s, allowed) => allowed && s.deliveryAttempts > 0 },
+  { view: "acompanhamentos", label: "Acompanhamentos", detail: "Próximas ações", when: (s) => s.pendingFollowups > 0 },
+  { view: "visitas", label: "Visitas aos imóveis", detail: "Agenda e próximas visitas" },
+  { view: "historico-contato", label: "Histórico do contato", detail: "Linha do tempo do CRM", when: (s) => s.historyEvents > 0 },
+  { view: "documentos", label: "Documentos", detail: "Central de documentos", adminOnly: true },
+  { view: "desempenho-corretores", label: "Desempenho dos corretores", detail: "Indicadores da equipe", adminOnly: true, when: (s) => s.brokerPerformance > 0 },
+  { view: "metas-corretores", label: "Metas dos corretores", detail: "Metas com dados registrados", adminOnly: true, when: (s) => s.brokerGoals > 0 },
+  { view: "corretores", label: "Corretores", detail: "Equipe comercial", adminOnly: true },
+  { view: "usuarios", label: "Usuários", detail: "Acessos da equipe", adminOnly: true },
+  { view: "meu-plano", label: "Meu plano", detail: "Vigência e limites", adminOnly: true },
+  { view: "alterar-plano", label: "Alterar / renovar plano", detail: "Pagamento e mudança de plano", adminOnly: true },
+  { view: "emails", label: "E-mails profissionais", detail: "Criar e gerenciar caixas", adminOnly: true },
+  { view: "identidade", label: "Identidade e aparência", detail: "Logo, cores e visual", adminOnly: true },
+  { view: "dominios", label: "Domínios", detail: "Domínio próprio", adminOnly: true },
 ];
 
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "—";
-  return date.toLocaleDateString("pt-BR");
+const viewTitles: Record<AppView, { kicker: string; title: string; text: string }> = {
+  home: { kicker: "PAINEL", title: "Visão geral", text: "Somente o que precisa de atenção agora." },
+  imoveis: { kicker: "IMÓVEIS", title: "Meus imóveis", text: "Catálogo, status e edição sem rolagem horizontal." },
+  "novo-imovel": { kicker: "CADASTRO", title: "Novo imóvel", text: "Abra o formulário somente quando for cadastrar." },
+  contatos: { kicker: "CRM", title: "Contatos recebidos", text: "Contatos existentes da imobiliária." },
+  classificacao: { kicker: "CRM", title: "Classificação dos contatos", text: "Organize apenas os contatos que já existem." },
+  "perfil-compra": { kicker: "COMPRADORES", title: "Perfil de compra", text: "O formulário começa fechado para manter a tela curta." },
+  oportunidades: { kicker: "IA COMERCIAL", title: "Oportunidades automáticas", text: "Disponível somente quando o plano permitir e houver contatos." },
+  entregas: { kicker: "MENSAGERIA", title: "Entrega das oportunidades", text: "Só aparece quando existir entrega registrada e o plano permitir." },
+  acompanhamentos: { kicker: "CRM", title: "Acompanhamentos", text: "Mostrado somente quando houver ações pendentes." },
+  visitas: { kicker: "AGENDA", title: "Visitas aos imóveis", text: "Próximas visitas ficam visíveis; o formulário começa fechado." },
+  "historico-contato": { kicker: "CRM 360°", title: "Histórico do contato", text: "Só aparece quando existir histórico." },
+  documentos: { kicker: "DOCUMENTOS", title: "Central de documentos", text: "Documentos agora abrem dentro do aplicativo." },
+  "desempenho-corretores": { kicker: "EQUIPE", title: "Desempenho dos corretores", text: "Exibido somente quando houver indicadores." },
+  "metas-corretores": { kicker: "EQUIPE", title: "Metas dos corretores", text: "Exibido somente quando houver metas registradas." },
+  corretores: { kicker: "EQUIPE", title: "Corretores", text: "Gestão da equipe comercial." },
+  usuarios: { kicker: "ACESSOS", title: "Usuários", text: "Gestão dos acessos da imobiliária." },
+  "meu-plano": { kicker: "PLANO", title: "Meu plano", text: "Vigência, limites e recursos disponíveis." },
+  "alterar-plano": { kicker: "PLANO", title: "Alterar ou renovar plano", text: "Contratação e renovação." },
+  emails: { kicker: "E-MAIL", title: "E-mails profissionais", text: "Criação e gestão das caixas profissionais." },
+  identidade: { kicker: "MARCA", title: "Identidade e aparência", text: "Logo, cores e aparência da imobiliária." },
+  dominios: { kicker: "DOMÍNIO", title: "Domínios", text: "Configuração do domínio próprio." },
+};
+
+function numberFrom(result: { count?: number | null } | null | undefined) {
+  return Number(result?.count || 0);
+}
+
+function appHref(view: AppView) {
+  return view === "home" ? "/app/" : `/app/?view=${encodeURIComponent(view)}`;
+}
+
+function planAllowsOutreach(features: Record<string, unknown>, usage: { monthly_limit?: number | null } | null) {
+  const explicit = [
+    features.buyer_outreach,
+    features.automatic_buyer_opportunities,
+    features.ai_buyer_opportunities,
+    features.buyer_opportunities,
+  ].some((value) => value === true || Number(value) > 0);
+  const usageAllows = Boolean(usage && (usage.monthly_limit == null || Number(usage.monthly_limit) > 0));
+  return explicit || usageAllows;
 }
 
 export default function MobileWebApp() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [agency, setAgency] = useState<CurrentAgency | null>(null);
   const [plan, setPlan] = useState<PlanState | null>(null);
+  const [summary, setSummary] = useState<Summary>(emptySummary);
+  const [outreachAllowed, setOutreachAllowed] = useState(false);
+  const [view, setView] = useState<AppView>("home");
   const [loading, setLoading] = useState(true);
+  const [visitFormOpen, setVisitFormOpen] = useState(false);
+  const [buyerFormOpen, setBuyerFormOpen] = useState(false);
 
   const isAdmin = agency?.role === "owner" || agency?.role === "admin";
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("view") as AppView | null;
+    if (requested && Object.prototype.hasOwnProperty.call(viewTitles, requested)) setView(requested);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -56,25 +178,61 @@ export default function MobileWebApp() {
       const current = await getCurrentAgency();
       if (!active) return;
       setAgency(current);
-      if (current && supabaseBrowser) {
-        const result = await supabaseBrowser
-          .from("agency_subscriptions")
-          .select("status,renews_at,ends_at,subscription_plans(name)")
-          .eq("agency_id", current.agencyId)
-          .order("starts_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!active) return;
-        if (!result.error && result.data) {
-          const rawPlan = result.data.subscription_plans as unknown as { name?: string } | null;
-          setPlan({
-            name: rawPlan?.name || "Plano atual",
-            status: String(result.data.status || ""),
-            renewsAt: result.data.renews_at || null,
-            endsAt: result.data.ends_at || null,
-          });
-        }
+      if (!current || !supabaseBrowser) {
+        setLoading(false);
+        return;
       }
+
+      const now = new Date().toISOString();
+      const [
+        propertiesResult,
+        contactsResult,
+        followupResult,
+        visitResult,
+        historyResult,
+        performanceResult,
+        goalsResult,
+        opportunitiesResult,
+        deliveryResult,
+        subscriptionResult,
+        usageResult,
+      ] = await Promise.all([
+        supabaseBrowser.from("properties").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("leads").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("lead_followups").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId).is("completed_at", null),
+        supabaseBrowser.from("property_visit_appointments").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId).eq("status", "scheduled").gte("scheduled_at", now),
+        supabaseBrowser.from("lead_activity_events").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("agency_broker_performance").select("broker_id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("broker_monthly_goal_progress").select("broker_id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("buyer_property_opportunities").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("buyer_outreach_delivery_attempts").select("id", { count: "exact", head: true }).eq("agency_id", current.agencyId),
+        supabaseBrowser.from("agency_subscriptions").select("renews_at,ends_at,subscription_plans(name,features)").eq("agency_id", current.agencyId).order("starts_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseBrowser.from("agency_buyer_outreach_usage").select("monthly_limit").eq("agency_id", current.agencyId).maybeSingle(),
+      ]);
+
+      if (!active) return;
+      setSummary({
+        properties: numberFrom(propertiesResult),
+        contacts: numberFrom(contactsResult),
+        pendingFollowups: numberFrom(followupResult),
+        upcomingVisits: numberFrom(visitResult),
+        historyEvents: numberFrom(historyResult),
+        brokerPerformance: numberFrom(performanceResult),
+        brokerGoals: numberFrom(goalsResult),
+        opportunities: numberFrom(opportunitiesResult),
+        deliveryAttempts: numberFrom(deliveryResult),
+      });
+
+      const rawPlan = subscriptionResult.data?.subscription_plans as unknown as { name?: string; features?: Record<string, unknown> } | { name?: string; features?: Record<string, unknown> }[] | null;
+      const planRow = Array.isArray(rawPlan) ? rawPlan[0] : rawPlan;
+      const features = planRow?.features || {};
+      setPlan({
+        name: planRow?.name || "Plano atual",
+        renewsAt: subscriptionResult.data?.renews_at || null,
+        endsAt: subscriptionResult.data?.ends_at || null,
+        features,
+      });
+      setOutreachAllowed(planAllowsOutreach(features, usageResult.data as { monthly_limit?: number | null } | null));
       setLoading(false);
     })();
     return () => { active = false; };
@@ -87,142 +245,182 @@ export default function MobileWebApp() {
     return () => { document.body.style.overflow = previous; };
   }, [menuOpen]);
 
-  const visibleMenu = useMemo(() => menuItems.filter((item) => !item.adminOnly || isAdmin), [isAdmin]);
+  const visibleMenu = useMemo(() => menuItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false;
+    return item.when ? item.when(summary, outreachAllowed) : true;
+  }), [isAdmin, outreachAllowed, summary]);
 
   async function signOut() {
     if (supabaseBrowser) await supabaseBrowser.auth.signOut();
     window.location.href = "/login/?redirect=%2Fapp%2F";
   }
 
-  const roleLabel = agency?.role === "owner" ? "Proprietário" : agency?.role === "admin" ? "Administrador" : agency?.role === "broker" ? "Corretor" : "Equipe";
+  const meta = viewTitles[view];
 
   return (
-    <main style={styles.page}>
-      <header style={styles.topbar}>
-        <div style={{ minWidth: 0 }}>
-          <div style={styles.brand}>LENOY IMOBILIÁRIAS</div>
-          <div style={styles.appTitle}>Painel do corretor</div>
-        </div>
-        <button type="button" onClick={() => setMenuOpen(true)} aria-label="Abrir menu" style={styles.menuButton}>☰</button>
+    <main className="mobileAppWorkspace">
+      <style>{mobileCss}</style>
+      <header className="mobileAppTopbar">
+        <a className="mobileAppBrand" href="/app/" aria-label="Voltar ao início do aplicativo">
+          <img src={lenoyLogo} alt="LENOY IMOBILIÁRIAS" />
+          <span><small>LENOY IMOBILIÁRIAS</small><strong>Painel do corretor</strong></span>
+        </a>
+        <button type="button" onClick={() => setMenuOpen(true)} aria-label="Abrir menu" className="mobileMenuButton">☰</button>
       </header>
 
-      <section style={styles.content}>
-        <div style={styles.hero}>
-          <div>
-            <div style={styles.heroKicker}>{loading ? "CARREGANDO" : roleLabel.toUpperCase()}</div>
-            <h1 style={styles.heroTitle}>{agency?.agencyName || "Sua imobiliária"}</h1>
-            <p style={styles.heroText}>Imóveis, contatos, visitas e gestão em uma tela feita para o celular.</p>
-          </div>
-          {isAdmin ? <a href="/admin/#meu-plano" style={styles.planBadge}><span style={styles.planBadgeLabel}>PLANO</span><strong style={styles.planBadgeValue}>{plan?.name || "—"}</strong></a> : null}
-        </div>
-
-        <div style={styles.sectionHeader}>
-          <span style={styles.sectionKicker}>ATALHOS</span>
-          <h2 style={styles.sectionTitle}>O que você precisa fazer?</h2>
-        </div>
-
-        <div style={styles.grid}>
-          {isAdmin ? <ActionCard title="Novo imóvel" text="Cadastrar um novo imóvel" href="/admin/#novo-imovel" dark /> : null}
-          <ActionCard title="Meus imóveis" text="Consultar catálogo e anúncios" href="/admin/#imoveis" />
-          <ActionCard title="Contatos" text="Leads e interessados" href="/admin/#contatos" />
-          <ActionCard title="Visitas" text="Agenda comercial" href="/admin/#agenda-visitas" />
-          <ActionCard title="Acompanhamentos" text="Próximas ações e retornos" href="/admin/#acompanhamentos" />
-          {isAdmin ? <ActionCard title="Meu plano" text="Vigência, limites e alteração" href="/admin/#meu-plano" /> : null}
-        </div>
-
-        {isAdmin ? (
-          <section style={styles.managementCard}>
-            <div>
-              <span style={styles.sectionKicker}>GESTÃO</span>
-              <h2 style={{ ...styles.sectionTitle, marginTop: 4 }}>Conta da imobiliária</h2>
-              <p style={styles.muted}>Plano: {plan?.name || "—"} · Renovação: {formatDate(plan?.renewsAt || plan?.endsAt || null)}</p>
+      <section className="mobileAppContent">
+        {view === "home" ? renderHome() : (
+          <>
+            <div className="mobilePageHeading">
+              <a href="/app/" className="mobileBackLink">‹ Início</a>
+              <span>{meta.kicker}</span>
+              <h1>{meta.title}</h1>
+              <p>{meta.text}</p>
             </div>
-            <div style={styles.managementLinks}>
-              <a href="/admin/#pagamento-infinitepay" style={styles.manageLink}>Alterar / renovar plano <span>›</span></a>
-              <a href="/admin/#emails-profissionais" style={styles.manageLink}>E-mails profissionais <span>›</span></a>
-              <a href="/admin/#configuracoes" style={styles.manageLink}>Identidade e aparência <span>›</span></a>
-              <a href="/admin/#dominios" style={styles.manageLink}>Domínios <span>›</span></a>
-            </div>
-          </section>
-        ) : null}
-
-        <a href="/admin/" style={styles.fullPanelLink}>Abrir painel completo <span>›</span></a>
+            {renderView()}
+          </>
+        )}
       </section>
 
       {menuOpen ? (
-        <div style={styles.menuLayer} role="dialog" aria-modal="true" aria-label="Menu do aplicativo">
-          <button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} style={styles.backdrop} />
-          <aside style={styles.drawer}>
-            <div style={styles.drawerHead}>
-              <div>
-                <div style={styles.brand}>LENOY IMOBILIÁRIAS</div>
-                <div style={styles.drawerTitle}>Menu</div>
-                <div style={styles.drawerAgency}>{agency?.agencyName || "Sua imobiliária"}</div>
-              </div>
-              <button type="button" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" style={styles.closeButton}>×</button>
+        <div className="mobileMenuLayer" role="dialog" aria-modal="true" aria-label="Menu do aplicativo">
+          <button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} className="mobileMenuBackdrop" />
+          <aside className="mobileMenuDrawer">
+            <div className="mobileDrawerHead">
+              <div className="mobileDrawerBrand"><img src={lenoyLogo} alt="" /><div><small>LENOY IMOBILIÁRIAS</small><strong>Menu</strong><span>{agency?.agencyName || "Sua imobiliária"}</span></div></div>
+              <button type="button" onClick={() => setMenuOpen(false)} aria-label="Fechar menu" className="mobileCloseButton">×</button>
             </div>
-            <nav style={styles.menuList}>
+            <nav className="mobileMenuList">
               {visibleMenu.map((item) => (
-                <a key={`${item.label}-${item.href}`} href={item.href} onClick={() => setMenuOpen(false)} style={styles.menuItem}>
-                  <span><strong style={styles.menuItemTitle}>{item.label}</strong><small style={styles.menuItemDetail}>{item.detail}</small></span>
-                  <span style={styles.arrow}>›</span>
+                <a key={item.view} href={appHref(item.view)} onClick={() => setMenuOpen(false)} className={view === item.view ? "active" : ""}>
+                  <span><strong>{item.label}</strong><small>{item.detail}</small></span><b>›</b>
                 </a>
               ))}
             </nav>
-            <button type="button" onClick={() => void signOut()} style={styles.signOut}>Sair da conta</button>
+            <button type="button" onClick={() => void signOut()} className="mobileSignOut">Sair da conta</button>
           </aside>
         </div>
       ) : null}
     </main>
   );
+
+  function renderHome() {
+    return <>
+      <section className="mobileHero">
+        <div><span>PAINEL</span><h1>{agency?.agencyName || "Sua imobiliária"}</h1><p>Informações relevantes e ações rápidas, sem carregar o painel inteiro.</p></div>
+        {isAdmin ? <a href={appHref("meu-plano")} className="mobilePlanBadge"><small>PLANO</small><strong>{plan?.name || (loading ? "..." : "—")}</strong></a> : null}
+      </section>
+
+      <section className="mobileStatsGrid">
+        <article><span>Imóveis</span><strong>{loading ? "—" : summary.properties}</strong></article>
+        {summary.contacts > 0 ? <article><span>Contatos</span><strong>{summary.contacts}</strong></article> : null}
+        {summary.upcomingVisits > 0 ? <article><span>Próximas visitas</span><strong>{summary.upcomingVisits}</strong></article> : null}
+        {summary.pendingFollowups > 0 ? <article><span>Acompanhamentos</span><strong>{summary.pendingFollowups}</strong></article> : null}
+      </section>
+
+      <div className="mobileSectionTitle"><span>ATALHOS</span><h2>O que precisa fazer agora?</h2></div>
+      <div className="mobileActionGrid">
+        {isAdmin ? <ActionCard title="Novo imóvel" text="Cadastrar imóvel" href={appHref("novo-imovel")} dark /> : null}
+        <ActionCard title="Meus imóveis" text="Consultar e editar" href={appHref("imoveis")} />
+        {summary.contacts > 0 ? <ActionCard title="Contatos" text={`${summary.contacts} recebido(s)`} href={appHref("contatos")} /> : null}
+        {summary.upcomingVisits > 0 ? <ActionCard title="Visitas" text={`${summary.upcomingVisits} próxima(s)`} href={appHref("visitas")} /> : null}
+        {summary.pendingFollowups > 0 ? <ActionCard title="Acompanhamentos" text={`${summary.pendingFollowups} pendente(s)`} href={appHref("acompanhamentos")} /> : null}
+        {isAdmin ? <ActionCard title="Meu plano" text="Vigência e alteração" href={appHref("meu-plano")} /> : null}
+      </div>
+
+      {isAdmin ? <section className="mobilePlanCard"><div><span>CONTA DA IMOBILIÁRIA</span><strong>{plan?.name || "Plano atual"}</strong><small>{plan?.renewsAt || plan?.endsAt ? `Vigência: ${formatDate(plan.renewsAt || plan.endsAt)}` : "Consulte vigência e limites"}</small></div><a href={appHref("alterar-plano")}>Alterar / renovar <b>›</b></a></section> : null}
+      <p className="mobileMenuHint">As demais ferramentas ficam organizadas no menu ☰.</p>
+    </>;
+  }
+
+  function renderView() {
+    switch (view) {
+      case "imoveis":
+        return <div className="mobileModule livePropertiesOnly"><AdminLiveData /></div>;
+      case "novo-imovel":
+        return isAdmin ? <CollapsedModule title="Abrir cadastro de imóvel"><div className="mobileFormCard"><AdminPropertyForm /></div></CollapsedModule> : <Unavailable text="Este recurso é administrativo." />;
+      case "contatos":
+        return summary.contacts > 0 ? <div className="mobileModule liveContactsOnly"><AdminLiveData /></div> : <Unavailable text="Nenhum contato recebido." />;
+      case "classificacao":
+        return summary.contacts > 0 ? <div className="mobileModule"><AdminLeadQualificationBoard /></div> : <Unavailable text="A classificação aparece quando houver contatos." />;
+      case "perfil-compra":
+        return summary.contacts > 0 ? <div className={`mobileModule buyerProfile ${buyerFormOpen ? "formOpen" : "formClosed"}`}><button className="mobileOpenButton" onClick={() => setBuyerFormOpen((value) => !value)}>{buyerFormOpen ? "Fechar formulário" : "Abrir formulário de perfil"}</button><AdminBuyerPreferences /></div> : <Unavailable text="O perfil de compra aparece quando houver contatos." />;
+      case "oportunidades":
+        return isAdmin && outreachAllowed && summary.contacts > 0 ? <CollapsedModule title="Abrir oportunidades automáticas"><AdminBuyerOutreach /></CollapsedModule> : <Unavailable text="Este recurso não está disponível para o plano atual ou não há contatos." />;
+      case "entregas":
+        return isAdmin && outreachAllowed && summary.deliveryAttempts > 0 ? <CollapsedModule title={`Abrir entregas (${summary.deliveryAttempts})`}><AdminBuyerDeliveryMonitor /></CollapsedModule> : <Unavailable text="Nenhuma entrega disponível para exibição." />;
+      case "acompanhamentos":
+        return summary.pendingFollowups > 0 ? <CollapsedModule title={`Abrir acompanhamentos (${summary.pendingFollowups})`}><AdminFollowups /></CollapsedModule> : <Unavailable text="Nenhum acompanhamento pendente." />;
+      case "visitas":
+        return <div className={`mobileModule visitsModule ${visitFormOpen ? "formOpen" : "formClosed"}`}><button className="mobileOpenButton" onClick={() => setVisitFormOpen((value) => !value)}>{visitFormOpen ? "Fechar formulário de visita" : "Agendar nova visita"}</button><AdminVisitSchedule /></div>;
+      case "historico-contato":
+        return summary.historyEvents > 0 ? <div className="mobileModule"><AdminLeadTimeline /></div> : <Unavailable text="Ainda não há histórico de contatos." />;
+      case "documentos":
+        return isAdmin ? <div className="mobileModule"><AdminDocuments /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "desempenho-corretores":
+        return isAdmin && summary.brokerPerformance > 0 ? <CollapsedModule title="Abrir desempenho dos corretores"><AdminBrokerPerformance /></CollapsedModule> : <Unavailable text="Ainda não há dados de desempenho." />;
+      case "metas-corretores":
+        return isAdmin && summary.brokerGoals > 0 ? <CollapsedModule title="Abrir metas dos corretores"><AdminBrokerGoals /></CollapsedModule> : <Unavailable text="Ainda não há metas com dados registrados." />;
+      case "corretores":
+        return isAdmin ? <div className="mobileModule"><AdminBrokers /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "usuarios":
+        return isAdmin ? <div className="mobileModule"><AdminUsers /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "meu-plano":
+        return isAdmin ? <div className="mobileModule"><AdminPlan /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "alterar-plano":
+        return isAdmin ? <div className="mobileModule"><AdminInfinitePayCheckout /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "emails":
+        return isAdmin ? <div className="mobileModule"><AdminProfessionalEmails /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "identidade":
+        return isAdmin ? <div className="mobileModule"><AdminSiteSettings /></div> : <Unavailable text="Este recurso é administrativo." />;
+      case "dominios":
+        return isAdmin ? <div className="mobileModule"><AdminDomains /></div> : <Unavailable text="Este recurso é administrativo." />;
+      default:
+        return null;
+    }
+  }
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return date.toLocaleDateString("pt-BR");
 }
 
 function ActionCard({ title, text, href, dark = false }: { title: string; text: string; href: string; dark?: boolean }) {
-  return <a href={href} style={{ ...styles.actionCard, ...(dark ? styles.actionCardDark : {}) }}><span style={{ ...styles.actionIcon, ...(dark ? styles.actionIconDark : {}) }}>＋</span><strong style={{ ...styles.actionTitle, ...(dark ? styles.actionTitleDark : {}) }}>{title}</strong><small style={{ ...styles.actionText, ...(dark ? styles.actionTextDark : {}) }}>{text}</small></a>;
+  return <a href={href} className={`mobileActionCard ${dark ? "dark" : ""}`}><span>＋</span><strong>{title}</strong><small>{text}</small></a>;
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100dvh", background: "#f5f1ea", color: "#07182d", fontFamily: "Inter, Arial, sans-serif" },
-  topbar: { position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, paddingLeft: 18, paddingRight: 18, paddingBottom: 12, paddingTop: "calc(env(safe-area-inset-top, 0px) + 14px)", background: "rgba(255,255,255,.97)", borderBottom: "1px solid #e8e0d4", boxShadow: "0 8px 24px rgba(7,24,45,.05)" },
-  brand: { fontSize: 9, lineHeight: 1.2, letterSpacing: 1.7, fontWeight: 900, color: "#a1782e" },
-  appTitle: { marginTop: 3, fontSize: 17, lineHeight: 1.1, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  menuButton: { width: 46, height: 44, flex: "0 0 auto", border: 0, borderRadius: 14, background: "#07182d", color: "#fff", fontSize: 24, fontWeight: 900, cursor: "pointer" },
-  content: { width: "min(100%, 760px)", margin: "0 auto", padding: "16px 16px calc(30px + env(safe-area-inset-bottom, 0px))" },
-  hero: { display: "flex", justifyContent: "space-between", gap: 14, padding: 20, borderRadius: 24, background: "#07182d", color: "#fff", boxShadow: "0 18px 38px rgba(7,24,45,.14)" },
-  heroKicker: { fontSize: 9, letterSpacing: 1.7, fontWeight: 900, color: "#d6ac58" },
-  heroTitle: { margin: "7px 0 0", fontSize: 27, lineHeight: 1.05, fontWeight: 950 },
-  heroText: { margin: "9px 0 0", maxWidth: 340, fontSize: 13, lineHeight: 1.55, color: "#c6d0da" },
-  planBadge: { alignSelf: "flex-start", minWidth: 88, padding: 11, borderRadius: 16, textDecoration: "none", background: "#d6ac58", color: "#07182d", textAlign: "center" },
-  planBadgeLabel: { display: "block", fontSize: 8, fontWeight: 900, letterSpacing: 1.2 },
-  planBadgeValue: { display: "block", marginTop: 4, fontSize: 14, lineHeight: 1.05 },
-  sectionHeader: { marginTop: 22, padding: "0 2px" },
-  sectionKicker: { fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: "#a1782e" },
-  sectionTitle: { margin: "5px 0 0", fontSize: 22, lineHeight: 1.15, fontWeight: 950 },
-  grid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 11, marginTop: 13 },
-  actionCard: { minHeight: 142, display: "flex", flexDirection: "column", justifyContent: "flex-start", padding: 17, borderRadius: 20, border: "1px solid #e5ded3", background: "#fff", color: "#07182d", textDecoration: "none", boxShadow: "0 8px 22px rgba(7,24,45,.04)" },
-  actionCardDark: { background: "#07182d", borderColor: "#07182d" },
-  actionIcon: { fontSize: 25, lineHeight: 1, color: "#a1782e" },
-  actionIconDark: { color: "#d6ac58" },
-  actionTitle: { marginTop: 20, fontSize: 16, fontWeight: 950 },
-  actionTitleDark: { color: "#fff" },
-  actionText: { marginTop: 5, fontSize: 11, lineHeight: 1.45, color: "#74808a" },
-  actionTextDark: { color: "#b8c4ce" },
-  managementCard: { marginTop: 18, padding: 18, borderRadius: 21, background: "#fff", border: "1px solid #e5ded3" },
-  muted: { margin: "7px 0 0", fontSize: 12, lineHeight: 1.5, color: "#71808b" },
-  managementLinks: { display: "grid", gap: 8, marginTop: 14 },
-  manageLink: { display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 46, padding: "0 13px", borderRadius: 13, background: "#f7f4ef", color: "#07182d", textDecoration: "none", fontSize: 13, fontWeight: 850 },
-  fullPanelLink: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, minHeight: 50, padding: "0 16px", borderRadius: 15, background: "#07182d", color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 900 },
-  menuLayer: { position: "fixed", inset: 0, zIndex: 100, display: "flex" },
-  backdrop: { position: "absolute", inset: 0, width: "100%", height: "100%", border: 0, background: "rgba(2,10,20,.58)", cursor: "pointer" },
-  drawer: { position: "relative", marginLeft: "auto", width: "min(88vw, 360px)", height: "100%", overflowY: "auto", paddingLeft: 14, paddingRight: 14, paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))", paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)", background: "#fff", boxShadow: "-18px 0 45px rgba(2,10,20,.2)" },
-  drawerHead: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "4px 2px 16px", borderBottom: "1px solid #ece5da" },
-  drawerTitle: { marginTop: 4, fontSize: 25, fontWeight: 950 },
-  drawerAgency: { marginTop: 4, fontSize: 11, color: "#6d7983" },
-  closeButton: { width: 42, height: 42, border: 0, borderRadius: 13, background: "#f3eee6", color: "#07182d", fontSize: 28, lineHeight: 1, cursor: "pointer" },
-  menuList: { display: "grid", gap: 7, paddingTop: 13 },
-  menuItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 60, padding: "10px 13px", borderRadius: 15, border: "1px solid #eee8df", background: "#f9f7f3", color: "#07182d", textDecoration: "none" },
-  menuItemTitle: { display: "block", fontSize: 13, fontWeight: 950 },
-  menuItemDetail: { display: "block", marginTop: 3, fontSize: 10, color: "#7a8791" },
-  arrow: { fontSize: 24, color: "#a58d63" },
-  signOut: { width: "100%", minHeight: 48, marginTop: 12, borderRadius: 13, border: "1px solid #ecd3d3", background: "#fff5f5", color: "#a13b3b", fontSize: 12, fontWeight: 900, cursor: "pointer" },
-};
+function CollapsedModule({ title, children }: { title: string; children: ReactNode }) {
+  return <details className="mobileCollapsedModule"><summary><strong>{title}</strong><span>+</span></summary><div className="mobileCollapsedBody mobileModule">{children}</div></details>;
+}
+
+function Unavailable({ text }: { text: string }) {
+  return <div className="mobileEmptyState">{text}</div>;
+}
+
+const mobileCss = `
+.mobileAppWorkspace{min-height:100dvh;background:#f5f1ea;color:#07182d;font-family:Inter,Arial,sans-serif;overflow-x:hidden}
+.mobileAppTopbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 11px;background:rgba(255,255,255,.98);border-bottom:1px solid #e8e0d4;box-shadow:0 7px 22px rgba(7,24,45,.06)}
+.mobileAppBrand{display:flex;align-items:center;gap:9px;min-width:0;color:#07182d;text-decoration:none}.mobileAppBrand img{width:38px;height:38px;object-fit:contain;flex:0 0 auto}.mobileAppBrand span{display:grid;min-width:0}.mobileAppBrand small{font-size:8px;line-height:1.1;letter-spacing:1.35px;font-weight:900;color:#a1782e}.mobileAppBrand strong{margin-top:2px;font-size:15px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mobileMenuButton{width:44px;height:42px;display:grid;place-items:center;flex:0 0 auto;border:0;border-radius:13px;background:#07182d;color:#fff;font-size:22px;font-weight:900;cursor:pointer}
+.mobileAppContent{width:min(100%,760px);margin:0 auto;padding:14px 13px calc(32px + env(safe-area-inset-bottom,0px))}
+.mobileHero{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px;border-radius:22px;background:#07182d;color:#fff;box-shadow:0 16px 34px rgba(7,24,45,.13)}.mobileHero>div{min-width:0}.mobileHero span,.mobileSectionTitle span,.mobilePageHeading>span,.mobilePlanCard>div>span{display:block;font-size:8px;font-weight:900;letter-spacing:1.5px;color:#d6ac58}.mobileHero h1{margin:5px 0 0;font-size:24px;line-height:1.05}.mobileHero p{margin:7px 0 0;max-width:390px;font-size:12px;line-height:1.45;color:#c7d1db}.mobilePlanBadge{min-width:82px;padding:9px;border-radius:14px;background:#d6ac58;color:#07182d;text-decoration:none;text-align:center}.mobilePlanBadge small{display:block;font-size:7px;font-weight:900;letter-spacing:1px}.mobilePlanBadge strong{display:block;margin-top:3px;font-size:11px;line-height:1.05}
+.mobileStatsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:11px}.mobileStatsGrid article{padding:13px;border-radius:16px;background:#fff;border:1px solid #e6ded2}.mobileStatsGrid span{display:block;font-size:9px;color:#77828c}.mobileStatsGrid strong{display:block;margin-top:4px;font-size:21px}
+.mobileSectionTitle{margin:18px 2px 0}.mobileSectionTitle span{color:#a1782e}.mobileSectionTitle h2{margin:4px 0 0;font-size:19px;line-height:1.15}
+.mobileActionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:11px}.mobileActionCard{min-height:116px;display:flex;flex-direction:column;padding:14px;border-radius:17px;border:1px solid #e6ded2;background:#fff;color:#07182d;text-decoration:none;box-shadow:0 7px 18px rgba(7,24,45,.035)}.mobileActionCard>span{font-size:20px;line-height:1;color:#a1782e}.mobileActionCard>strong{margin-top:auto;font-size:13px}.mobileActionCard>small{margin-top:4px;font-size:9px;line-height:1.35;color:#76828c}.mobileActionCard.dark{background:#07182d;border-color:#07182d;color:#fff}.mobileActionCard.dark>span{color:#d6ac58}.mobileActionCard.dark>small{color:#b8c3cd}
+.mobilePlanCard{margin-top:12px;padding:14px;border-radius:17px;background:#fff;border:1px solid #e6ded2}.mobilePlanCard>div>span{color:#a1782e}.mobilePlanCard>div>strong,.mobilePlanCard>div>small{display:block}.mobilePlanCard>div>strong{margin-top:4px;font-size:17px}.mobilePlanCard>div>small{margin-top:4px;font-size:10px;color:#75808a}.mobilePlanCard>a{display:flex;align-items:center;justify-content:space-between;margin-top:11px;min-height:43px;padding:0 12px;border-radius:12px;background:#f5f1ea;color:#07182d;text-decoration:none;font-size:11px;font-weight:900}.mobileMenuHint{margin:12px 3px 0;font-size:10px;color:#78838c;text-align:center}
+.mobilePageHeading{padding:3px 2px 12px}.mobileBackLink{display:inline-block;margin-bottom:9px;color:#82601f;text-decoration:none;font-size:11px;font-weight:850}.mobilePageHeading>span{color:#a1782e}.mobilePageHeading h1{margin:4px 0 0;font-size:23px;line-height:1.08}.mobilePageHeading p{margin:6px 0 0;font-size:11px;line-height:1.45;color:#707d87}
+.mobileOpenButton{width:100%;min-height:46px;margin:0 0 10px;border:0;border-radius:14px;background:#07182d;color:#fff;font-size:11px;font-weight:900;cursor:pointer}.mobileEmptyState{padding:18px;border:1px dashed #d7cdbf;border-radius:17px;background:#fff;color:#6e7b85;font-size:12px;text-align:center}
+.mobileCollapsedModule{border:1px solid #e3dace;border-radius:17px;background:#fff;overflow:hidden}.mobileCollapsedModule>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:0 14px;cursor:pointer}.mobileCollapsedModule>summary::-webkit-details-marker{display:none}.mobileCollapsedModule>summary strong{font-size:12px}.mobileCollapsedModule>summary span{font-size:22px;color:#a1782e}.mobileCollapsedModule[open]>summary span{transform:rotate(45deg)}.mobileCollapsedBody{padding:0 10px 10px}
+.mobileFormCard{padding:3px}.buyerProfile.formClosed #perfil-compra form.propertyForm,.visitsModule.formClosed #agenda-visitas>form.propertyForm{display:none!important}
+.livePropertiesOnly>.formNotice,.livePropertiesOnly>.adminMetrics,.livePropertiesOnly>#contatos{display:none!important}.liveContactsOnly>.formNotice,.liveContactsOnly>.adminMetrics,.liveContactsOnly>#imoveis,.liveContactsOnly>.editPanel{display:none!important}
+.mobileModule .adminPanel{margin:0 0 10px!important;padding:13px!important;border-radius:17px!important;box-shadow:none!important;max-width:100%!important;overflow:hidden}.mobileModule .adminPanelHeader{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:7px!important}.mobileModule .adminPanelHeader h2,.mobileModule .adminPanelHeader h3{font-size:18px!important;line-height:1.12!important}.mobileModule .adminPanelHeader p{font-size:10px!important;line-height:1.4!important}.mobileModule .adminPanelTools,.mobileModule .adminActions,.mobileModule .accessActions,.mobileModule .tableActions{display:flex!important;flex-wrap:wrap!important;gap:6px!important;max-width:100%!important}
+.mobileModule .adminMetrics,.mobileModule .statsGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.mobileModule .adminMetrics article,.mobileModule .statsGrid article{min-width:0!important;padding:10px!important}.mobileModule .adminMetrics strong,.mobileModule .statsGrid strong{font-size:18px!important}.mobileModule .adminMetrics span,.mobileModule .statsGrid span,.mobileModule .adminMetrics small{font-size:8px!important}
+.mobileModule .formGrid,.mobileModule .formGrid.three,.mobileModule .formGrid.four,.mobileModule .grid2{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}.mobileModule .propertyForm{padding:10px!important;border-radius:14px!important}.mobileModule input,.mobileModule select,.mobileModule textarea{max-width:100%!important;min-width:0!important;font-size:12px!important}.mobileModule label{font-size:10px!important}.mobileModule .formActions{display:flex!important;flex-wrap:wrap!important;gap:7px!important}.mobileModule .button,.mobileModule .miniButton{min-height:40px!important;font-size:10px!important}
+.mobileModule .adminTableWrap{width:100%!important;max-width:100%!important;overflow:visible!important}.mobileModule .adminTable{display:block!important;width:100%!important;min-width:0!important}.mobileModule .adminTable thead{display:none!important}.mobileModule .adminTable tbody{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important}.mobileModule .adminTable tr{display:flex!important;min-width:0!important;flex-direction:column!important;gap:2px!important;padding:10px!important;border:1px solid #e7dfd5!important;border-radius:14px!important;background:#fff!important}.mobileModule .adminTable td{display:block!important;width:auto!important;max-width:100%!important;padding:3px 0!important;border:0!important;font-size:9px!important;line-height:1.35!important;overflow-wrap:anywhere!important;white-space:normal!important}.mobileModule .adminTable td strong{font-size:10px!important}.mobileModule .adminTable select{width:100%!important}.mobileModule .tableSub{display:block!important;font-size:8px!important;line-height:1.35!important}
+.mobileModule .leadGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.mobileModule .leadCard{min-width:0!important;padding:10px!important;border-radius:14px!important}.mobileModule .leadCard p,.mobileModule .leadCard a,.mobileModule .leadCard textarea{font-size:9px!important}.mobileModule .accessList{display:grid!important;gap:8px!important}.mobileModule .accessRow{display:block!important;padding:10px!important;border-radius:14px!important}.mobileModule .accessIdentity strong{font-size:11px!important}.mobileModule .accessIdentity span,.mobileModule .accessIdentity small{font-size:9px!important;line-height:1.35!important}.mobileModule .domainPrimaryCard{display:block!important;padding:10px!important;border-radius:14px!important}.mobileModule .formNotice,.mobileModule .formMessage,.mobileModule .emptyMini{font-size:9px!important;line-height:1.4!important;padding:9px!important}
+.mobileMenuLayer{position:fixed;inset:0;z-index:120;display:flex}.mobileMenuBackdrop{position:absolute;inset:0;border:0;background:rgba(3,11,21,.6)}.mobileMenuDrawer{position:relative;margin-left:auto;width:min(88vw,360px);height:100%;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 16px);background:#fff;box-shadow:-18px 0 42px rgba(3,11,21,.22)}.mobileDrawerHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #ebe3d8}.mobileDrawerBrand{display:flex;align-items:center;gap:8px;min-width:0}.mobileDrawerBrand img{width:38px;height:38px;object-fit:contain}.mobileDrawerBrand div{display:grid;min-width:0}.mobileDrawerBrand small{font-size:7px;font-weight:900;letter-spacing:1.2px;color:#a1782e}.mobileDrawerBrand strong{font-size:18px}.mobileDrawerBrand span{margin-top:2px;font-size:9px;color:#77828b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mobileCloseButton{width:40px;height:40px;flex:0 0 auto;border:0;border-radius:12px;background:#f3eee6;color:#07182d;font-size:26px;cursor:pointer}.mobileMenuList{display:grid;gap:6px;padding-top:10px}.mobileMenuList a{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;padding:8px 11px;border-radius:13px;border:1px solid #eee7dd;background:#faf8f5;color:#07182d;text-decoration:none}.mobileMenuList a.active{background:#07182d;color:#fff;border-color:#07182d}.mobileMenuList a span{min-width:0}.mobileMenuList a strong,.mobileMenuList a small{display:block}.mobileMenuList a strong{font-size:11px}.mobileMenuList a small{margin-top:2px;font-size:8px;color:#7b8790}.mobileMenuList a.active small{color:#bdc7d0}.mobileMenuList a b{font-size:20px;color:#a1782e}.mobileSignOut{width:100%;min-height:45px;margin-top:10px;border:1px solid #ecd3d3;border-radius:12px;background:#fff5f5;color:#a13b3b;font-size:10px;font-weight:900;cursor:pointer}
+@media(max-width:360px){.mobileAppContent{padding-left:10px;padding-right:10px}.mobileActionCard{min-height:108px;padding:11px}.mobileModule .adminTable tbody,.mobileModule .leadGrid{gap:6px}.mobileModule .adminTable tr{padding:8px}.mobileAppBrand strong{font-size:14px}}
+`;
