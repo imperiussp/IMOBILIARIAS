@@ -76,12 +76,13 @@ export default function UserDeviceAccessGuard() {
   const deviceId = useMemo(() => (typeof window === "undefined" ? "" : getDeviceId()), []);
 
   useEffect(() => {
-    if (!supabaseBrowser || !deviceId) return;
+    const client = supabaseBrowser;
+    if (!client || !deviceId) return;
     let active = true;
     let timer: ReturnType<typeof setInterval> | null = null;
 
     const register = async () => {
-      const { data: sessionData } = await supabaseBrowser.auth.getSession();
+      const { data: sessionData } = await client.auth.getSession();
       if (!active || !sessionData.session?.user) {
         setBlocked(false);
         setDevices([]);
@@ -89,7 +90,7 @@ export default function UserDeviceAccessGuard() {
       }
 
       setChecking(true);
-      const { data, error } = await supabaseBrowser.rpc("register_user_device", {
+      const { data, error } = await client.rpc("register_user_device", {
         p_device_id: deviceId,
         p_device_label: getDeviceLabel(),
         p_user_agent: navigator.userAgent || "",
@@ -108,14 +109,14 @@ export default function UserDeviceAccessGuard() {
     };
 
     const touch = async () => {
-      const { data: sessionData } = await supabaseBrowser.auth.getSession();
+      const { data: sessionData } = await client.auth.getSession();
       if (!active || !sessionData.session?.user || blocked) return;
-      const { data, error } = await supabaseBrowser.rpc("touch_user_device", { p_device_id: deviceId });
+      const { data, error } = await client.rpc("touch_user_device", { p_device_id: deviceId });
       if (!active || error) return;
       const result = (data || {}) as { allowed?: boolean };
       if (result.allowed === false) {
         window.alert("Este dispositivo foi desconectado da sua conta porque outro acesso foi autorizado.");
-        await supabaseBrowser.auth.signOut();
+        await client.auth.signOut();
         window.location.assign("/login/");
       }
     };
@@ -123,7 +124,7 @@ export default function UserDeviceAccessGuard() {
     void register();
     timer = setInterval(() => void touch(), 45000);
 
-    const authListener = supabaseBrowser.auth.onAuthStateChange((event) => {
+    const authListener = client.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") void register();
       if (event === "SIGNED_OUT") {
         setBlocked(false);
@@ -145,11 +146,12 @@ export default function UserDeviceAccessGuard() {
   }, [deviceId, blocked]);
 
   async function replaceDevice(sessionId: string) {
-    if (!supabaseBrowser || !deviceId || busyId) return;
+    const client = supabaseBrowser;
+    if (!client || !deviceId || busyId) return;
     setBusyId(sessionId);
-    const { error } = await supabaseBrowser.rpc("revoke_user_device", { p_session_id: sessionId });
+    const { error } = await client.rpc("revoke_user_device", { p_session_id: sessionId });
     if (!error) {
-      const { data, error: registerError } = await supabaseBrowser.rpc("register_user_device", {
+      const { data, error: registerError } = await client.rpc("register_user_device", {
         p_device_id: deviceId,
         p_device_label: getDeviceLabel(),
         p_user_agent: navigator.userAgent || "",
