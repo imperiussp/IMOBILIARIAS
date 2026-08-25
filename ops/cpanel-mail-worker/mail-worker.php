@@ -18,6 +18,7 @@ $workerToken = trim((string)($config['worker_token'] ?? ''));
 $cpanelUser = trim((string)($config['cpanel_user'] ?? ''));
 $uapiPath = trim((string)($config['uapi_path'] ?? '/usr/local/cpanel/bin/uapi'));
 $maxJobs = max(1, min(10, (int)($config['max_jobs_per_run'] ?? 5)));
+$uapiTimeoutSeconds = max(5, min(60, (int)($config['uapi_timeout_seconds'] ?? 20)));
 
 if ($functionUrl === '' || $workerToken === '' || $cpanelUser === '' || $uapiPath === '') {
     fwrite(STDERR, "[LENOY] Configuracao incompleta.\n");
@@ -27,7 +28,29 @@ if ($functionUrl === '' || $workerToken === '' || $cpanelUser === '' || $uapiPat
 function logLine(string $message): void
 {
     echo '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL;
+    if (function_exists('flush')) {
+        @flush();
+    }
 }
+
+$lockFile = __DIR__ . '/worker.lock';
+$lockHandle = @fopen($lockFile, 'c');
+if ($lockHandle === false) {
+    fwrite(STDERR, "[LENOY] Nao foi possivel abrir o arquivo de lock.\n");
+    exit(2);
+}
+if (!@flock($lockHandle, LOCK_EX | LOCK_NB)) {
+    logLine('Execucao anterior ainda ativa; esta rodada foi ignorada.');
+    fclose($lockHandle);
+    exit(0);
+}
+
+register_shutdown_function(static function () use ($lockHandle): void {
+    @flock($lockHandle, LOCK_UN);
+    @fclose($lockHandle);
+});
+
+logLine('Worker iniciado.');
 
 function edgeCall(string $url, string $token, array $payload): array
 {
@@ -44,7 +67,7 @@ function edgeCall(string $url, string $token, array $payload): array
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Accept: application/json',
-            'User-Agent: LENOY-Mail-Worker/1.0',
+            'User-Agent: LENOY-Mail-Worker/1.1',
             'X-Worker-Token: ' . $token,
         ],
         CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
@@ -70,8 +93,14 @@ function edgeCall(string $url, string $token, array $payload): array
     return ['ok' => true, 'data' => $data];
 }
 
-function runUapi(string $uapiPath, string $cpanelUser, string $module, string $function, array $params = []): array
-{
+function runUapi(
+    string $uapiPath,
+    string $cpanelUser,
+    string $module,
+    string $function,
+    array $params = [],
+    int $timeoutSeconds = 20
+): array {
     $command = escapeshellarg($uapiPath)
         . ' --user=' . escapeshellarg($cpanelUser)
         . ' --output=json '
@@ -93,20 +122,74 @@ function runUapi(string $uapiPath, string $cpanelUser, string $module, string $f
     }
 
     fclose($pipes[0]);
-    $stdout = stream_get_contents($pipes[1]);
-    $stderr = stream_get_contents($pipes[2]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+
+    $stdout = '';
+    $stderr = '';
+    $startedAt = microtime(true);
+    $lastStatus = null;
+    $timedOut = false;
+
+    while (true) {
+        $stdout .= (string)stream_get_contents($pipes[1]);
+        $stderr .= (string)stream_get_contents($pipes[2]);
+
+        $lastStatus = proc_get_status($process);
+        if (!is_array($lastStatus) || !$lastStatus['running']) {
+            break;
+        }
+
+        if ((microtime(true) - $startedAt) >= $timeoutSeconds) {
+            $timedOut = true;
+            @proc_terminate($process);
+            usleep(250000);
+            $afterTerminate = proc_get_status($process);
+            if (is_array($afterTerminate) && $afterTerminate['running']) {
+                @proc_terminate($process, 9);
+            }
+            break;
+        }
+
+        usleep(100000);
+    }
+
+    $stdout .= (string)stream_get_contents($pipes[1]);
+    $stderr .= (string)stream_get_contents($pipes[2]);
     fclose($pipes[1]);
     fclose($pipes[2]);
-    $exitCode = proc_close($process);
+
+    $closeCode = proc_close($process);
+
+    if ($timedOut) {
+        return [
+            'ok' => false,
+            'error' => 'UAPI local excedeu ' . $timeoutSeconds . ' segundos e foi interrompida.',
+        ];
+    }
+
+    $exitCode = $closeCode;
+    if (is_array($lastStatus) && isset($lastStatus['exitcode']) && (int)$lastStatus['exitcode'] >= 0) {
+        $exitCode = (int)$lastStatus['exitcode'];
+    }
 
     $decoded = json_decode((string)$stdout, true);
     $status = is_array($decoded) ? (int)($decoded['result']['status'] ?? 0) : 0;
     if ($exitCode !== 0 || $status !== 1) {
         $errors = is_array($decoded) ? ($decoded['result']['errors'] ?? null) : null;
-        if (is_array($errors)) $errors = implode(' | ', array_map('strval', $errors));
+        if (is_array($errors)) {
+            $errors = implode(' | ', array_map('strval', $errors));
+        }
         $message = trim((string)$errors);
-        if ($message === '') $message = trim((string)$stderr);
-        if ($message === '') $message = 'UAPI retornou status de falha.';
+        if ($message === '') {
+            $message = trim((string)$stderr);
+        }
+        if ($message === '' && trim((string)$stdout) !== '') {
+            $message = trim((string)$stdout);
+        }
+        if ($message === '') {
+            $message = 'UAPI retornou status de falha (codigo ' . $exitCode . ').';
+        }
         return ['ok' => false, 'error' => substr($message, 0, 900)];
     }
 
@@ -115,10 +198,14 @@ function runUapi(string $uapiPath, string $cpanelUser, string $module, string $f
 
 function decryptPassword(string $cipherB64, string $ivB64, string $workerToken): ?string
 {
-    if (!function_exists('openssl_decrypt')) return null;
+    if (!function_exists('openssl_decrypt')) {
+        return null;
+    }
     $blob = base64_decode($cipherB64, true);
     $iv = base64_decode($ivB64, true);
-    if ($blob === false || $iv === false || strlen($blob) <= 16 || strlen($iv) !== 12) return null;
+    if ($blob === false || $iv === false || strlen($blob) <= 16 || strlen($iv) !== 12) {
+        return null;
+    }
 
     $tag = substr($blob, -16);
     $ciphertext = substr($blob, 0, -16);
@@ -127,12 +214,22 @@ function decryptPassword(string $cipherB64, string $ivB64, string $workerToken):
     return is_string($plain) ? $plain : null;
 }
 
-$localCheck = runUapi($uapiPath, $cpanelUser, 'Email', 'list_pops');
+logLine('Testando UAPI local do cPanel...');
+$localCheck = runUapi(
+    $uapiPath,
+    $cpanelUser,
+    'Email',
+    'list_pops',
+    [],
+    $uapiTimeoutSeconds
+);
 $localStatus = $localCheck['ok'] ? 'ok' : 'error';
 $localMessage = $localCheck['ok']
     ? 'UAPI local do cPanel respondeu corretamente.'
     : ('UAPI local indisponivel: ' . (string)($localCheck['error'] ?? 'erro desconhecido'));
+logLine($localMessage);
 
+logLine('Comunicando com a fila no Supabase...');
 $pull = edgeCall($functionUrl, $workerToken, [
     'action' => 'worker_pull',
     'local_status' => $localStatus,
@@ -145,18 +242,23 @@ if (!$pull['ok']) {
 }
 
 if (!$localCheck['ok']) {
-    logLine($localMessage);
     exit(1);
 }
 
 $processed = 0;
 while ($processed < $maxJobs) {
     $job = $pull['data']['job'] ?? null;
-    if (!is_array($job) || empty($job['id'])) break;
+    if (!is_array($job) || empty($job['id'])) {
+        break;
+    }
 
     $jobId = (string)$job['id'];
     $email = (string)($job['email_address'] ?? '');
-    $password = decryptPassword((string)($job['password_cipher'] ?? ''), (string)($job['password_iv'] ?? ''), $workerToken);
+    $password = decryptPassword(
+        (string)($job['password_cipher'] ?? ''),
+        (string)($job['password_iv'] ?? ''),
+        $workerToken
+    );
 
     if ($password === null) {
         $error = 'Nao foi possivel descriptografar a senha temporaria da solicitacao.';
@@ -168,12 +270,19 @@ while ($processed < $maxJobs) {
         ]);
         logLine('Falha em ' . $email . ': ' . $error);
     } else {
-        $created = runUapi($uapiPath, $cpanelUser, 'Email', 'add_pop', [
-            'email' => (string)($job['local_part'] ?? ''),
-            'domain' => (string)($job['domain'] ?? ''),
-            'password' => $password,
-            'quota' => (string)max(100, (int)($job['quota_mb'] ?? 1024)),
-        ]);
+        $created = runUapi(
+            $uapiPath,
+            $cpanelUser,
+            'Email',
+            'add_pop',
+            [
+                'email' => (string)($job['local_part'] ?? ''),
+                'domain' => (string)($job['domain'] ?? ''),
+                'password' => $password,
+                'quota' => (string)max(100, (int)($job['quota_mb'] ?? 1024)),
+            ],
+            $uapiTimeoutSeconds
+        );
         unset($password);
 
         $complete = edgeCall($functionUrl, $workerToken, [
@@ -189,12 +298,17 @@ while ($processed < $maxJobs) {
         } elseif (!$created['ok']) {
             logLine('Falha ao criar ' . $email . ': ' . (string)($created['error'] ?? 'erro desconhecido'));
         } else {
-            logLine('Conta criada no cPanel, mas houve falha ao confirmar no Supabase: ' . (string)($complete['error'] ?? 'erro desconhecido'));
+            logLine(
+                'Conta criada no cPanel, mas houve falha ao confirmar no Supabase: '
+                . (string)($complete['error'] ?? 'erro desconhecido')
+            );
         }
     }
 
     $processed++;
-    if ($processed >= $maxJobs) break;
+    if ($processed >= $maxJobs) {
+        break;
+    }
 
     $pull = edgeCall($functionUrl, $workerToken, [
         'action' => 'worker_pull',
@@ -207,5 +321,8 @@ while ($processed < $maxJobs) {
     }
 }
 
-if ($processed === 0) logLine('Worker ativo; nenhuma solicitacao pendente.');
+if ($processed === 0) {
+    logLine('Worker ativo; nenhuma solicitacao pendente.');
+}
+logLine('Worker finalizado.');
 exit(0);
