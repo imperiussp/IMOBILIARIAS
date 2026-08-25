@@ -220,7 +220,7 @@ export default function AdminProfessionalEmails() {
     document.getElementById("dominios")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  return <div className="adminPanel" id="emails-profissionais">
+  return <div className="adminPanel" id="emails-profissionais" data-email-flow="fixed-domain">
     <div className="adminPanelHeader">
       <div>
         <span className="eyebrow">RECURSO OPCIONAL</span>
