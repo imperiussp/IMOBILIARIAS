@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import AdminUiEnhancer from "../components/AdminUiEnhancer";
 import AdminMobileMenu from "../components/AdminMobileMenu";
+import AdminSidebarActiveTracker from "../components/AdminSidebarActiveTracker";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -28,6 +29,7 @@ import "./registration-final.css";
 import "./release-fixes-20260824.css";
 import "./app-download.css";
 import "./landing-refresh-20260825.css";
+import "./admin-polish-20260825.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -63,7 +65,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /></body>
+      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminSidebarActiveTracker /></body>
     </html>
   );
 }
