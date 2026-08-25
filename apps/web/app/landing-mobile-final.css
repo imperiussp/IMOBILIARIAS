@@ -1,0 +1,189 @@
+/* Ajustes finais da landing: mobile sem estouro, app com foto real e rodape completo. */
+.platformLanding{overflow-x:hidden!important}
+.platformLanding *{box-sizing:border-box}
+
+/* Banner comercial do app: garante visibilidade no hero. */
+.platformLanding .platformHero::after{
+  content:'APP DO CORRETOR\A Cadastro de imóveis e fotos • leads em tempo real • uso offline'!important;
+  white-space:pre-line!important;
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+
+/* Área do aplicativo: foto real de uma mão segurando smartphone. */
+.platformLanding #app-demo .phoneStage{
+  min-height:610px!important;
+  width:100%!important;
+  max-width:560px!important;
+  justify-self:center!important;
+  border-radius:28px!important;
+  overflow:hidden!important;
+  background:
+    linear-gradient(180deg,rgba(7,23,43,.03),rgba(7,23,43,.18)),
+    url('https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1000&q=86') center/cover no-repeat!important;
+  box-shadow:0 28px 70px rgba(7,23,43,.20)!important;
+  border:1px solid #d8cfbf!important;
+  position:relative!important;
+}
+.platformLanding #app-demo .phoneStage::before{
+  content:'APP DO CORRETOR'!important;
+  position:absolute!important;
+  left:22px!important;
+  top:22px!important;
+  z-index:4!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:32px!important;
+  padding:0 12px!important;
+  border-radius:999px!important;
+  background:#07172b!important;
+  color:#d8b264!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:.11em!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.2)!important;
+}
+.platformLanding #app-demo .phoneStage::after{
+  content:'Cadastre imóveis, fotografe e acompanhe leads direto do celular.'!important;
+  position:absolute!important;
+  left:22px!important;
+  right:22px!important;
+  bottom:22px!important;
+  z-index:4!important;
+  padding:14px 16px!important;
+  border-radius:14px!important;
+  background:rgba(7,23,43,.92)!important;
+  color:#fff!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  font-weight:750!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24)!important;
+}
+.platformLanding #app-demo .phoneMock,
+.platformLanding #app-demo .phoneFloatingCard{display:none!important}
+
+/* Rodape com dados comerciais completos. */
+.platformLanding .platformFooter{
+  position:relative!important;
+  flex-wrap:wrap!important;
+  padding-bottom:74px!important;
+}
+.platformLanding .platformFooter::after{
+  content:'LENOY IMOBILIÁRIAS • Robson Daniel Masselli • WhatsApp (43) 99618-9820\A © 2026 LENOY IMOBILIÁRIAS. Todos os direitos reservados.'!important;
+  white-space:pre-line!important;
+  position:absolute!important;
+  left:24px!important;
+  right:24px!important;
+  bottom:22px!important;
+  padding-top:14px!important;
+  border-top:1px solid #ded6c9!important;
+  color:#68737d!important;
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+
+@media(max-width:700px){
+  .platformNav{min-height:68px!important;height:auto!important;gap:8px!important;padding-left:14px!important;padding-right:14px!important}
+  .platformNav .brand{flex:0 0 auto!important}
+  .platformNav .brand img{width:48px!important;max-width:48px!important}
+  .platformActions{display:flex!important;align-items:center!important;gap:6px!important;flex:0 0 auto!important}
+  .platformActions .button,
+  .platformActions .button.secondary,
+  .platformActions .button.primary{
+    display:inline-flex!important;
+    width:auto!important;
+    min-height:36px!important;
+    padding:0 11px!important;
+    border-radius:9px!important;
+    font-size:10px!important;
+    white-space:nowrap!important;
+  }
+
+  .platformLanding .section,
+  .platformLanding .container,
+  .platformLanding .appShowcase,
+  .platformLanding .appShowcaseCopy,
+  .platformLanding .appFeatureList,
+  .platformLanding .demoDashboard,
+  .platformLanding .demoContent,
+  .platformLanding .demoMetricGrid,
+  .platformLanding .demoFlow,
+  .platformLanding .demoTableCard,
+  .platformLanding .demoTable,
+  .platformLanding .demoInsightGrid{
+    min-width:0!important;
+    max-width:100%!important;
+  }
+
+  .platformLanding .appShowcase{width:100%!important;grid-template-columns:minmax(0,1fr)!important;gap:26px!important}
+  .platformLanding .appFeatureList{width:100%!important}
+  .platformLanding .appFeatureList article{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    grid-template-columns:36px minmax(0,1fr)!important;
+    padding:13px!important;
+    overflow:hidden!important;
+  }
+  .platformLanding .appFeatureList article>div{min-width:0!important}
+  .platformLanding .appFeatureList span{overflow-wrap:anywhere!important}
+  .platformLanding #app-demo .phoneStage{
+    min-height:500px!important;
+    width:100%!important;
+    max-width:100%!important;
+    border-radius:20px!important;
+  }
+
+  /* Painel demonstrativo vira cartões verticais no celular. */
+  .platformLanding .demoDashboard{display:block!important;width:100%!important;overflow:hidden!important}
+  .platformLanding .demoSidebar{display:none!important}
+  .platformLanding .demoContent{width:100%!important;padding:14px!important;overflow:hidden!important}
+  .platformLanding .demoMetricGrid{grid-template-columns:1fr 1fr!important;gap:9px!important}
+  .platformLanding .demoMetricGrid article{min-width:0!important;padding:13px!important}
+  .platformLanding .demoFlow{grid-template-columns:1fr 1fr!important;gap:9px!important}
+  .platformLanding .demoFlow article{min-width:0!important}
+  .platformLanding .demoTableCard{width:100%!important;overflow:hidden!important}
+  .platformLanding .demoTableHeader>div{display:grid!important;gap:4px!important}
+  .platformLanding .demoTableHeader span{display:block!important}
+  .platformLanding .demoTable{overflow:visible!important;width:100%!important}
+  .platformLanding .demoTableHead{display:none!important}
+  .platformLanding .demoTableRow:not(.demoTableHead){
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+    min-width:0!important;
+    width:100%!important;
+    padding:13px!important;
+    border-bottom:1px solid #e8e2d8!important;
+  }
+  .platformLanding .demoTableRow:not(.demoTableHead)>span{
+    display:grid!important;
+    grid-template-columns:82px minmax(0,1fr)!important;
+    gap:8px!important;
+    align-items:start!important;
+    min-width:0!important;
+    overflow-wrap:anywhere!important;
+  }
+  .platformLanding .demoTableRow:not(.demoTableHead)>span::before{color:#8a949c!important;font-size:9px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.05em!important}
+  .platformLanding .demoTableRow:not(.demoTableHead)>span:nth-child(1)::before{content:'Comprador'}
+  .platformLanding .demoTableRow:not(.demoTableHead)>span:nth-child(2)::before{content:'Imóvel'}
+  .platformLanding .demoTableRow:not(.demoTableHead)>span:nth-child(3)::before{content:'Match'}
+  .platformLanding .demoTableRow:not(.demoTableHead)>span:nth-child(4)::before{content:'Canal'}
+  .platformLanding .demoTableRow:not(.demoTableHead)>span:nth-child(5)::before{content:'Situação'}
+  .platformLanding .demoInsightGrid{grid-template-columns:1fr!important}
+
+  .platformLanding .platformFooter{
+    width:100%!important;
+    max-width:100%!important;
+    padding:24px 20px 104px!important;
+    gap:15px!important;
+  }
+  .platformLanding .platformFooter::after{left:20px!important;right:20px!important;bottom:22px!important;font-size:10px!important}
+}
+
+@media(max-width:430px){
+  .platformLanding .demoMetricGrid,
+  .platformLanding .demoFlow{grid-template-columns:1fr!important}
+  .platformLanding #app-demo .phoneStage{min-height:430px!important}
+}
