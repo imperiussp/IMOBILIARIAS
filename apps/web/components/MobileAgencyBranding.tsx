@@ -16,27 +16,36 @@ export default function MobileAgencyBranding() {
       const targets = Array.from(document.querySelectorAll<HTMLElement>(".mobileAppBrand, .mobileDrawerBrand"));
 
       targets.forEach((target) => {
-        target.querySelectorAll("img, .mobileAgencyDynamicLogo").forEach((node) => node.remove());
+        target.querySelectorAll(":scope > img").forEach((node) => node.remove());
 
-        const brand = document.createElement("span");
-        brand.className = "mobileAgencyDynamicLogo";
-        brand.setAttribute("aria-hidden", "true");
-
-        if (logoUrl) {
-          const image = document.createElement("img");
-          image.src = logoUrl;
-          image.alt = "";
-          image.loading = "eager";
-          brand.appendChild(image);
-        } else {
-          brand.textContent = initial;
-          brand.classList.add("isInitial");
+        let brand = target.querySelector<HTMLElement>(":scope > .mobileAgencyDynamicLogo");
+        if (!brand) {
+          brand = document.createElement("span");
+          brand.className = "mobileAgencyDynamicLogo";
+          brand.setAttribute("aria-hidden", "true");
+          target.prepend(brand);
         }
 
-        target.prepend(brand);
+        if (logoUrl) {
+          brand.classList.remove("isInitial");
+          let image = brand.querySelector<HTMLImageElement>("img");
+          if (!image) {
+            brand.textContent = "";
+            image = document.createElement("img");
+            image.alt = "";
+            image.loading = "eager";
+            brand.appendChild(image);
+          }
+          if (image.src !== logoUrl) image.src = logoUrl;
+        } else {
+          brand.querySelector("img")?.remove();
+          brand.classList.add("isInitial");
+          if (brand.textContent !== initial) brand.textContent = initial;
+        }
 
         const small = target.querySelector("small");
-        if (small) small.textContent = agencyName || "Sua imobiliária";
+        const label = agencyName || "Sua imobiliária";
+        if (small && small.textContent !== label) small.textContent = label;
       });
     }
 
