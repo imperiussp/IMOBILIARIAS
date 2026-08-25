@@ -22,7 +22,7 @@ type Mailbox = {
 };
 
 type DomainRow = { hostname: string; verified: boolean };
-type ProvisionResult = { ok?: boolean; email?: string; error?: string };
+type ProvisionResult = { ok?: boolean; email?: string; message?: string; error?: string };
 
 const statusLabel: Record<Mailbox["status"], string> = {
   pending: "Preparando",
@@ -33,7 +33,7 @@ const statusLabel: Record<Mailbox["status"], string> = {
 };
 
 async function edgeErrorMessage(error: unknown) {
-  const fallback = error instanceof Error ? error.message : "Não foi possível criar a conta de e-mail.";
+  const fallback = error instanceof Error ? error.message : "Não foi possível acessar o servidor de e-mail.";
   const context = (error as { context?: { json?: () => Promise<unknown> } } | null)?.context;
   if (!context?.json) return fallback;
   try {
@@ -54,6 +54,7 @@ export default function AdminProfessionalEmails() {
   const [password, setPassword] = useState("");
   const [quotaMb, setQuotaMb] = useState("1024");
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState("");
 
   async function load() {
@@ -79,6 +80,18 @@ export default function AdminProfessionalEmails() {
   const normalizedLocalPart = useMemo(() => localPart.trim().toLowerCase().replace(/\s+/g, ""), [localPart]);
   const previewAddress = normalizedLocalPart ? `${normalizedLocalPart}@${domain}` : `nome@${domain}`;
 
+  async function testConnection() {
+    if (!supabaseBrowser || !agencyId || testing) return;
+    setTesting(true); setMessage("");
+    const { data, error } = await supabaseBrowser.functions.invoke("provision-professional-email", {
+      body: { agency_id: agencyId, action: "test" },
+    });
+    setTesting(false);
+    if (error) return setMessage(await edgeErrorMessage(error));
+    const payload = (data || {}) as ProvisionResult;
+    setMessage(payload.ok ? (payload.message || "Conexão com o servidor de e-mail estabelecida.") : (payload.error || "Não foi possível conectar ao servidor de e-mail."));
+  }
+
   async function createMailbox(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabaseBrowser || !agencyId || busy) return;
@@ -103,6 +116,7 @@ export default function AdminProfessionalEmails() {
   return <div className="adminPanel" id="emails-profissionais">
     <div className="adminPanelHeader"><div><span className="eyebrow">RECURSO OPCIONAL</span><h2>E-mails profissionais</h2><p>Seu plano disponibiliza contas de e-mail, mas nenhuma é criada automaticamente. Use somente quando precisar.</p></div><span>{usage ? `${usage.used_emails}/${usage.email_limit} em uso` : "Carregando..."}</span></div>
 
+    <div className="formNotice"><strong>Servidor de e-mail:</strong> valide a conexão antes de criar a primeira caixa. <button type="button" className="button secondary small" onClick={() => void testConnection()} disabled={testing || !agencyId}>{testing ? "Testando..." : "Testar conexão com o servidor"}</button></div>
     {usage ? <div className="emailUsageLine"><strong>{usage.remaining_emails}</strong><span>conta(s) ainda disponível(is) no {usage.plan_name}. Contas criadas: {usage.used_emails} de {usage.email_limit}.</span></div> : null}
     <div className="formNotice">Sem domínio próprio, o endereço usa <strong>@imoveis.lenoy.com.br</strong>. Se a imobiliária tiver um domínio próprio já verificado, ele também aparece como opção. Criar e-mail é sempre uma decisão do cliente.</div>
 
