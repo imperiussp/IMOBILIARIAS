@@ -85,6 +85,15 @@ function stableDraftCode(draftId: string) {
   return `IM-${suffix}`;
 }
 
+function parseCity(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(.*?)\s*[-/]\s*([A-Za-z]{2})$/);
+  return {
+    name: String(match?.[1] || trimmed).trim(),
+    stateCode: String(match?.[2] || "").toUpperCase(),
+  };
+}
+
 async function blobFromUri(uri: string) {
   const response = await fetch(uri);
   if (!response.ok) throw new Error("Não foi possível preparar a imagem para envio.");
@@ -97,13 +106,16 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
   if (!context || context.role !== "broker" || !context.brokerId) throw new Error("Usuário sem corretor ativo vinculado a uma imobiliária.");
   if (context.agencyId !== expectedAgencyId) throw new Error("A fila offline pertence a outra imobiliária e não será enviada.");
 
-  const cityParts = draft.city.split("-").map((part) => part.trim());
-  const cityName = cityParts[0];
-  const stateCode = cityParts[1]?.slice(0, 2).toUpperCase();
-  let cityQuery = mobileSupabase.from("cities").select("id").ilike("name", cityName);
-  if (stateCode) cityQuery = cityQuery.eq("state_code", stateCode);
-  const cityResult = await cityQuery.limit(1).maybeSingle();
-  if (cityResult.error || !cityResult.data) throw new Error(`Cidade não cadastrada no sistema: ${draft.city}`);
+  const city = parseCity(draft.city);
+  if (!city.name) throw new Error("Informe a cidade do imóvel.");
+  const cityResult = await mobileSupabase.rpc("mobile_broker_resolve_city", {
+    p_agency_id: context.agencyId,
+    p_name: city.name,
+    p_state_code: city.stateCode || null,
+  });
+  if (cityResult.error) throw cityResult.error;
+  const cityRow = Array.isArray(cityResult.data) ? cityResult.data[0] : null;
+  if (!cityRow?.id) throw new Error(`Não foi possível preparar a cidade: ${draft.city}`);
 
   const typeResult = await mobileSupabase
     .from("property_types")
@@ -119,10 +131,15 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
 
   let neighborhoodId: string | null = null;
   if (draft.neighborhood.trim()) {
-    const neighborhood = await mobileSupabase.from("neighborhoods").select("id").eq("city_id", cityResult.data.id).or(`agency_id.is.null,agency_id.eq.${context.agencyId}`).ilike("name", draft.neighborhood.trim()).limit(1).maybeSingle();
-    if (neighborhood.error) throw neighborhood.error;
-    if (neighborhood.data?.id) neighborhoodId = neighborhood.data.id;
-    else throw new Error(`Bairro não cadastrado: ${draft.neighborhood}. Cadastre o bairro no painel administrativo e tente sincronizar novamente.`);
+    const neighborhoodResult = await mobileSupabase.rpc("mobile_broker_resolve_neighborhood", {
+      p_agency_id: context.agencyId,
+      p_city_id: cityRow.id,
+      p_name: draft.neighborhood.trim(),
+    });
+    if (neighborhoodResult.error) throw neighborhoodResult.error;
+    const neighborhoodRow = Array.isArray(neighborhoodResult.data) ? neighborhoodResult.data[0] : null;
+    if (!neighborhoodRow?.id) throw new Error(`Não foi possível preparar o bairro: ${draft.neighborhood}`);
+    neighborhoodId = neighborhoodRow.id;
   }
 
   const code = stableDraftCode(draft.id);
@@ -130,7 +147,7 @@ async function syncDraft(draft: PropertyDraft, expectedAgencyId: string) {
     agency_id: context.agencyId,
     code,
     broker_id: context.brokerId,
-    city_id: cityResult.data.id,
+    city_id: cityRow.id,
     neighborhood_id: neighborhoodId,
     property_type_id: typeRow.id,
     title: draft.title.trim(),
