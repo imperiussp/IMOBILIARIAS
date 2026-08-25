@@ -95,7 +95,19 @@ export default function AdminPage() {
           </aside>
 
           <section className="adminContent" id="visao-geral">
-            <div className="adminHeading"><div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos, documentos, arquivos e configurações pertencem sempre à imobiliária ativa.</p></div><a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a></div>
+            <div className="adminHeading">
+              <div><span className="eyebrow">PAINEL</span><h1>Visão geral</h1><p>Imóveis, equipe, contatos, documentos, arquivos e configurações pertencem sempre à imobiliária ativa.</p></div>
+              <div className="adminHeadingActions">
+                <a className="button adminDownloadAppButton" href="/baixar-app/" aria-label="Baixar aplicativo LENOY Imobiliárias">
+                  <span className="adminDownloadPlatforms" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.2 7.1 5.7 4.5a.6.6 0 0 1 1-.6l1.6 2.7a9.8 9.8 0 0 1 7.4 0l1.6-2.7a.6.6 0 1 1 1 .6l-1.5 2.6A6.4 6.4 0 0 1 20 12H4a6.4 6.4 0 0 1 3.2-4.9ZM4 13h16v6.2A1.8 1.8 0 0 1 18.2 21H5.8A1.8 1.8 0 0 1 4 19.2V13Z" /></svg>
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.7 12.9c0-2.4 2-3.6 2.1-3.7a4.6 4.6 0 0 0-3.6-2c-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8a4.9 4.9 0 0 0-4.1 2.5c-1.8 3-.5 7.5 1.2 10 .9 1.2 1.9 2.5 3.2 2.4 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.2 3.1-2.4 1-1.4 1.4-2.9 1.4-3-.1 0-3-.9-3-3.9ZM14.2 5.6A4.3 4.3 0 0 0 15.3 2a4.5 4.5 0 0 0-3 1.5 4.1 4.1 0 0 0-1.1 3.5 3.7 3.7 0 0 0 3-1.4Z" /></svg>
+                  </span>
+                  Baixar app
+                </a>
+                <a className="button primary adminOnly" href="#novo-imovel">+ Cadastrar imóvel</a>
+              </div>
+            </div>
 
             <nav className="adminQuickActions" aria-label="Atalhos do painel">
               <a href="#imoveis"><span>▦</span><div><strong>Imóveis</strong><small>Catálogo e desempenho</small></div></a>
@@ -103,6 +115,7 @@ export default function AdminPage() {
               <a href="#agenda-visitas"><span>◷</span><div><strong>Visitas</strong><small>Agenda comercial</small></div></a>
               <a className="adminOnly" href="#oportunidades-ia"><span>✦</span><div><strong>Oportunidades IA</strong><small>Matches e retornos</small></div></a>
               <a className="adminOnly" href="#novo-imovel"><span>＋</span><div><strong>Novo imóvel</strong><small>Cadastrar agora</small></div></a>
+              <a href="/baixar-app/"><span>⇩</span><div><strong>Baixar app</strong><small>Android e iPhone</small></div></a>
             </nav>
 
             <AdminLiveData />
