@@ -42,7 +42,7 @@ function cleanExcerpt(value: string) {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 220);
+    .slice(0, 260);
 }
 
 async function cpanelCall(module: string, fn: string, params: Record<string, string>) {
@@ -85,20 +85,23 @@ async function cpanelCall(module: string, fn: string, params: Record<string, str
   }
 
   if (!response.ok) {
+    const excerpt = cleanExcerpt(raw);
     console.error("CPANEL_HTTP_ERROR", {
       base,
       module,
       fn,
       status: response.status,
       contentType: response.headers.get("content-type"),
-      excerpt: cleanExcerpt(raw),
+      server: response.headers.get("server"),
+      excerpt,
     });
 
     if (response.status === 401 || response.status === 403) {
-      throw new Error(`O cPanel recusou a autenticação (HTTP ${response.status}). Confira CPANEL_USER e CPANEL_API_TOKEN.`);
+      const detail = excerpt ? ` Resposta do servidor: ${excerpt}` : "";
+      throw new Error(`O cPanel recusou a autenticação (HTTP ${response.status}).${detail}`);
     }
 
-    throw new Error(`O cPanel respondeu com HTTP ${response.status}. ${cleanExcerpt(raw) || "Sem detalhes adicionais."}`);
+    throw new Error(`O cPanel respondeu com HTTP ${response.status}. ${excerpt || "Sem detalhes adicionais."}`);
   }
 
   if (!payload) {
