@@ -69,3 +69,11 @@ jobs:
           git commit -m "build: cPanel package result [skip netlify]" || true
           git push || true
           exit "$CODE"
+      - name: Upload cPanel package artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imobiliarias-cpanel
+          path: cpanel-build/imobiliarias-cpanel.zip
+          if-no-files-found: error
+          retention-days: 7
