@@ -1,4 +1,4 @@
-/* Ajustes finais da landing: mobile sem estouro, app com foto real e rodape completo. */
+/* Ajustes finais da landing: mobile sem estouro, app em mão real e rodapé completo. */
 .platformLanding{overflow-x:hidden!important}
 .platformLanding *{box-sizing:border-box}
 
@@ -11,27 +11,28 @@
   opacity:1!important;
 }
 
-/* Área do aplicativo: foto real de uma mão segurando smartphone. */
+/* Área do aplicativo: mão real segurando smartphone + interface real do app sobre a tela. */
 .platformLanding #app-demo .phoneStage{
-  min-height:610px!important;
   width:100%!important;
-  max-width:560px!important;
+  max-width:620px!important;
+  aspect-ratio:1/1!important;
+  min-height:0!important;
   justify-self:center!important;
   border-radius:28px!important;
   overflow:hidden!important;
   background:
-    linear-gradient(180deg,rgba(7,23,43,.03),rgba(7,23,43,.18)),
-    url('https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1000&q=86') center/cover no-repeat!important;
-  box-shadow:0 28px 70px rgba(7,23,43,.20)!important;
-  border:1px solid #d8cfbf!important;
+    linear-gradient(180deg,rgba(7,23,43,.01),rgba(7,23,43,.08)),
+    url('https://images.unsplash.com/photo-1691256676376-357c3aa66c89?auto=format&fit=crop&fm=jpg&q=84&w=1200') center/contain no-repeat!important;
+  box-shadow:0 28px 70px rgba(7,23,43,.16)!important;
+  border:1px solid #e1d9cc!important;
   position:relative!important;
 }
 .platformLanding #app-demo .phoneStage::before{
   content:'APP DO CORRETOR'!important;
   position:absolute!important;
-  left:22px!important;
-  top:22px!important;
-  z-index:4!important;
+  left:18px!important;
+  top:18px!important;
+  z-index:6!important;
   display:inline-flex!important;
   align-items:center!important;
   min-height:32px!important;
@@ -42,28 +43,70 @@
   font-size:10px!important;
   font-weight:900!important;
   letter-spacing:.11em!important;
-  box-shadow:0 8px 22px rgba(0,0,0,.2)!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.18)!important;
 }
 .platformLanding #app-demo .phoneStage::after{
   content:'Cadastre imóveis, fotografe e acompanhe leads direto do celular.'!important;
   position:absolute!important;
-  left:22px!important;
-  right:22px!important;
-  bottom:22px!important;
-  z-index:4!important;
-  padding:14px 16px!important;
+  left:18px!important;
+  right:18px!important;
+  bottom:18px!important;
+  z-index:6!important;
+  padding:13px 15px!important;
   border-radius:14px!important;
   background:rgba(7,23,43,.92)!important;
   color:#fff!important;
   font-size:12px!important;
   line-height:1.45!important;
   font-weight:750!important;
-  box-shadow:0 12px 30px rgba(0,0,0,.24)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.22)!important;
 }
-.platformLanding #app-demo .phoneMock,
+
+/* A interface já existente é encaixada na tela do telefone da fotografia. */
+.platformLanding #app-demo .phoneMock{
+  display:block!important;
+  position:absolute!important;
+  z-index:4!important;
+  left:32.25%!important;
+  top:9.4%!important;
+  width:35.8%!important;
+  height:76.7%!important;
+  max-width:none!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:22px!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.platformLanding #app-demo .phoneTop{display:none!important}
+.platformLanding #app-demo .phoneScreen{
+  height:100%!important;
+  overflow:hidden!important;
+  border-radius:20px!important;
+  padding:10px 9px 8px!important;
+  background:#f5f7f8!important;
+}
+.platformLanding #app-demo .phoneWelcome{gap:1px!important}
+.platformLanding #app-demo .phoneWelcome .eyebrow{font-size:6px!important}
+.platformLanding #app-demo .phoneWelcome strong{font-size:14px!important;line-height:1.05!important}
+.platformLanding #app-demo .phoneWelcome small{font-size:7px!important}
+.platformLanding #app-demo .phonePrimary{margin:7px 0 6px!important;padding:7px 5px!important;border-radius:8px!important;font-size:7px!important}
+.platformLanding #app-demo .phoneStatus{padding:5px 6px!important;border-radius:7px!important;font-size:6px!important;gap:4px!important}
+.platformLanding #app-demo .phonePropertyList{gap:5px!important;margin-top:7px!important}
+.platformLanding #app-demo .phonePropertyList article{grid-template-columns:26px minmax(0,1fr) auto!important;gap:5px!important;padding:5px!important;border-radius:8px!important}
+.platformLanding #app-demo .phonePropertyList article:nth-child(n+3){display:none!important}
+.platformLanding #app-demo .phoneThumb{height:26px!important;border-radius:6px!important;font-size:12px!important}
+.platformLanding #app-demo .phonePropertyList small{font-size:5px!important}
+.platformLanding #app-demo .phonePropertyList strong{font-size:6px!important;margin:1px 0!important}
+.platformLanding #app-demo .phonePropertyList span{font-size:5px!important}
+.platformLanding #app-demo .phonePropertyList em{font-size:5px!important;padding:3px 4px!important}
+.platformLanding #app-demo .phoneNav{gap:2px!important;margin-top:7px!important;padding-top:5px!important}
+.platformLanding #app-demo .phoneNav>span{gap:1px!important;font-size:9px!important}
+.platformLanding #app-demo .phoneNav small{font-size:5px!important}
 .platformLanding #app-demo .phoneFloatingCard{display:none!important}
 
-/* Rodape com dados comerciais completos. */
+/* Rodapé com dados comerciais completos. */
 .platformLanding .platformFooter{
   position:relative!important;
   flex-wrap:wrap!important;
@@ -94,7 +137,7 @@
     display:inline-flex!important;
     width:auto!important;
     min-height:36px!important;
-    padding:0 11px!important;
+    padding:0 10px!important;
     border-radius:9px!important;
     font-size:10px!important;
     white-space:nowrap!important;
@@ -129,9 +172,10 @@
   .platformLanding .appFeatureList article>div{min-width:0!important}
   .platformLanding .appFeatureList span{overflow-wrap:anywhere!important}
   .platformLanding #app-demo .phoneStage{
-    min-height:500px!important;
     width:100%!important;
     max-width:100%!important;
+    aspect-ratio:1/1!important;
+    min-height:0!important;
     border-radius:20px!important;
   }
 
@@ -185,5 +229,5 @@
 @media(max-width:430px){
   .platformLanding .demoMetricGrid,
   .platformLanding .demoFlow{grid-template-columns:1fr!important}
-  .platformLanding #app-demo .phoneStage{min-height:430px!important}
+  .platformLanding #app-demo .phoneStage{aspect-ratio:1/1!important;min-height:0!important}
 }
