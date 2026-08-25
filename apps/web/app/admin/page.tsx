@@ -27,6 +27,7 @@ import AdminLiveData from "../../components/AdminLiveData";
 import AdminLocations from "../../components/AdminLocations";
 import AdminOperationalAlerts from "../../components/AdminOperationalAlerts";
 import AdminPlan from "../../components/AdminPlan";
+import AdminProfessionalEmails from "../../components/AdminProfessionalEmails";
 import AdminPropertyDocumentChecklist from "../../components/AdminPropertyDocumentChecklist";
 import AdminPropertyForm from "../../components/AdminPropertyForm";
 import AdminPropertyLifecycle from "../../components/AdminPropertyLifecycle";
@@ -87,8 +88,9 @@ export default function AdminPage() {
             <a className="adminOnly" href="#arquivos-documentos">Anexos</a>
             <a className="adminOnly" href="#arquivos">Arquivos</a>
             <a className="adminOnly" href="#meu-plano">Meu plano</a>
+            <a className="adminOnly" href="#emails-profissionais">E-mails profissionais</a>
             <a className="adminOnly" href="#pagamento-infinitepay">Pagamento</a>
-            <a className="adminOnly" href="#configuracoes">Imobiliária</a>
+            <a className="adminOnly" href="#configuracoes">Identidade e aparência</a>
             <a className="adminOnly" href="#dominios">Domínios</a>
             <a className="adminOnly" href="#historico">Histórico</a>
             <a className="adminOnly" href="#exportacoes">Exportações</a>
@@ -155,6 +157,7 @@ export default function AdminPage() {
             <div className="adminOnly"><AdminDocumentUploads /></div>
             <AdminStorageOverview />
             <div className="adminOnly"><AdminPlan /></div>
+            <div className="adminOnly"><AdminProfessionalEmails /></div>
             <div className="adminOnly"><AdminInfinitePayCheckout /></div>
             <div className="adminOnly"><AdminSiteSettings /></div>
             <div className="adminOnly"><AdminDomains /></div>
