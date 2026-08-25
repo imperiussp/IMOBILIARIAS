@@ -1,0 +1,28 @@
+/* Hero público — imagem enviada em 25/08/2026 */
+.platformLanding .platformHero{
+  grid-template-columns:minmax(0,720px) minmax(0,1fr)!important;
+  gap:24px!important;
+  background:
+    linear-gradient(90deg,rgba(5,17,33,.98) 0%,rgba(5,17,33,.92) 35%,rgba(5,17,33,.44) 58%,rgba(5,17,33,.08) 100%),
+    url('/platform-hero-app-bg.png') center center/cover no-repeat!important;
+}
+.platformLanding .platformHeroCard{display:none!important}
+.platformLanding .platformHero>div:first-child{z-index:2!important;max-width:690px!important}
+
+@media(max-width:1100px){
+  .platformLanding .platformHero{
+    grid-template-columns:1fr!important;
+    background:
+      linear-gradient(90deg,rgba(5,17,33,.98) 0%,rgba(5,17,33,.88) 52%,rgba(5,17,33,.34) 100%),
+      url('/platform-hero-app-bg.png') 62% center/cover no-repeat!important;
+  }
+  .platformLanding .platformHero>div:first-child{max-width:650px!important}
+}
+@media(max-width:700px){
+  .platformLanding .platformHero{
+    min-height:620px!important;
+    background:
+      linear-gradient(180deg,rgba(5,17,33,.96) 0%,rgba(5,17,33,.88) 58%,rgba(5,17,33,.58) 100%),
+      url('/platform-hero-app-bg.png') 64% center/cover no-repeat!important;
+  }
+}
