@@ -5,6 +5,8 @@ import { getCurrentAgency } from "../lib/currentAgency";
 import { supabaseBrowser } from "../lib/supabaseBrowser";
 
 const PLATFORM_MAIL_DOMAIN = "imoveis.lenoy.com.br";
+const MAIL_SERVER = "pro126.dnspro.com.br";
+const WEBMAIL_URL = `https://${MAIL_SERVER}:2096/`;
 
 type Usage = {
   plan_name: string;
@@ -49,6 +51,12 @@ type ProvisionResult = {
   error?: string;
 };
 
+type PasswordAssessment = {
+  label: "Fraca" | "Média" | "Forte";
+  accepted: boolean;
+  guidance: string;
+};
+
 const statusLabel: Record<Mailbox["status"], string> = {
   pending: "Preparando",
   active: "Ativo",
@@ -68,6 +76,48 @@ const jobLabel: Record<MailJob["status"], string> = {
 function mailDomainFromHostname(value: string) {
   const hostname = value.trim().toLowerCase().replace(/\.$/, "");
   return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+}
+
+function assessPassword(value: string): PasswordAssessment {
+  if (!value) {
+    return {
+      label: "Fraca",
+      accepted: false,
+      guidance: "Use pelo menos 12 caracteres, com maiúscula, minúscula, número e símbolo.",
+    };
+  }
+
+  const checks = [
+    value.length >= 12,
+    /[a-z]/.test(value),
+    /[A-Z]/.test(value),
+    /\d/.test(value),
+    /[^A-Za-z0-9]/.test(value),
+  ];
+  const passed = checks.filter(Boolean).length;
+  const accepted = checks.every(Boolean);
+
+  if (accepted) {
+    return {
+      label: "Forte",
+      accepted: true,
+      guidance: "Senha adequada para envio ao servidor. O cPanel ainda faz a validação final de segurança.",
+    };
+  }
+
+  if (passed >= 3 && value.length >= 10) {
+    return {
+      label: "Média",
+      accepted: false,
+      guidance: "Ainda pode ser recusada pelo servidor. Complete 12 caracteres e combine maiúscula, minúscula, número e símbolo.",
+    };
+  }
+
+  return {
+    label: "Fraca",
+    accepted: false,
+    guidance: "Senha muito simples. Use 12 ou mais caracteres e misture maiúsculas, minúsculas, números e símbolos.",
+  };
 }
 
 async function edgeErrorMessage(error: unknown) {
@@ -95,6 +145,7 @@ export default function AdminProfessionalEmails() {
   const [quotaMb, setQuotaMb] = useState("1024");
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [showMailSettings, setShowMailSettings] = useState(false);
   const [message, setMessage] = useState("");
 
   async function load() {
@@ -158,6 +209,7 @@ export default function AdminProfessionalEmails() {
   }, []);
 
   const normalizedLocalPart = useMemo(() => localPart.trim().toLowerCase().replace(/\s+/g, ""), [localPart]);
+  const passwordAssessment = useMemo(() => assessPassword(password), [password]);
   const platformPreview = normalizedLocalPart ? `${normalizedLocalPart}@${PLATFORM_MAIL_DOMAIN}` : `nome@${PLATFORM_MAIL_DOMAIN}`;
   const customPreview = customDomain
     ? `${normalizedLocalPart || "nome"}@${customDomain}`
@@ -183,7 +235,9 @@ export default function AdminProfessionalEmails() {
     if (!/^[a-z0-9][a-z0-9._-]{0,62}$/.test(normalizedLocalPart)) {
       return setMessage("Use letras minúsculas, números, ponto, traço ou sublinhado no nome do e-mail.");
     }
-    if (password.length < 10) return setMessage("A senha do e-mail precisa ter pelo menos 10 caracteres.");
+    if (!passwordAssessment.accepted) {
+      return setMessage(`Senha ${passwordAssessment.label.toLowerCase()}: ${passwordAssessment.guidance}`);
+    }
     if (!targetDomain) return setMessage("Configure e verifique o domínio próprio antes de criar um e-mail nele.");
 
     setBusy(true);
@@ -270,11 +324,15 @@ export default function AdminProfessionalEmails() {
       </div>
       <div className="formGrid">
         <label>Endereço que será criado<div className="emailAddressPreview">{platformPreview}</div></label>
-        <label>Senha inicial<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" placeholder="Mínimo de 10 caracteres" /></label>
+        <label>
+          Senha inicial
+          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" placeholder="12+ caracteres, maiúscula, número e símbolo" />
+          <small aria-live="polite"><strong>Força: {passwordAssessment.label}.</strong> {passwordAssessment.guidance}</small>
+        </label>
       </div>
       <div className="formActions">
-        <button className="button primary" disabled={busy || !usage?.can_create}>
-          {busy ? "Enviando..." : usage?.can_create ? "Criar e-mail" : "Limite indisponível"}
+        <button className="button primary" disabled={busy || !usage?.can_create || !passwordAssessment.accepted}>
+          {busy ? "Enviando..." : usage?.can_create ? (passwordAssessment.accepted ? "Criar e-mail" : "Crie uma senha forte") : "Limite indisponível"}
         </button>
       </div>
     </form>
@@ -306,14 +364,40 @@ export default function AdminProfessionalEmails() {
             type="button"
             className="button secondary small"
             style={{ marginLeft: 10 }}
-            disabled={busy || !usage?.can_create || !customDomain}
+            disabled={busy || !usage?.can_create || !customDomain || !passwordAssessment.accepted}
             onClick={() => void queueMailbox(customDomain)}
           >
-            {busy ? "Enviando..." : "Criar com meu domínio"}
+            {busy ? "Enviando..." : passwordAssessment.accepted ? "Criar com meu domínio" : "Crie uma senha forte"}
           </button>
         </div>
       </>}
     </div> : null}
+
+    <div className="domainInstructions" style={{ marginTop: 18 }}>
+      <strong>Acessar e configurar o e-mail</strong>
+      <p>Depois que a conta estiver ativa, o usuário pode acessar pelo Webmail ou cadastrar a mesma caixa no Gmail, Outlook, celular e outros aplicativos de e-mail.</p>
+      <div className="formActions">
+        <a className="button primary" href={WEBMAIL_URL} target="_blank" rel="noreferrer">Abrir Webmail</a>
+        <button type="button" className="button secondary" onClick={() => setShowMailSettings((value) => !value)}>
+          {showMailSettings ? "Ocultar configurações" : "Ver configurações para Gmail / Outlook"}
+        </button>
+      </div>
+
+      {showMailSettings ? <div className="adminTableWrap" style={{ marginTop: 14 }}>
+        <table className="adminTable">
+          <tbody>
+            <tr><th>Usuário</th><td>Endereço completo do e-mail, por exemplo: contato@{PLATFORM_MAIL_DOMAIN}</td></tr>
+            <tr><th>Senha</th><td>A senha definida para a caixa de e-mail.</td></tr>
+            <tr><th>Entrada IMAP</th><td><strong>{MAIL_SERVER}</strong> — porta <strong>993</strong> — SSL/TLS</td></tr>
+            <tr><th>Entrada POP3</th><td><strong>{MAIL_SERVER}</strong> — porta <strong>995</strong> — SSL/TLS</td></tr>
+            <tr><th>Saída SMTP</th><td><strong>{MAIL_SERVER}</strong> — porta <strong>465</strong> — SSL/TLS — autenticação obrigatória</td></tr>
+          </tbody>
+        </table>
+        <div className="formNotice" style={{ marginTop: 12 }}>
+          <strong>Gmail:</strong> no aplicativo Gmail, Outlook e celulares, prefira IMAP. Para serviços que importam mensagens de outra conta por POP3, use a porta 995. Para enviar usando este endereço, configure também o SMTP acima.
+        </div>
+      </div> : null}
+    </div>
 
     {jobs.length ? <div className="adminTableWrap" style={{ marginTop: 18 }}>
       <table className="adminTable">
