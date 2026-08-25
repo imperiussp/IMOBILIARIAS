@@ -1,0 +1,93 @@
+name: Build iOS Simulator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/build-ios-simulator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-simulator
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Check mobile TypeScript
+        run: pnpm --filter @imobiliarias/mobile typecheck
+
+      - name: Generate iOS project
+        run: pnpm --filter @imobiliarias/mobile exec expo prebuild --platform ios --clean
+
+      - name: Install CocoaPods dependencies
+        working-directory: apps/mobile/ios
+        run: pod install --repo-update
+
+      - name: Build iOS app for simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKSPACE=$(find apps/mobile/ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          if [ -z "$WORKSPACE" ]; then
+            echo "Nenhum workspace iOS encontrado."
+            exit 1
+          fi
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list -json | python3 -c 'import json,sys; d=json.load(sys.stdin); schemes=d.get("workspace",{}).get("schemes",[]); print(schemes[0] if schemes else "")')
+          if [ -z "$SCHEME" ]; then
+            echo "Nenhum scheme iOS encontrado."
+            exit 1
+          fi
+          echo "Workspace: $WORKSPACE"
+          echo "Scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath apps/mobile/ios-derived \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find apps/mobile/ios-derived/Build/Products/Debug-iphonesimulator -maxdepth 1 -name "*.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Aplicativo iOS compilado não encontrado."
+            exit 1
+          fi
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" LENOY-IMOBILIARIAS-IOS-SIMULADOR.zip
+
+      - name: Upload simulator build
+        uses: actions/upload-artifact@v4
+        with:
+          name: LENOY-IMOBILIARIAS-IOS-SIMULADOR
+          path: LENOY-IMOBILIARIAS-IOS-SIMULADOR.zip
+          if-no-files-found: error
+          retention-days: 7
