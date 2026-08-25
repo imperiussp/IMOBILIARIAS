@@ -93,7 +93,9 @@ export default function AdminProfessionalEmails() {
     setUsage((usageRows[0] || null) as Usage | null);
     if (!mailResult.error) setMailboxes((mailResult.data || []) as Mailbox[]);
     if (!jobResult.error) setJobs(((jobResult.data || []) as MailJob[]).filter((item) => item.status !== "completed" && item.status !== "cancelled"));
-    const verified = ((domainResult.data || []) as DomainRow[]).map((row) => row.hostname.toLowerCase()).filter(Boolean);
+    const verified = ((domainResult.data || []) as DomainRow[])
+      .map((row) => row.hostname.trim().toLowerCase())
+      .filter((hostname) => Boolean(hostname) && hostname !== "imoveis.lenoy.com.br" && !hostname.endsWith(".imoveis.lenoy.com.br"));
     setDomains(Array.from(new Set(["imoveis.lenoy.com.br", ...verified])));
   }
 
@@ -142,7 +144,7 @@ export default function AdminProfessionalEmails() {
   return <div className="adminPanel" id="emails-profissionais">
     <div className="adminPanelHeader"><div><span className="eyebrow">RECURSO OPCIONAL</span><h2>E-mails profissionais</h2><p>Seu plano disponibiliza contas de e-mail, mas nenhuma é criada automaticamente. Use somente quando precisar.</p></div><span>{usage ? `${usage.used_emails}/${usage.email_limit} em uso/processamento` : "Carregando..."}</span></div>
 
-    <div className="formNotice"><strong>Servidor de e-mail:</strong> o teste valida o worker local e o UAPI do próprio cPanel. <button type="button" className="button secondary small" onClick={() => void testConnection()} disabled={testing || !agencyId}>{testing ? "Testando..." : "Testar conexão com o servidor"}</button></div>
+    <div className="formNotice"><strong>Servidor de e-mail:</strong> o teste valida o worker local e a API do próprio cPanel. <button type="button" className="button secondary small" onClick={() => void testConnection()} disabled={testing || !agencyId}>{testing ? "Testando..." : "Testar conexão com o servidor"}</button></div>
     {usage ? <div className="emailUsageLine"><strong>{usage.remaining_emails}</strong><span>conta(s) ainda disponível(is) no {usage.plan_name}. Em uso ou processamento: {usage.used_emails} de {usage.email_limit}.</span></div> : null}
     <div className="formNotice">Sem domínio próprio, o endereço usa <strong>@imoveis.lenoy.com.br</strong>. Se a imobiliária tiver um domínio próprio já verificado, ele também aparece como opção. Criar e-mail é sempre uma decisão do cliente.</div>
 
