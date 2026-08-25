@@ -26,6 +26,7 @@ import "./admin-location-final.css";
 import "./landing-mobile-final.css";
 import "./registration-final.css";
 import "./release-fixes-20260824.css";
+import "./app-download.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
