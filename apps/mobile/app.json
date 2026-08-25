@@ -12,6 +12,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "androidStatusBar": {
+      "backgroundColor": "#07182d",
+      "barStyle": "light-content",
+      "translucent": false
+    },
     "plugins": [
       [
         "expo-image-picker",
