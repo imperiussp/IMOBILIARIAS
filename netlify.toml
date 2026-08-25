@@ -1,0 +1,5 @@
+# NETLIFY DESATIVADO PARA ESTE PROJETO.
+# Produção oficial: cPanel / imoveis.lenoy.com.br.
+# Exit 0 em ignore faz o Netlify interromper builds disparados pela integração Git.
+[build]
+ignore = "exit 0"
