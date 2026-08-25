@@ -51,10 +51,7 @@ async function encryptPassword(password: string, workerToken: string) {
   const key = await crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(password));
-  return {
-    cipher: bytesToBase64(new Uint8Array(encrypted)),
-    iv: bytesToBase64(iv),
-  };
+  return { cipher: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv) };
 }
 
 Deno.serve(async (req: Request) => {
@@ -67,27 +64,26 @@ Deno.serve(async (req: Request) => {
   const workerToken = String(Deno.env.get("CPANEL_API_TOKEN") || "").trim();
   if (!supabaseUrl || !publishableKey || !adminKey) return json({ error: "Supabase não configurado na função." }, 503);
 
-  const admin = createClient(supabaseUrl, adminKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
+  const admin = createClient(supabaseUrl, adminKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const action = String(body.action || "create").trim().toLowerCase();
 
   if (action === "worker_pull" || action === "worker_complete") {
     const suppliedWorkerToken = String(req.headers.get("x-worker-token") || "").trim();
-    if (!workerToken || !(await secureEqual(suppliedWorkerToken, workerToken))) {
-      return json({ error: "Worker não autorizado." }, 401);
-    }
+    if (!workerToken || !(await secureEqual(suppliedWorkerToken, workerToken))) return json({ error: "Worker não autorizado." }, 401);
 
     if (action === "worker_pull") {
+      const localStatus = body.local_status === "ok" ? "ok" : "error";
+      const localMessage = String(body.local_message || (localStatus === "ok" ? "Worker local ativo." : "UAPI local indisponível.")).slice(0, 900);
       await admin.from("mail_worker_state").upsert({
         worker_name: "cpanel-main",
         last_seen_at: new Date().toISOString(),
-        last_status: "ok",
-        last_message: "Worker local ativo.",
+        last_status: localStatus,
+        last_message: localMessage,
         updated_at: new Date().toISOString(),
       });
+
+      if (localStatus !== "ok") return json({ ok: false, error: localMessage, job: null });
 
       const claimed = await admin.rpc("claim_agency_mailbox_job");
       if (claimed.error) return json({ error: claimed.error.message }, 500);
@@ -138,21 +134,17 @@ Deno.serve(async (req: Request) => {
   if (action === "test") {
     const state = await admin.from("mail_worker_state").select("last_seen_at,last_status,last_message").eq("worker_name", "cpanel-main").maybeSingle();
     if (state.error) return json({ error: state.error.message }, 500);
-    if (!state.data?.last_seen_at) {
-      return json({ ok: false, error: "O worker local do cPanel ainda não foi ativado. Configure o Cron Job para concluir a conexão." });
-    }
+    if (!state.data?.last_seen_at) return json({ ok: false, error: "O worker local do cPanel ainda não foi ativado. Configure o Cron Job para concluir a conexão." });
     const ageMs = Date.now() - new Date(state.data.last_seen_at).getTime();
-    if (!Number.isFinite(ageMs) || ageMs > 5 * 60 * 1000) {
-      return json({ ok: false, error: "O worker local do cPanel está sem sinal há mais de 5 minutos. Verifique o Cron Job." });
-    }
-    return json({ ok: true, message: "Conexão local com o servidor de e-mail estabelecida.", worker_status: state.data.last_status });
+    if (!Number.isFinite(ageMs) || ageMs > 5 * 60 * 1000) return json({ ok: false, error: "O worker local do cPanel está sem sinal há mais de 5 minutos. Verifique o Cron Job." });
+    if (state.data.last_status !== "ok") return json({ ok: false, error: state.data.last_message || "O worker está ativo, mas o UAPI local do cPanel apresentou erro." });
+    return json({ ok: true, message: "Conexão local com o servidor de e-mail estabelecida." });
   }
 
   const localPart = String(body.local_part || "").trim().toLowerCase();
   const domain = String(body.domain || "").trim().toLowerCase();
   const password = String(body.password || "");
   const quotaMb = Math.min(Math.max(Number(body.quota_mb || 1024), 100), 10240);
-
   if (!/^[a-z0-9][a-z0-9._-]{0,62}$/.test(localPart)) return json({ error: "Escolha um nome de e-mail válido." }, 400);
   if (!/^[a-z0-9][a-z0-9.-]+[a-z0-9]$/.test(domain)) return json({ error: "Domínio de e-mail inválido." }, 400);
   if (password.length < 10) return json({ error: "Use uma senha de e-mail com pelo menos 10 caracteres." }, 400);
@@ -172,13 +164,7 @@ Deno.serve(async (req: Request) => {
     if (queued.error) return json({ error: queued.error.message }, 409);
     const rows = Array.isArray(queued.data) ? queued.data : [];
     const row = rows[0] || {};
-    return json({
-      ok: true,
-      queued: true,
-      job_id: row.job_id,
-      email: row.email_address || `${localPart}@${domain}`,
-      message: "Solicitação enviada ao servidor. A conta será processada pelo worker local.",
-    });
+    return json({ ok: true, queued: true, job_id: row.job_id, email: row.email_address || `${localPart}@${domain}`, message: "Solicitação enviada ao servidor. A conta será processada pelo worker local." });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Não foi possível enfileirar a criação da conta de e-mail." }, 500);
   }
