@@ -67,7 +67,7 @@ function edgeCall(string $url, string $token, array $payload): array
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Accept: application/json',
-            'User-Agent: LENOY-Mail-Worker/1.1',
+            'User-Agent: LENOY-Mail-Worker/1.2',
             'X-Worker-Token: ' . $token,
         ],
         CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
@@ -101,8 +101,9 @@ function runUapi(
     array $params = [],
     int $timeoutSeconds = 20
 ): array {
+    // O Cron roda como o proprio usuario cPanel. Nao use --user aqui: em
+    // hospedagens compartilhadas isso tenta executar setuid e falha.
     $command = escapeshellarg($uapiPath)
-        . ' --user=' . escapeshellarg($cpanelUser)
         . ' --output=json '
         . escapeshellarg($module) . ' ' . escapeshellarg($function);
 
