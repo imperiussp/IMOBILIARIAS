@@ -88,7 +88,7 @@ function cpanelLocalCall(string $user, string $token, string $module, string $fu
         return ['ok' => false, 'error' => 'Extensao cURL do PHP indisponivel.'];
     }
 
-    $url = 'https://127.0.0.1:2083/execute/' . rawurlencode($module) . '/' . rawurlencode($function);
+    $url = 'https://localhost:2083/execute/' . rawurlencode($module) . '/' . rawurlencode($function);
     if ($params !== []) {
         $url .= '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
     }
