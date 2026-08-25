@@ -1,7 +1,7 @@
 import * as ImageManipulator from "expo-image-manipulator";
 
 async function renderJpeg(uri: string, width: number, compress: number) {
-  const context = ImageManipulator.manipulate(uri);
+  const context = ImageManipulator.ImageManipulator.manipulate(uri);
   context.resize({ width, height: null });
   const rendered = await context.renderAsync();
   return rendered.saveAsync({ format: ImageManipulator.SaveFormat.JPEG, compress });
