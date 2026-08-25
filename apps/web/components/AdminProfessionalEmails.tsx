@@ -22,6 +22,7 @@ type Mailbox = {
 };
 
 type DomainRow = { hostname: string; verified: boolean };
+type ProvisionResult = { ok?: boolean; email?: string; error?: string };
 
 const statusLabel: Record<Mailbox["status"], string> = {
   pending: "Preparando",
@@ -30,6 +31,18 @@ const statusLabel: Record<Mailbox["status"], string> = {
   error: "Com problema",
   deleted: "Removido",
 };
+
+async function edgeErrorMessage(error: unknown) {
+  const fallback = error instanceof Error ? error.message : "Não foi possível criar a conta de e-mail.";
+  const context = (error as { context?: { json?: () => Promise<unknown> } } | null)?.context;
+  if (!context?.json) return fallback;
+  try {
+    const payload = await context.json() as ProvisionResult;
+    return payload?.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function AdminProfessionalEmails() {
   const [agencyId, setAgencyId] = useState("");
@@ -72,17 +85,16 @@ export default function AdminProfessionalEmails() {
     if (!/^[a-z0-9][a-z0-9._-]{0,62}$/.test(normalizedLocalPart)) return setMessage("Use letras minúsculas, números, ponto, traço ou sublinhado no nome do e-mail.");
     if (password.length < 10) return setMessage("A senha do e-mail precisa ter pelo menos 10 caracteres.");
     setBusy(true); setMessage("");
-    const session = await supabaseBrowser.auth.getSession();
-    const accessToken = session.data.session?.access_token;
-    if (!accessToken) { setBusy(false); return setMessage("Sua sessão expirou. Entre novamente no painel."); }
-    const response = await fetch("/api/professional-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ agency_id: agencyId, local_part: normalizedLocalPart, domain, password, quota_mb: Number(quotaMb || 1024) }),
+
+    const { data, error } = await supabaseBrowser.functions.invoke("provision-professional-email", {
+      body: { agency_id: agencyId, local_part: normalizedLocalPart, domain, password, quota_mb: Number(quotaMb || 1024) },
     });
-    const payload = await response.json().catch(() => ({})) as { ok?: boolean; email?: string; error?: string };
     setBusy(false);
-    if (!response.ok || !payload.ok) return setMessage(payload.error || "Não foi possível criar a conta de e-mail.");
+
+    if (error) return setMessage(await edgeErrorMessage(error));
+    const payload = (data || {}) as ProvisionResult;
+    if (!payload.ok) return setMessage(payload.error || "Não foi possível criar a conta de e-mail.");
+
     setLocalPart(""); setPassword("");
     setMessage(`${payload.email} criado com sucesso.`);
     await load();
