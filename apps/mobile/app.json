@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "IMOBILIARIAS",
+    "name": "LENOY Imobiliárias",
     "slug": "imobiliarias",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -9,8 +9,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permita que o IMOBILIARIAS acesse suas fotos para anexar imagens aos imóveis.",
-          "cameraPermission": "Permita que o IMOBILIARIAS use a câmera para fotografar os imóveis."
+          "photosPermission": "Permita que o LENOY Imobiliárias acesse suas fotos para anexar imagens aos imóveis.",
+          "cameraPermission": "Permita que o LENOY Imobiliárias use a câmera para fotografar os imóveis."
         }
       ],
       [
@@ -22,11 +22,14 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "br.com.lenoy.imobiliarias",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Permita notificações para receber novos contatos e mensagens de clientes."
       }
     },
     "android": {
+      "package": "br.com.lenoy.imobiliarias",
+      "versionCode": 1,
       "adaptiveIcon": { "backgroundColor": "#ffffff" },
       "permissions": ["POST_NOTIFICATIONS"]
     }
