@@ -1,0 +1,35 @@
+/* Hotfix visual solicitado em 25/08/2026 */
+
+/* Remove definitivamente o card flutuante que ficava abaixo/lateral do celular. */
+.platformLanding #app-demo .phoneFloatingCard{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+/* Mantém o item atual do menu lateral visivelmente destacado, sem depender de hover. */
+.adminPage .adminSidebar a[data-admin-current],
+.adminPage .adminSidebar a[aria-current="location"]{
+  background:#07172b!important;
+  color:#fff!important;
+  font-weight:900!important;
+  box-shadow:0 8px 20px rgba(7,23,43,.16)!important;
+  transform:translateX(2px)!important;
+}
+.adminPage .adminSidebar a[data-admin-current]::before,
+.adminPage .adminSidebar a[aria-current="location"]::before{
+  content:''!important;
+  position:absolute!important;
+  left:0!important;
+  top:8px!important;
+  bottom:8px!important;
+  width:4px!important;
+  border-radius:0 4px 4px 0!important;
+  background:#d8b264!important;
+}
+.adminPage .adminSidebar a[data-admin-current]:hover,
+.adminPage .adminSidebar a[aria-current="location"]:hover{
+  background:#07172b!important;
+  color:#fff!important;
+}
