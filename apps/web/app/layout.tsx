@@ -22,6 +22,7 @@ import "./platform-final.css";
 import "./landing-hotfix.css";
 import "./landing-enhancements.css";
 import "./admin-final-fixes.css";
+import "./admin-location-final.css";
 import "./landing-mobile-final.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
