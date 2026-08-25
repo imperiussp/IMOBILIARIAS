@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AdminUiEnhancer from "../components/AdminUiEnhancer";
+import AdminMobileMenu from "../components/AdminMobileMenu";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -21,6 +22,7 @@ import "./platform-final.css";
 import "./landing-hotfix.css";
 import "./landing-enhancements.css";
 import "./admin-final-fixes.css";
+import "./landing-mobile-final.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -56,7 +58,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /></body>
+      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /></body>
     </html>
   );
 }
