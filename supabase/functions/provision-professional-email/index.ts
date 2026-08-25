@@ -35,7 +35,8 @@ async function cpanelCall(module: string, fn: string, params: Record<string, str
   if (!base || !user || !token) throw new Error("O servidor de e-mails ainda não foi conectado à plataforma.");
 
   const query = new URLSearchParams(params);
-  const response = await fetch(`${base}/execute/${module}/${fn}?${query.toString()}`, {
+  const suffix = query.size ? `?${query.toString()}` : "";
+  const response = await fetch(`${base}/execute/${module}/${fn}${suffix}`, {
     method: "GET",
     headers: { Authorization: `cpanel ${user}:${token}`, Accept: "application/json" },
   });
@@ -66,19 +67,32 @@ Deno.serve(async (req: Request) => {
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const agencyId = String(body.agency_id || "").trim();
+  const action = String(body.action || "create").trim().toLowerCase();
+  if (!agencyId) return json({ error: "Imobiliária não informada." }, 400);
+
+  const usage = await supabase.rpc("agency_email_usage_snapshot", { p_agency_id: agencyId });
+  if (usage.error) return json({ error: usage.error.message }, 403);
+  const usageRow = Array.isArray(usage.data) ? usage.data[0] : null;
+  if (!usageRow) return json({ error: "Não foi possível validar o acesso desta imobiliária." }, 403);
+
+  if (action === "test") {
+    try {
+      await cpanelCall("Email", "list_pops", {});
+      return json({ ok: true, message: "Conexão com o servidor de e-mail estabelecida." });
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Não foi possível conectar ao servidor de e-mail." }, 502);
+    }
+  }
+
   const localPart = String(body.local_part || "").trim().toLowerCase();
   const domain = String(body.domain || "").trim().toLowerCase();
   const password = String(body.password || "");
   const quotaMb = Math.min(Math.max(Number(body.quota_mb || 1024), 100), 10240);
 
-  if (!agencyId || !/^[a-z0-9][a-z0-9._-]{0,62}$/.test(localPart)) return json({ error: "Escolha um nome de e-mail válido." }, 400);
+  if (!/^[a-z0-9][a-z0-9._-]{0,62}$/.test(localPart)) return json({ error: "Escolha um nome de e-mail válido." }, 400);
   if (!/^[a-z0-9][a-z0-9.-]+[a-z0-9]$/.test(domain)) return json({ error: "Domínio de e-mail inválido." }, 400);
   if (password.length < 10) return json({ error: "Use uma senha de e-mail com pelo menos 10 caracteres." }, 400);
-
-  const usage = await supabase.rpc("agency_email_usage_snapshot", { p_agency_id: agencyId });
-  if (usage.error) return json({ error: usage.error.message }, 403);
-  const usageRow = Array.isArray(usage.data) ? usage.data[0] : null;
-  if (!usageRow?.can_create) return json({ error: "O plano não possui vaga disponível para uma nova conta de e-mail." }, 409);
+  if (!usageRow.can_create) return json({ error: "O plano não possui vaga disponível para uma nova conta de e-mail." }, 409);
 
   if (domain !== "imoveis.lenoy.com.br") {
     const verifiedDomain = await supabase.from("agency_domains").select("hostname,verified").eq("agency_id", agencyId).eq("verified", true).eq("hostname", domain).maybeSingle();
