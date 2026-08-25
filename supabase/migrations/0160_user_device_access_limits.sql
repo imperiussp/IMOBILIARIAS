@@ -60,7 +60,7 @@ begin
   from public.user_device_sessions
   where user_id = v_user_id and revoked_at is null;
 
-  if found and v_existing.revoked_at is null then
+  if v_existing.id is not null and v_existing.revoked_at is null then
     update public.user_device_sessions
       set device_label = v_label,
           user_agent = v_agent,
