@@ -19,6 +19,7 @@ function getOneSignalBridge() {
   return (window as MedianWindow).median?.onesignal || null;
 }
 
+// Mantém a assinatura nativa do OneSignal vinculada ao usuário Supabase autenticado.
 export default function MedianOneSignalSync() {
   useEffect(() => {
     if (!supabaseBrowser) return;
