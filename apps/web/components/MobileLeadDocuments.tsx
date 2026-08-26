@@ -1,0 +1,25 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { getCurrentAgency } from "../lib/currentAgency";
+import { supabaseBrowser } from "../lib/supabaseBrowser";
+
+type Lead={id:string;name:string|null;email:string|null;phone:string|null};
+type Doc={id:string;title:string;category:string;content:string|null;status:"draft"|"final"|"archived";lead_id:string;updated_at:string};
+const statusLabel={draft:"Rascunho",final:"Final",archived:"Arquivado"} as const;
+
+export default function MobileLeadDocuments(){
+ const[agencyId,setAgencyId]=useState("");const[docs,setDocs]=useState<Doc[]>([]);const[leads,setLeads]=useState<Lead[]>([]);const[editing,setEditing]=useState<Doc|null>(null);const[saving,setSaving]=useState(false);const[message,setMessage]=useState("");
+ async function load(){if(!supabaseBrowser)return;const agency=await getCurrentAgency();if(!agency)return;setAgencyId(agency.agencyId);const permission=await supabaseBrowser.rpc("agency_can_use_documents",{p_agency_id:agency.agencyId});if(permission.error||permission.data!==true){setDocs([]);return;}const[d,l]=await Promise.all([supabaseBrowser.from("agency_documents").select("id,title,category,content,status,lead_id,updated_at").eq("agency_id",agency.agencyId).not("lead_id","is",null).order("updated_at",{ascending:false}),supabaseBrowser.from("leads").select("id,name,email,phone").eq("agency_id",agency.agencyId)]);if(d.error||l.error){setMessage(d.error?.message||l.error?.message||"Não foi possível carregar os documentos.");return;}setDocs((d.data||[]) as Doc[]);setLeads((l.data||[]) as Lead[]);}
+ useEffect(()=>{void load();},[]);
+ const groups=useMemo(()=>{const map=new Map<string,Doc[]>();for(const doc of docs){const list=map.get(doc.lead_id)||[];list.push(doc);map.set(doc.lead_id,list);}return Array.from(map.entries()).map(([leadId,items])=>({lead:leads.find(l=>l.id===leadId),items}));},[docs,leads]);
+ async function share(doc:Doc){const lead=leads.find(l=>l.id===doc.lead_id);const text=`${doc.title}\n\n${doc.content||""}`.trim();try{if(navigator.share){await navigator.share({title:doc.title,text});setMessage(`Compartilhamento aberto${lead?.name?` para o documento de ${lead.name}`:""}.`);return;}await navigator.clipboard.writeText(text);setMessage("Documento copiado para compartilhar no WhatsApp, e-mail ou outro aplicativo.");}catch(error){if(error instanceof DOMException&&error.name==="AbortError")return;setMessage("Não foi possível abrir o compartilhamento.");}}
+ async function remove(doc:Doc){if(!supabaseBrowser||!agencyId)return;if(!window.confirm(`Excluir definitivamente “${doc.title}”?`))return;const result=await supabaseBrowser.from("agency_documents").delete().eq("id",doc.id).eq("agency_id",agencyId);if(result.error)return setMessage(result.error.message);if(editing?.id===doc.id)setEditing(null);setMessage("Documento excluído.");await load();}
+ async function save(){if(!supabaseBrowser||!agencyId||!editing)return;setSaving(true);const result=await supabaseBrowser.from("agency_documents").update({title:editing.title.trim(),content:editing.content||"",status:editing.status,updated_at:new Date().toISOString()}).eq("id",editing.id).eq("agency_id",agencyId);setSaving(false);if(result.error)return setMessage(result.error.message);setEditing(null);setMessage("Documento atualizado.");await load();}
+ if(!docs.length)return null;
+ return <div className="mobileLeadDocuments">
+  <div className="mobileClientDocGroups">{groups.map(({lead,items})=><article key={lead?.id||items[0].lead_id} className="mobileClientDocCard"><div className="mobileClientDocHead"><strong>{lead?.name||"Cliente"}</strong><small>{lead?.phone||lead?.email||`${items.length} documento(s)`}</small></div>{items.map(doc=><div className="mobileClientDocRow" key={doc.id}><div><strong>{doc.title}</strong><small>{doc.category} · {statusLabel[doc.status]}</small></div><div className="mobileClientDocActions"><button type="button" onClick={()=>setEditing({...doc})}>Editar</button><button type="button" onClick={()=>void share(doc)}>Compartilhar / reenviar</button><button type="button" className="danger" onClick={()=>void remove(doc)}>Excluir</button></div></div>)}</article>)}</div>
+  {editing?<div className="mobileClientDocEditor"><strong>Editar documento</strong><label>Título<input value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/></label><label>Status<select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value as Doc["status"]})}><option value="draft">Rascunho</option><option value="final">Final</option><option value="archived">Arquivado</option></select></label><label>Conteúdo<textarea rows={10} value={editing.content||""} onChange={e=>setEditing({...editing,content:e.target.value})}/></label><div className="formActions"><button type="button" className="button secondary" onClick={()=>setEditing(null)}>Cancelar</button><button type="button" className="button primary" disabled={saving} onClick={()=>void save()}>{saving?"Salvando...":"Salvar"}</button></div></div>:null}
+  {message?<div className="formMessage">{message}</div>:null}
+ </div>;
+}
