@@ -1,0 +1,255 @@
+/* LENOY IMOBILIÁRIAS — correções consolidadas pós-diagnóstico — 26/08/2026 */
+
+/* A camada anterior escondia quase todos os módulos. Aqui todos os acessos funcionais voltam a aparecer. */
+.adminPage .adminModuleGrid .adminModuleCard{
+  display:flex!important;
+  min-width:0!important;
+}
+.adminPage .adminModuleGrid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:14px!important;
+}
+
+/* Catálogo: dois imóveis por linha no desktop e foto ocupando todo o topo do card. */
+.adminPage #imoveis .adminTable tbody{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:16px!important;
+}
+.adminPage #imoveis .adminTable tr{
+  overflow:hidden!important;
+  padding:14px!important;
+}
+.adminPage #imoveis .adminTable td:first-child{
+  grid-column:1/-1!important;
+  display:block!important;
+  min-height:0!important;
+  padding:0 0 12px!important;
+  border-bottom:1px solid #edf0f2!important;
+}
+.adminPage #imoveis .adminPropertyThumb{
+  display:block!important;
+  width:calc(100% + 28px)!important;
+  max-width:none!important;
+  height:220px!important;
+  margin:-14px -14px 14px!important;
+  object-fit:cover!important;
+  border:0!important;
+  border-radius:16px 16px 0 0!important;
+  background:#eef2f5!important;
+}
+.adminPage #imoveis .adminPropertyCell strong{
+  display:block!important;
+  font-size:17px!important;
+  line-height:1.25!important;
+}
+.adminPage #imoveis .adminPropertyCode{
+  margin-top:5px!important;
+}
+
+/* O menu aberto não mantém um segundo botão de sanduíche por cima. */
+body:has(.adminMobileMenuLayer) .adminHamburger,
+body:has(.mobileMenuLayer) .mobileMenuButton,
+body:has(.adminMobileMenuLayer) .webNotificationBellWrap,
+body:has(.mobileMenuLayer) .webNotificationBellWrap{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+/* Botão premium que já havia sido aprovado. O arquivo é inserido no pacote estático final. */
+.adminPage .adminDownloadAppButton{
+  flex:0 0 auto!important;
+  width:180px!important;
+  height:60px!important;
+  min-width:180px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent url('/admin-baixar-app-premium.png') center/contain no-repeat!important;
+  box-shadow:none!important;
+  font-size:0!important;
+  color:transparent!important;
+}
+.adminPage .adminDownloadAppButton:hover{
+  transform:translateY(-1px)!important;
+  filter:brightness(1.04)!important;
+}
+
+/* Formulário completo de envio de imóvel por proprietário. */
+.ownerPropertyCompleteForm{
+  display:grid!important;
+  gap:14px!important;
+}
+.ownerPropertyCompleteForm .formGrid{
+  gap:12px!important;
+}
+.ownerPropertyCompleteForm label{
+  min-width:0!important;
+}
+.ownerPropertyCompleteForm input,
+.ownerPropertyCompleteForm select,
+.ownerPropertyCompleteForm textarea{
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.ownerPhotoField{
+  padding:14px!important;
+  border:1px dashed #bdc9d4!important;
+  border-radius:12px!important;
+  background:#f8fafc!important;
+}
+.ownerPhotoField input[type="file"]{
+  margin-top:8px!important;
+  padding:10px!important;
+  border:1px solid #d9e1e8!important;
+  border-radius:9px!important;
+  background:#fff!important;
+}
+.ownerPhotoField small{
+  display:block!important;
+  margin-top:7px!important;
+  color:#657583!important;
+  line-height:1.4!important;
+}
+
+/* Sino de notificações reais — painel e aplicativo. */
+.webNotificationBellWrap{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  flex:0 0 auto!important;
+  z-index:4200!important;
+}
+.webNotificationBell{
+  position:relative!important;
+  display:grid!important;
+  place-items:center!important;
+  width:42px!important;
+  height:42px!important;
+  padding:0!important;
+  border:1px solid #d6dee6!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#0a2947!important;
+  box-shadow:0 5px 16px rgba(9,33,55,.10)!important;
+  cursor:pointer!important;
+  font-size:0!important;
+}
+.webNotificationBell::before{
+  content:"🔔";
+  font-size:18px!important;
+  line-height:1!important;
+}
+.webNotificationBell>span{display:none!important}
+.webNotificationBell b{
+  position:absolute!important;
+  top:-6px!important;
+  right:-7px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:20px!important;
+  height:20px!important;
+  padding:0 5px!important;
+  border:2px solid #fff!important;
+  border-radius:999px!important;
+  background:#c92d2d!important;
+  color:#fff!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-sizing:border-box!important;
+}
+.webNotificationPanel{
+  position:fixed!important;
+  top:92px!important;
+  right:max(18px,5vw)!important;
+  z-index:5000!important;
+  width:min(390px,calc(100vw - 24px))!important;
+  max-height:min(590px,72vh)!important;
+  overflow:hidden!important;
+  border:1px solid #dbe2e8!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 24px 60px rgba(7,28,47,.25)!important;
+  color:#14283a!important;
+}
+.webNotificationHead{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  padding:14px!important;
+  border-bottom:1px solid #e8edf1!important;
+}
+.webNotificationHead strong{display:block!important;font-size:15px!important}
+.webNotificationHead small{display:block!important;margin-top:2px!important;color:#73808b!important;font-size:10px!important}
+.webNotificationHead button{
+  padding:6px 8px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:#eef3f7!important;
+  color:#17334d!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+}
+.webNotificationList{
+  max-height:500px!important;
+  overflow:auto!important;
+}
+.webNotificationItem{
+  display:grid!important;
+  grid-template-columns:8px 1fr!important;
+  gap:9px!important;
+  width:100%!important;
+  padding:12px 14px!important;
+  border:0!important;
+  border-bottom:1px solid #edf1f4!important;
+  background:#fff!important;
+  color:#14283a!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+.webNotificationItem.unread{background:#f6f9fc!important}
+.webNotificationDot{
+  width:7px!important;
+  height:7px!important;
+  margin-top:5px!important;
+  border-radius:50%!important;
+  background:transparent!important;
+}
+.webNotificationItem.unread .webNotificationDot{background:#c79b2b!important}
+.webNotificationItem strong{display:block!important;font-size:12px!important;line-height:1.3!important}
+.webNotificationItem small{display:block!important;margin-top:3px!important;color:#536573!important;font-size:11px!important;line-height:1.4!important}
+.webNotificationItem em{display:block!important;margin-top:5px!important;color:#8a959e!important;font-size:9px!important;font-style:normal!important}
+.webNotificationEmpty{padding:28px 16px!important;color:#71808c!important;text-align:center!important;font-size:12px!important}
+.mobileAppTopbar .webNotificationPanel{top:70px!important;right:10px!important}
+
+@media(max-width:900px){
+  .adminPage .adminModuleGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .adminPage #imoveis .adminTable tbody{grid-template-columns:1fr!important}
+}
+
+@media(max-width:700px){
+  /* Dois cards por linha no menu móvel, sem exceção para telas comuns. */
+  .adminMobileDrawer nav,
+  .mobileMenuList{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .adminPage #imoveis .adminPropertyThumb{
+    height:190px!important;
+  }
+  .ownerPropertyCompleteForm .formGrid,
+  .ownerPropertyCompleteForm .formGrid.three{
+    grid-template-columns:1fr!important;
+  }
+  .webNotificationPanel{
+    top:68px!important;
+    right:8px!important;
+    width:calc(100vw - 16px)!important;
+    max-height:76vh!important;
+  }
+}
