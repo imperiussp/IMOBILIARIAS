@@ -3,21 +3,43 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const internalSecret = Deno.env.get("PUSH_DISPATCH_SECRET") || "";
+const oneSignalApiKey = Deno.env.get("ONESIGNAL_API_KEY") || "";
+const oneSignalAppId = Deno.env.get("ONESIGNAL_APP_ID") || "";
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}
+
+function errorMessage(value: unknown) {
+  if (value instanceof Error) return value.message;
+  return String(value);
 }
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   if (!supabaseUrl || !serviceRoleKey) return json({ error: "server_not_configured" }, 500);
   if (!internalSecret) return json({ error: "push_dispatch_secret_not_configured" }, 503);
+  if (!oneSignalApiKey || !oneSignalAppId) return json({ error: "onesignal_not_configured" }, 503);
   if (request.headers.get("x-dispatch-secret") !== internalSecret) return json({ error: "unauthorized" }, 401);
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false },
+  });
+
   const gate = await supabase.rpc("platform_runtime_action_allowed", { p_action: "push" });
   if (gate.error) return json({ error: gate.error.message }, 500);
-  if (gate.data !== true) return json({ processed: 0, delivered: 0, skipped: true, reason: "push_blocked_by_release_or_maintenance_control" });
+  if (gate.data !== true) {
+    return json({
+      processed: 0,
+      delivered: 0,
+      failed: 0,
+      skipped: true,
+      reason: "push_blocked_by_release_or_maintenance_control",
+    });
+  }
 
   const { data: notifications, error: notificationError } = await supabase
     .from("app_notifications")
@@ -28,85 +50,74 @@ Deno.serve(async (request) => {
     .limit(50);
 
   if (notificationError) return json({ error: notificationError.message }, 500);
-  if (!notifications?.length) return json({ processed: 0, delivered: 0 });
+  if (!notifications?.length) return json({ processed: 0, delivered: 0, failed: 0 });
 
   let delivered = 0;
-  let partiallyDelivered = 0;
+  let failed = 0;
+
   for (const notification of notifications) {
-    const { data: tokens, error: tokenError } = await supabase
-      .from("device_push_tokens")
-      .select("id,token")
-      .eq("agency_id", notification.agency_id)
-      .eq("user_id", notification.user_id)
-      .eq("enabled", true);
-
-    if (tokenError) {
-      await supabase.from("app_notifications").update({
-        push_attempts: Number(notification.push_attempts || 0) + 1,
-        push_last_error: tokenError.message.slice(0,1000),
-      }).eq("id", notification.id);
-      continue;
-    }
-
-    if (!tokens?.length) {
-      await supabase.from("app_notifications").update({
-        push_attempts: Number(notification.push_attempts || 0) + 1,
-        push_last_error: "Nenhum dispositivo ativo para este usuário.",
-      }).eq("id", notification.id);
-      continue;
-    }
-
-    const messages = tokens.map((row) => ({
-      to: row.token,
-      sound: "default",
-      channelId: "clientes",
-      title: notification.title,
-      body: notification.body || "Você recebeu uma nova mensagem de cliente.",
-      data: {
-        notificationId: notification.id,
-        leadId: notification.lead_id || "",
-        agencyId: notification.agency_id,
-        source: notification.source,
-      },
-    }));
+    const attempts = Number(notification.push_attempts || 0) + 1;
 
     try {
-      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      const response = await fetch("https://api.onesignal.com/notifications", {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify(messages),
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          authorization: `Key ${oneSignalApiKey}`,
+        },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          target_channel: "push",
+          include_aliases: {
+            external_id: [notification.user_id],
+          },
+          headings: {
+            en: notification.title,
+          },
+          contents: {
+            en: notification.body || "Você recebeu uma nova notificação no LENOY Imobiliárias.",
+          },
+          url: "https://imoveis.lenoy.com.br/app/",
+          data: {
+            notificationId: notification.id,
+            leadId: notification.lead_id || "",
+            agencyId: notification.agency_id,
+            source: notification.source,
+          },
+        }),
       });
+
       const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(`Expo Push ${response.status}: ${JSON.stringify(result)}`);
-
-      const tickets = Array.isArray(result?.data) ? result.data : [];
-      const failedTokens = tokens.filter((_, index) => tickets[index]?.status === "error");
-      if (failedTokens.length === tokens.length) {
-        const detail = tickets.map((ticket: any) => ticket?.message || ticket?.details?.error || "push_error").join("; ");
-        throw new Error(detail || "Falha no envio push.");
+      if (!response.ok) {
+        throw new Error(`OneSignal ${response.status}: ${JSON.stringify(result)}`);
       }
 
-      for (const [index, ticket] of tickets.entries()) {
-        if (ticket?.status === "error" && ["DeviceNotRegistered", "InvalidCredentials"].includes(ticket?.details?.error)) {
-          const tokenRow = tokens[index];
-          if (tokenRow?.id) await supabase.from("device_push_tokens").update({ enabled: false }).eq("id", tokenRow.id);
-        }
+      if (!result?.id) {
+        throw new Error(`OneSignal não encontrou uma assinatura push válida para o usuário: ${JSON.stringify(result)}`);
       }
 
-      await supabase.from("app_notifications").update({
-        push_sent_at: new Date().toISOString(),
-        push_attempts: Number(notification.push_attempts || 0) + 1,
-        push_last_error: failedTokens.length ? `${failedTokens.length} dispositivo(s) recusaram a notificação.` : null,
-      }).eq("id", notification.id);
+      await supabase
+        .from("app_notifications")
+        .update({
+          push_sent_at: new Date().toISOString(),
+          push_attempts: attempts,
+          push_last_error: null,
+        })
+        .eq("id", notification.id);
+
       delivered += 1;
-      if (failedTokens.length) partiallyDelivered += 1;
     } catch (error) {
-      await supabase.from("app_notifications").update({
-        push_attempts: Number(notification.push_attempts || 0) + 1,
-        push_last_error: error instanceof Error ? error.message.slice(0, 1000) : String(error).slice(0, 1000),
-      }).eq("id", notification.id);
+      failed += 1;
+      await supabase
+        .from("app_notifications")
+        .update({
+          push_attempts: attempts,
+          push_last_error: errorMessage(error).slice(0, 1000),
+        })
+        .eq("id", notification.id);
     }
   }
 
-  return json({ processed: notifications.length, delivered, partially_delivered: partiallyDelivered });
+  return json({ processed: notifications.length, delivered, failed });
 });
