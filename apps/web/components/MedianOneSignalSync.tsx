@@ -32,7 +32,7 @@ export default function MedianOneSignalSync() {
       version: number,
       action: (bridge: MedianOneSignalBridge) => void | Promise<void>,
     ) {
-      for (let attempt = 0; attempt < 24; attempt += 1) {
+      for (let attempt = 0; attempt < 40; attempt += 1) {
         if (disposed || version !== syncVersion) return;
         const bridge = getOneSignalBridge();
         if (bridge) {
