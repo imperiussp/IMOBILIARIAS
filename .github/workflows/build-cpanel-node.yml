@@ -57,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf cpanel-node-build package-cpanel previous-cpanel update-cpanel
+          rm -rf cpanel-node-build package-cpanel previous-cpanel current-cpanel update-cpanel
           mkdir -p cpanel-node-build package-cpanel
           STANDALONE="apps/web/.next/standalone"
           test -d "$STANDALONE"
@@ -92,13 +92,16 @@ jobs:
           zip -qr ../cpanel-node-build/imobiliarias-standalone-cpanel.zip . -x "*.log"
           cd ..
 
-          mkdir -p update-cpanel
+          # Compare exatamente o que o cPanel terá após extrair os ZIPs.
+          # Isso evita tratar links internos do Node como arquivos diferentes.
+          mkdir -p current-cpanel update-cpanel
+          unzip -q cpanel-node-build/imobiliarias-standalone-cpanel.zip -d current-cpanel
           if [ -f /tmp/imobiliarias-previous-cpanel.zip ]; then
             mkdir -p previous-cpanel
             unzip -q /tmp/imobiliarias-previous-cpanel.zip -d previous-cpanel
-            rsync -a --checksum --compare-dest="$GITHUB_WORKSPACE/previous-cpanel/" package-cpanel/ update-cpanel/
+            rsync -a --checksum --compare-dest="$GITHUB_WORKSPACE/previous-cpanel/" current-cpanel/ update-cpanel/
           else
-            cp -a package-cpanel/. update-cpanel/
+            cp -a current-cpanel/. update-cpanel/
           fi
 
           cd update-cpanel
