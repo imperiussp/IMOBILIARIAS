@@ -8,6 +8,7 @@ type OneSignalInfo = {
   externalId?: string | null;
   subscription?: {
     id?: string | null;
+    token?: string | null;
     optedIn?: boolean | null;
   } | null;
 };
@@ -15,7 +16,8 @@ type OneSignalInfo = {
 type MedianOneSignalBridge = {
   login?: (externalId: string) => Promise<unknown> | unknown;
   logout?: () => Promise<unknown> | unknown;
-  info?: () => Promise<OneSignalInfo> | OneSignalInfo;
+  info?: (() => Promise<OneSignalInfo> | OneSignalInfo) | ((options: { callback: string }) => unknown);
+  onesignalInfo?: () => Promise<OneSignalInfo> | OneSignalInfo;
 };
 
 type MedianWindow = Window & {
@@ -23,6 +25,7 @@ type MedianWindow = Window & {
     onesignal?: MedianOneSignalBridge;
   };
   median_library_ready?: () => void;
+  median_onesignal_info?: (data: OneSignalInfo) => void;
 };
 
 function getMedianWindow() {
@@ -34,8 +37,29 @@ function getOneSignalBridge() {
   return getMedianWindow()?.median?.onesignal || null;
 }
 
-// Mantém a assinatura nativa do OneSignal vinculada ao usuário Supabase autenticado.
-// Usa o callback oficial do Median e fallback idempotente caso a biblioteca já esteja pronta.
+async function readOneSignalInfo(bridge: MedianOneSignalBridge): Promise<OneSignalInfo | null> {
+  try {
+    if (typeof bridge.onesignalInfo === "function") {
+      return (await bridge.onesignalInfo()) || null;
+    }
+  } catch {
+    // Algumas builds expõem apenas info().
+  }
+
+  try {
+    if (typeof bridge.info === "function") {
+      const value = await (bridge.info as () => Promise<OneSignalInfo> | OneSignalInfo)();
+      if (value && typeof value === "object") return value;
+    }
+  } catch {
+    // O retry abaixo tentará novamente quando o bridge estiver pronto.
+  }
+
+  return null;
+}
+
+// Vincula automaticamente cada instalação nativa ao UUID do usuário autenticado.
+// O external_id usado no backend é exatamente o Supabase auth.user.id.
 export default function MedianOneSignalSync() {
   useEffect(() => {
     if (!supabaseBrowser) return;
@@ -45,53 +69,55 @@ export default function MedianOneSignalSync() {
 
     let disposed = false;
     let currentExternalId: string | null = null;
-    let lastSyncedExternalId: string | null = null;
+    let confirmedExternalId: string | null = null;
     let syncInFlight: Promise<void> | null = null;
+    let latestInfo: OneSignalInfo | null = null;
+
+    const previousInfoCallback = medianWindow.median_onesignal_info;
+    medianWindow.median_onesignal_info = (data: OneSignalInfo) => {
+      latestInfo = data || null;
+      if (data?.externalId && data.externalId === currentExternalId) {
+        confirmedExternalId = data.externalId;
+      }
+      previousInfoCallback?.(data);
+    };
 
     async function syncOneSignalIdentity(): Promise<void> {
-      if (disposed) return;
-      if (syncInFlight) {
-        await syncInFlight;
-        return;
-      }
+      if (disposed || !currentExternalId) return;
+      if (confirmedExternalId === currentExternalId) return;
+      if (syncInFlight) return syncInFlight;
 
       const bridge = getOneSignalBridge();
-      if (!bridge) return;
+      if (!bridge || typeof bridge.login !== "function") return;
 
       syncInFlight = (async () => {
         try {
-          if (currentExternalId) {
-            // login() é idempotente e deve ser chamado após cada restauração de sessão.
-            if (typeof bridge.login === "function") {
-              await bridge.login(currentExternalId);
-              lastSyncedExternalId = currentExternalId;
-            }
+          await bridge.login!(currentExternalId!);
 
-            // info() confirma que o SDK concluiu a associação com o externalId esperado.
-            if (typeof bridge.info === "function") {
-              const info = await bridge.info();
-              if (info?.externalId && info.externalId !== currentExternalId) {
-                if (typeof bridge.login === "function") {
-                  await bridge.login(currentExternalId);
-                  await bridge.info();
-                }
-              }
-            }
-            return;
+          const info = (await readOneSignalInfo(bridge)) || latestInfo;
+          if (info?.externalId === currentExternalId) {
+            confirmedExternalId = currentExternalId;
           }
-
-          if (lastSyncedExternalId && typeof bridge.logout === "function") {
-            await bridge.logout();
-          }
-          lastSyncedExternalId = null;
         } catch {
-          // Falhas transitórias do bridge não devem quebrar o app; o fallback tentará novamente.
+          // Falha transitória: o timer tentará novamente sem quebrar o app.
         } finally {
           syncInFlight = null;
         }
       })();
 
       await syncInFlight;
+    }
+
+    async function clearOneSignalIdentity(): Promise<void> {
+      confirmedExternalId = null;
+      latestInfo = null;
+      const bridge = getOneSignalBridge();
+      if (!bridge || typeof bridge.logout !== "function") return;
+      try {
+        await bridge.logout();
+      } catch {
+        // Logout nativo não pode impedir o logout da sessão web.
+      }
     }
 
     const previousMedianReady = medianWindow.median_library_ready;
@@ -104,30 +130,41 @@ export default function MedianOneSignalSync() {
     };
     medianWindow.median_library_ready = onMedianReady;
 
-    // Se a biblioteca já foi injetada antes do React montar, sincroniza imediatamente.
-    if (medianWindow.median) {
-      void syncOneSignalIdentity();
-    }
-
-    // Fallback para WebViews lentas/recarregadas. Fica ocioso após sincronizar.
-    const retryTimer = window.setInterval(() => {
-      if (disposed) return;
-      if (!getOneSignalBridge()) return;
-      if (currentExternalId && lastSyncedExternalId === currentExternalId) return;
-      void syncOneSignalIdentity();
-    }, 1000);
-
     void supabaseBrowser.auth.getSession().then(({ data }) => {
       if (disposed) return;
       currentExternalId = data.session?.user?.id || null;
-      void syncOneSignalIdentity();
+      if (currentExternalId) void syncOneSignalIdentity();
     });
 
     const { data: authListener } = supabaseBrowser.auth.onAuthStateChange((event, session) => {
       if (disposed) return;
-      currentExternalId = event === "SIGNED_OUT" ? null : session?.user?.id || null;
-      void syncOneSignalIdentity();
+
+      const nextExternalId = event === "SIGNED_OUT" ? null : session?.user?.id || null;
+      const wasLoggedIn = Boolean(currentExternalId);
+      currentExternalId = nextExternalId;
+
+      if (!nextExternalId) {
+        if (wasLoggedIn) void clearOneSignalIdentity();
+        return;
+      }
+
+      if (confirmedExternalId !== nextExternalId) {
+        confirmedExternalId = null;
+        void syncOneSignalIdentity();
+      }
     });
+
+    // Se o bridge já foi injetado antes do React montar, não esperamos callback.
+    if (medianWindow.median) void syncOneSignalIdentity();
+
+    // WebViews podem inicializar Supabase e o bridge em ordens diferentes.
+    // Repetimos apenas até o external_id correto estar confirmado.
+    const retryTimer = window.setInterval(() => {
+      if (disposed || !currentExternalId) return;
+      if (confirmedExternalId === currentExternalId) return;
+      if (!getOneSignalBridge()) return;
+      void syncOneSignalIdentity();
+    }, 1500);
 
     return () => {
       disposed = true;
@@ -135,6 +172,9 @@ export default function MedianOneSignalSync() {
       authListener.subscription.unsubscribe();
       if (medianWindow.median_library_ready === onMedianReady) {
         medianWindow.median_library_ready = previousMedianReady;
+      }
+      if (medianWindow.median_onesignal_info) {
+        medianWindow.median_onesignal_info = previousInfoCallback;
       }
     };
   }, []);
