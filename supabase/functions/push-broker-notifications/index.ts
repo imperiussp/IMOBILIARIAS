@@ -77,6 +77,11 @@ Deno.serve(async (request) => {
     const attempts = Number(notification.push_attempts || 0) + 1;
 
     try {
+      const isBroadcastTest = notification.source === "onesignal_broadcast_test";
+      const target = isBroadcastTest
+        ? { included_segments: ["Subscribed Users"] }
+        : { include_aliases: { external_id: [notification.user_id] } };
+
       const response = await fetch("https://api.onesignal.com/notifications", {
         method: "POST",
         headers: {
@@ -87,9 +92,7 @@ Deno.serve(async (request) => {
         body: JSON.stringify({
           app_id: oneSignalAppId,
           target_channel: "push",
-          include_aliases: {
-            external_id: [notification.user_id],
-          },
+          ...target,
           headings: {
             en: notification.title,
           },
@@ -112,7 +115,7 @@ Deno.serve(async (request) => {
       }
 
       if (!result?.id) {
-        throw new Error(`OneSignal não encontrou uma assinatura push válida para o usuário: ${JSON.stringify(result)}`);
+        throw new Error(`OneSignal não encontrou uma assinatura push válida para o destino: ${JSON.stringify(result)}`);
       }
 
       await supabase
