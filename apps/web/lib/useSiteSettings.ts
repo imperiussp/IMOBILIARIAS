@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { isImobiliariasBackend } from "./projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "./supabaseBrowser";
-import { resolveCurrentTenant } from "./tenantResolver";
+import { currentHostname, isPlatformRoot, resolveCurrentTenant } from "./tenantResolver";
 
 export type SiteSettings = {
   agency_name: string;
@@ -54,6 +54,7 @@ export function useSiteSettings() {
     if (!isSupabaseConfigured || !supabaseBrowser) return;
     let active = true;
     void (async () => {
+      const host = currentHostname();
       const tenant = await resolveCurrentTenant();
       if (!active) return;
       if (tenant) {
@@ -90,6 +91,18 @@ export function useSiteSettings() {
           text_color: theme.text_color || defaultSiteSettings.text_color,
           theme_preset: (theme.theme_preset as SiteSettings["theme_preset"]) || defaultSiteSettings.theme_preset,
           button_style: (theme.button_style as SiteSettings["button_style"]) || defaultSiteSettings.button_style,
+        });
+        return;
+      }
+
+      const localHost = host === "localhost" || host === "127.0.0.1";
+      if (host && !isPlatformRoot(host) && !localHost) {
+        setSettings({
+          ...defaultSiteSettings,
+          agency_name: "Imobiliária",
+          tagline: "Imóveis selecionados para você.",
+          logo_url: null,
+          agency_id: null,
         });
         return;
       }
