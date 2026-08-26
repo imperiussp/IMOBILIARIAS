@@ -48,8 +48,12 @@ export default function MedianOneSignalSync() {
     let lastSyncedExternalId: string | null = null;
     let syncInFlight: Promise<void> | null = null;
 
-    async function syncOneSignalIdentity() {
-      if (disposed || syncInFlight) return syncInFlight;
+    async function syncOneSignalIdentity(): Promise<void> {
+      if (disposed) return;
+      if (syncInFlight) {
+        await syncInFlight;
+        return;
+      }
 
       const bridge = getOneSignalBridge();
       if (!bridge) return;
@@ -63,11 +67,10 @@ export default function MedianOneSignalSync() {
               lastSyncedExternalId = currentExternalId;
             }
 
-            // info() força uma leitura pós-login e confirma que o SDK terminou a associação.
+            // info() confirma que o SDK concluiu a associação com o externalId esperado.
             if (typeof bridge.info === "function") {
               const info = await bridge.info();
               if (info?.externalId && info.externalId !== currentExternalId) {
-                // Se o SDK ainda estiver propagando a identidade, repete uma única vez.
                 if (typeof bridge.login === "function") {
                   await bridge.login(currentExternalId);
                   await bridge.info();
@@ -82,30 +85,31 @@ export default function MedianOneSignalSync() {
           }
           lastSyncedExternalId = null;
         } catch {
-          // Falhas transitórias do bridge não devem quebrar o app; o fallback abaixo tentará novamente.
+          // Falhas transitórias do bridge não devem quebrar o app; o fallback tentará novamente.
         } finally {
           syncInFlight = null;
         }
       })();
 
-      return syncInFlight;
+      await syncInFlight;
     }
 
     const previousMedianReady = medianWindow.median_library_ready;
-    medianWindow.median_library_ready = () => {
+    const onMedianReady = () => {
       try {
         previousMedianReady?.();
       } finally {
         void syncOneSignalIdentity();
       }
     };
+    medianWindow.median_library_ready = onMedianReady;
 
-    // Se o Median injetou a biblioteca antes do React montar, sincroniza imediatamente.
+    // Se a biblioteca já foi injetada antes do React montar, sincroniza imediatamente.
     if (medianWindow.median) {
       void syncOneSignalIdentity();
     }
 
-    // Fallback longo para WebViews lentas/recarregadas. Para automaticamente quando sincroniza.
+    // Fallback para WebViews lentas/recarregadas. Fica ocioso após sincronizar.
     const retryTimer = window.setInterval(() => {
       if (disposed) return;
       if (!getOneSignalBridge()) return;
@@ -129,7 +133,7 @@ export default function MedianOneSignalSync() {
       disposed = true;
       window.clearInterval(retryTimer);
       authListener.subscription.unsubscribe();
-      if (medianWindow.median_library_ready === medianWindow.median_library_ready) {
+      if (medianWindow.median_library_ready === onMedianReady) {
         medianWindow.median_library_ready = previousMedianReady;
       }
     };
