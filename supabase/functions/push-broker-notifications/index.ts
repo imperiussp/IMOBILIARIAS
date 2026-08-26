@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const internalSecret = Deno.env.get("PUSH_DISPATCH_SECRET") || "";
+const maintenanceSecret = Deno.env.get("PLATFORM_MAINTENANCE_SECRET") || "";
 const oneSignalApiKey = Deno.env.get("ONESIGNAL_API_KEY") || "";
 const oneSignalAppId = Deno.env.get("ONESIGNAL_APP_ID") || "";
 
@@ -21,9 +22,15 @@ function errorMessage(value: unknown) {
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   if (!supabaseUrl || !serviceRoleKey) return json({ error: "server_not_configured" }, 500);
-  if (!internalSecret) return json({ error: "push_dispatch_secret_not_configured" }, 503);
   if (!oneSignalApiKey || !oneSignalAppId) return json({ error: "onesignal_not_configured" }, 503);
-  if (request.headers.get("x-dispatch-secret") !== internalSecret) return json({ error: "unauthorized" }, 401);
+
+  const dispatchAuthorized = Boolean(
+    internalSecret && request.headers.get("x-dispatch-secret") === internalSecret,
+  );
+  const schedulerAuthorized = Boolean(
+    maintenanceSecret && request.headers.get("x-platform-maintenance-secret") === maintenanceSecret,
+  );
+  if (!dispatchAuthorized && !schedulerAuthorized) return json({ error: "unauthorized" }, 401);
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
