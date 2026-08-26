@@ -1,0 +1,335 @@
+/* LENOY IMOBILIÁRIAS — tema do cliente, cabeçalho admin, destaques e selos — 26/08/2026 */
+
+:root{
+  --admin-tenant-primary:#0c2946;
+  --admin-tenant-secondary:#d8ad48;
+  --admin-tenant-background:#f5f7f9;
+  --admin-tenant-text:#18212b;
+  --admin-tenant-radius:12px;
+}
+
+/* O painel acompanha as cores publicadas em Personalizar. */
+.adminPage{
+  background:var(--admin-tenant-background)!important;
+  color:var(--admin-tenant-text)!important;
+}
+.adminPage .adminTopbar{
+  background:var(--admin-tenant-primary)!important;
+  border-bottom-color:color-mix(in srgb,var(--admin-tenant-secondary) 36%,transparent)!important;
+}
+.adminPage .adminHeading{
+  background:linear-gradient(135deg,var(--admin-tenant-primary),color-mix(in srgb,var(--admin-tenant-primary) 86%,#fff 14%))!important;
+  border-color:color-mix(in srgb,var(--admin-tenant-secondary) 34%,transparent)!important;
+}
+.adminPage .adminHeading h1,
+.adminPage .adminHeading p{
+  color:#fff!important;
+}
+.adminPage .eyebrow{
+  color:var(--admin-tenant-secondary)!important;
+}
+.adminPage .adminModuleIcon{
+  background:color-mix(in srgb,var(--admin-tenant-secondary) 18%,#fff 82%)!important;
+  color:var(--admin-tenant-primary)!important;
+  border-color:color-mix(in srgb,var(--admin-tenant-secondary) 42%,transparent)!important;
+}
+.adminPage .adminModuleCard:hover,
+.adminPage .adminPanel:hover{
+  border-color:color-mix(in srgb,var(--admin-tenant-secondary) 62%,#d8dfe5 38%)!important;
+}
+.adminPage .button.primary:not(.adminDownloadAppButton),
+.adminPage .miniButton.active,
+.adminPage button.primary{
+  background:var(--admin-tenant-primary)!important;
+  border-color:var(--admin-tenant-primary)!important;
+  color:#fff!important;
+  border-radius:var(--admin-tenant-radius)!important;
+}
+.adminPage .button.secondary,
+.adminPage .miniButton,
+.adminPage button.secondary{
+  border-radius:var(--admin-tenant-radius)!important;
+}
+.adminPage input:focus,
+.adminPage select:focus,
+.adminPage textarea:focus{
+  border-color:var(--admin-tenant-secondary)!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--admin-tenant-secondary) 18%,transparent)!important;
+}
+
+/* Remove o texto "imobiliária · Acesso: Proprietário" e mantém somente Sair. */
+[data-tenant-role]:not([data-tenant-role="platform_admin"]) .sessionBar>span{
+  display:none!important;
+}
+[data-tenant-role]:not([data-tenant-role="platform_admin"]) .adminAgencyHeaderContext>.agencyContext{
+  display:none!important;
+}
+[data-tenant-role]:not([data-tenant-role="platform_admin"]) .sessionBar{
+  position:fixed!important;
+  top:14px!important;
+  right:70px!important;
+  left:auto!important;
+  z-index:4700!important;
+  display:block!important;
+  width:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:38px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+[data-tenant-role]:not([data-tenant-role="platform_admin"]) .sessionBar>a{
+  display:none!important;
+}
+[data-tenant-role]:not([data-tenant-role="platform_admin"]) .sessionBar>button{
+  pointer-events:auto!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:38px!important;
+  min-width:54px!important;
+  padding:0 13px!important;
+  margin:0!important;
+  border:1px solid var(--admin-tenant-secondary)!important;
+  border-radius:var(--admin-tenant-radius)!important;
+  background:var(--admin-tenant-secondary)!important;
+  color:var(--admin-tenant-primary)!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  cursor:pointer!important;
+}
+
+/* Menu sanduíche no canto direito, imediatamente à direita do botão Sair. */
+.adminHamburger{
+  position:fixed!important;
+  top:14px!important;
+  right:18px!important;
+  left:auto!important;
+  z-index:4701!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  width:42px!important;
+  height:38px!important;
+  padding:0!important;
+  margin:0!important;
+  border:1px solid var(--admin-tenant-secondary)!important;
+  border-radius:var(--admin-tenant-radius)!important;
+  background:var(--admin-tenant-primary)!important;
+  box-shadow:0 5px 16px rgba(0,0,0,.16)!important;
+}
+.adminHamburger span{
+  display:block!important;
+  width:18px!important;
+  height:2px!important;
+  margin:0!important;
+  border-radius:99px!important;
+  background:var(--admin-tenant-secondary)!important;
+}
+
+/* A logo e o link do site continuam à esquerda; controles ficam livres à direita. */
+.adminTopbar .adminNavActions{
+  padding-right:126px!important;
+}
+.adminTenantSiteLink{
+  border-color:color-mix(in srgb,var(--admin-tenant-secondary) 55%,transparent)!important;
+  color:#fff!important;
+  border-radius:var(--admin-tenant-radius)!important;
+}
+.adminTenantSiteLink:hover{
+  background:color-mix(in srgb,var(--admin-tenant-secondary) 15%,transparent)!important;
+}
+
+/* Gerenciador de Destaques: existe somente via menu sanduíche. */
+.adminPage #destaques-selos{
+  display:none!important;
+  margin-top:18px!important;
+}
+.adminPage #destaques-selos:target{
+  display:block!important;
+}
+.adminHighlightsPanel .propertyLabelManager{
+  padding:18px!important;
+}
+.propertyLabelRows{
+  display:grid!important;
+  gap:12px!important;
+}
+.propertyLabelRows article{
+  display:grid!important;
+  grid-template-columns:minmax(220px,1.35fr) minmax(180px,.7fr) minmax(290px,1fr)!important;
+  gap:14px!important;
+  align-items:center!important;
+  padding:14px!important;
+  border:1px solid #dce3e8!important;
+  border-radius:14px!important;
+  background:#fff!important;
+}
+.propertyLabelRows article.isFeatured{
+  border-color:var(--admin-tenant-secondary)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--admin-tenant-secondary) 13%,transparent)!important;
+}
+.propertyLabelIdentity small,
+.propertyLabelIdentity strong{
+  display:block!important;
+}
+.propertyLabelIdentity small{
+  margin-bottom:4px!important;
+  color:#7b8994!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+}
+.propertyLabelIdentity strong{
+  color:var(--admin-tenant-text)!important;
+  font-size:14px!important;
+}
+.featuredToggle{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-height:40px!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  border-radius:10px!important;
+  background:color-mix(in srgb,var(--admin-tenant-secondary) 10%,#fff 90%)!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+}
+.featuredToggle input{
+  width:18px!important;
+  height:18px!important;
+  margin:0!important;
+  accent-color:var(--admin-tenant-primary)!important;
+}
+.propertyLabelControls{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  gap:8px!important;
+  align-items:center!important;
+}
+.propertyLabelControls input{
+  min-width:0!important;
+  height:40px!important;
+  padding:0 10px!important;
+  border:1px solid #d3dce3!important;
+  border-radius:10px!important;
+}
+.propertyLabelControls button{
+  height:40px!important;
+  padding:0 12px!important;
+  border:0!important;
+  border-radius:var(--admin-tenant-radius)!important;
+  background:var(--admin-tenant-primary)!important;
+  color:#fff!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+}
+
+/* Site do cliente: nome claro e CRECI sempre destacado. */
+.publicTopbar .publicBrandText strong{
+  color:#fff!important;
+  font-size:16px!important;
+  font-weight:900!important;
+  line-height:1.15!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.28)!important;
+}
+.publicTopbar .publicBrandText small{
+  color:var(--tenant-secondary)!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  line-height:1.2!important;
+  letter-spacing:.04em!important;
+}
+
+/* Área Destaques do site. */
+#tenant-featured-portal{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tenant-secondary) 7%,var(--tenant-background) 93%),var(--tenant-background))!important;
+}
+.publicFeaturedSection{
+  padding-top:52px!important;
+  padding-bottom:52px!important;
+}
+.publicFeaturedSection .sectionHeading{
+  margin-bottom:22px!important;
+}
+.publicFeaturedSection .sectionHeading h2{
+  color:var(--tenant-primary)!important;
+}
+.publicFeaturedSection .sectionIntro{
+  color:var(--tenant-text)!important;
+  opacity:.76!important;
+}
+.featuredPropertyCard{
+  border-color:color-mix(in srgb,var(--tenant-secondary) 42%,#dce3e8 58%)!important;
+  box-shadow:0 12px 30px rgba(17,34,51,.09)!important;
+}
+.featuredPropertyCard .featuredBadge{
+  background:var(--tenant-secondary)!important;
+  color:var(--tenant-primary)!important;
+  font-weight:900!important;
+}
+.featuredPropertyCard .marketingBadge{
+  background:var(--tenant-primary)!important;
+  color:#fff!important;
+  font-weight:900!important;
+}
+.featuredFacts span{
+  white-space:nowrap!important;
+}
+
+@media(max-width:900px){
+  .propertyLabelRows article{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .propertyLabelControls{
+    grid-column:1/-1!important;
+  }
+}
+
+@media(max-width:700px){
+  [data-tenant-role]:not([data-tenant-role="platform_admin"]) .sessionBar{
+    top:10px!important;
+    right:60px!important;
+    height:38px!important;
+  }
+  .adminHamburger{
+    top:10px!important;
+    right:10px!important;
+  }
+  .adminTopbar .adminNavActions{
+    padding-right:112px!important;
+  }
+  .adminTenantBrand img{
+    max-width:96px!important;
+  }
+  .adminTenantSiteLink{
+    font-size:10px!important;
+    padding:0 7px!important;
+  }
+  .propertyLabelRows article{
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+  }
+  .propertyLabelControls{
+    grid-column:auto!important;
+  }
+  .publicTopbar .publicBrandText strong{
+    font-size:14px!important;
+  }
+  .publicTopbar .publicBrandText small{
+    font-size:10px!important;
+  }
+  .publicFeaturedSection{
+    padding-top:36px!important;
+    padding-bottom:36px!important;
+  }
+}
