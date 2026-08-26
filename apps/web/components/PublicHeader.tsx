@@ -9,16 +9,24 @@ const propertyTypes = [
   "Ponto comercial", "Prédio comercial", "Galpão", "Salão comercial", "Fazenda",
 ];
 
+function formatCreci(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const withoutPrefix = raw.replace(/^creci\s*:?[\s-]*/i, "").trim();
+  return withoutPrefix ? `CRECI ${withoutPrefix}` : "";
+}
+
 export default function PublicHeader({ nested = false }: Props) {
   const settings = useSiteSettings();
   const prefix = nested ? "../" : "";
   const whatsapp = settings.whatsapp?.replace(/\D/g, "");
   const searchHref = (type: string) => `${prefix}?tipo=${encodeURIComponent(type)}#imoveis`;
+  const creci = formatCreci(settings.company_creci);
 
   return <header className="topbar publicTopbar"><div className="container nav">
     <a className="brand" href={`${prefix}#inicio`}>
       {settings.logo_url ? <img className="brandLogo" src={settings.logo_url} alt={settings.agency_name} /> : <span className="brandMark">{settings.agency_name.slice(0,1).toUpperCase()}</span>}
-      <span className="publicBrandText"><strong>{settings.agency_name}</strong>{settings.company_creci ? <small>{settings.company_creci}</small> : null}</span>
+      <span className="publicBrandText"><strong>{settings.agency_name}</strong>{creci ? <small>{creci}</small> : null}</span>
     </a>
     <nav className="navLinks"><a href={`${prefix}#imoveis`}>Imóveis</a><a href={`${prefix}#anuncie`}>Anuncie seu imóvel</a><a href={`${prefix}#contato`}>Contato</a></nav>
     <div className="navActions">{whatsapp ? <a className="button primary small" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">WhatsApp</a> : <a className="button primary small" href={`${prefix}#contato`}>Contato</a>}</div>
