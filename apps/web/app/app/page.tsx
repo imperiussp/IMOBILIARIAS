@@ -1,12 +1,10 @@
 import AdminGate from "../../components/AdminGate";
-import MobileAgencyBranding from "../../components/MobileAgencyBranding";
-import MobileWebApp from "../../components/MobileWebApp";
+import MobileWebAppV2 from "../../components/MobileWebAppV2";
 
 export default function MobileAppPage() {
   return (
     <AdminGate appMode>
-      <MobileAgencyBranding />
-      <MobileWebApp />
+      <MobileWebAppV2 />
     </AdminGate>
   );
 }
