@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminTenantBrand from "./AdminTenantBrand";
 import { getAvailableAgencies, getCurrentAgency, setPreferredAgencyId, type CurrentAgency } from "../lib/currentAgency";
 
 const roleLabel: Record<CurrentAgency["role"], string> = {
@@ -29,10 +30,10 @@ export default function AdminAgencySwitcher() {
   const selected = agencies.find((agency) => agency.agencyId === selectedId) || agencies[0];
 
   if (agencies.length === 1) {
-    return <div className="agencyContext"><small>Imobiliária</small><strong>{selected.agencyName}</strong><span>{roleLabel[selected.role]}</span></div>;
+    return <div className="adminAgencyHeaderContext"><AdminTenantBrand /><div className="agencyContext"><strong>{selected.agencyName}</strong><span>Acesso: {roleLabel[selected.role]}</span></div></div>;
   }
 
-  return <label className="agencySwitcher">
+  return <div className="adminAgencyHeaderContext"><AdminTenantBrand /><label className="agencySwitcher">
     <span>Imobiliária ativa</span>
     <select value={selectedId} onChange={(event) => {
       setPreferredAgencyId(event.target.value);
@@ -41,5 +42,5 @@ export default function AdminAgencySwitcher() {
     }}>
       {agencies.map((agency) => <option key={agency.agencyId} value={agency.agencyId}>{agency.agencyName} · {roleLabel[agency.role]}</option>)}
     </select>
-  </label>;
+  </label></div>;
 }
