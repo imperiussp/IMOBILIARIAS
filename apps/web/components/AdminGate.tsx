@@ -94,7 +94,7 @@ export default function AdminGate({ children, appMode = false }: Props) {
   }, []);
 
   async function signOut() {
-    if (supabaseBrowser) await supabaseBrowser.auth.signOut();
+    if (supabaseBrowser) await supabaseBrowser.auth.signOut({ scope: "local" });
     window.location.href = appMode ? "../login/?redirect=%2Fapp%2F" : "../login/";
   }
 
