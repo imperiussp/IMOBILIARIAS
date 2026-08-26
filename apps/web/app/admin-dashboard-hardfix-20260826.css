@@ -1,65 +1,155 @@
-/* LENOY IMOBILIÁRIAS — hardfix estrutural do dashboard — 26/08/2026 */
-/* Base validada: mantém o admin sem sidebar fixa e concentra a navegação no menu sanduíche. */
-.adminPage .container.adminShell{display:block!important;grid-template-columns:none!important;width:85%!important;max-width:1680px!important;min-width:0!important;margin-left:auto!important;margin-right:auto!important;padding:22px 0 60px!important}
-.adminPage .adminSidebar,.adminPage .adminSidebar.adminSidebarCompact{display:none!important;width:0!important;min-width:0!important;max-width:0!important}
-.adminPage .adminContent{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important}
+/* LENOY IMOBILIÁRIAS — ajuste seguro do dashboard — 26/08/2026 */
+
+/* Conteúdo principal com 85% da largura, sem sidebar fixa. */
+.adminPage .container.adminShell{
+  display:block!important;
+  grid-template-columns:none!important;
+  width:85%!important;
+  max-width:1680px!important;
+  min-width:0!important;
+  margin:0 auto!important;
+  padding:22px 0 60px!important;
+}
+.adminPage .adminSidebar,
+.adminPage .adminSidebar.adminSidebarCompact{display:none!important}
+.adminPage .adminContent{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important}
 .adminPage .adminContent>*{max-width:100%!important;box-sizing:border-box!important}
-.adminPage .adminHeading,.adminPage .adminMetrics,.adminPage #imoveis,.adminPage .adminModulesSection{width:100%!important;max-width:none!important;min-width:0!important}
 .adminPage .adminQuickActions{display:none!important}
 
-/* Menu sanduíche em desktop e mobile. */
-.adminHamburger{display:flex!important;position:fixed!important;top:17px!important;left:142px!important;z-index:1900!important;width:42px!important;height:42px!important;padding:9px!important;flex-direction:column!important;justify-content:center!important;gap:5px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:11px!important;background:#0a2947!important;box-shadow:0 6px 18px rgba(3,18,32,.22)!important;cursor:pointer!important}
+/* Menu sanduíche disponível também no desktop. */
+.adminHamburger{
+  display:flex!important;
+  position:fixed!important;
+  top:17px!important;
+  left:142px!important;
+  z-index:1900!important;
+  width:42px!important;
+  height:42px!important;
+  padding:9px!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  gap:5px!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  border-radius:11px!important;
+  background:#0a2947!important;
+  box-shadow:0 6px 18px rgba(3,18,32,.22)!important;
+  cursor:pointer!important;
+}
 .adminHamburger span{display:block!important;width:100%!important;height:2px!important;margin:0!important;border-radius:999px!important;background:#fff!important}
 .adminMobileMenuLayer{display:block!important;position:fixed!important;inset:0!important;z-index:2100!important}
-.adminMobileMenuBackdrop{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important;background:rgba(3,15,28,.58)!important;cursor:pointer!important}
-.adminMobileDrawer{position:absolute!important;top:0!important;bottom:0!important;left:0!important;width:min(370px,88vw)!important;padding:0!important;border-radius:0 20px 20px 0!important;background:#071f38!important;color:#fff!important;box-shadow:20px 0 48px rgba(0,0,0,.28)!important;overflow-y:auto!important}
+.adminMobileMenuBackdrop{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important;background:rgba(3,15,28,.58)!important}
+.adminMobileDrawer{position:absolute!important;top:0!important;bottom:0!important;left:0!important;width:min(370px,88vw)!important;background:#071f38!important;color:#fff!important;border-radius:0 20px 20px 0!important;box-shadow:20px 0 48px rgba(0,0,0,.28)!important;overflow-y:auto!important}
 .adminMobileDrawerHead{position:sticky!important;top:0!important;z-index:2!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:20px!important;border-bottom:1px solid rgba(255,255,255,.12)!important;background:#071f38!important}
 .adminMobileDrawerHead small{display:block!important;color:#deb84f!important;font-size:10px!important;font-weight:900!important;letter-spacing:.12em!important}
 .adminMobileDrawerHead strong{display:block!important;margin-top:4px!important;color:#fff!important;font-size:17px!important}
-.adminMobileDrawerHead>button{width:38px!important;height:38px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:10px!important;background:rgba(255,255,255,.08)!important;color:#fff!important;font-size:25px!important;cursor:pointer!important}
+.adminMobileDrawerHead>button{width:38px!important;height:38px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:10px!important;background:rgba(255,255,255,.08)!important;color:#fff!important;font-size:25px!important}
 .adminMobileDrawer nav{display:grid!important;gap:3px!important;padding:12px!important}
 .adminMobileDrawer nav a{display:block!important;padding:11px 13px!important;border-radius:10px!important;color:#e8eef4!important;font-size:13px!important;font-weight:750!important;text-decoration:none!important}
 .adminMobileDrawer nav a:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
 
-/* Tela inicial: apenas seis cards. */
-.adminPage .adminModuleGrid{width:100%!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+/* Na tela inicial ficam somente os seis acessos solicitados. */
 .adminPage .adminModuleGrid .adminModuleCard{display:none!important}
-.adminPage .adminModuleGrid .adminModuleCard[href="#acompanhamentos"],.adminPage .adminModuleGrid .adminModuleCard[href="#novo-imovel"],.adminPage .adminModuleGrid .adminModuleCard[href="#catalogo-config"],.adminPage .adminModuleGrid .adminModuleCard[href="#meu-plano"],.adminPage .adminModuleGrid .adminModuleCard[href="#documentos"],.adminPage .adminModuleGrid .adminModuleCard[href="#emails-profissionais"]{display:flex!important;min-width:0!important;width:auto!important;min-height:92px!important;box-sizing:border-box!important}
+.adminPage .adminModuleGrid .adminModuleCard[href="#acompanhamentos"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#novo-imovel"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#catalogo-config"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#meu-plano"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#documentos"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#emails-profissionais"]{
+  display:flex!important;
+}
+.adminPage .adminModuleGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important}
 
-/* O restante só aparece ao abrir pelo card/menu. */
-#contatos,#alertas-operacionais,#funil-comercial,#tempo-resposta,#qualificacao-contatos,#perfil-compra,#consentimento-compradores,#oportunidades-ia,#entregas-oportunidades,#respostas-oportunidades,#agenda-visitas,#acompanhamentos,#historico-contato,#documentacao-imovel,#desempenho-imoveis,#qualidade-imoveis,#uso-documentos,#desempenho-corretores,#metas-corretores,#novo-imovel,#catalogo-config,#corretores,#usuarios,#convites,#documentos,#arquivos-documentos,#meu-plano,#emails-profissionais,#configuracoes,#dominios,#exportacoes{display:none!important;scroll-margin-top:96px!important}
-#contatos:target,#alertas-operacionais:target,#funil-comercial:target,#tempo-resposta:target,#qualificacao-contatos:target,#perfil-compra:target,#consentimento-compradores:target,#oportunidades-ia:target,#entregas-oportunidades:target,#respostas-oportunidades:target,#agenda-visitas:target,#acompanhamentos:target,#historico-contato:target,#documentacao-imovel:target,#desempenho-imoveis:target,#qualidade-imoveis:target,#uso-documentos:target,#desempenho-corretores:target,#metas-corretores:target,#novo-imovel:target,#catalogo-config:target,#corretores:target,#usuarios:target,#convites:target,#documentos:target,#arquivos-documentos:target,#meu-plano:target,#emails-profissionais:target,#configuracoes:target,#dominios:target,#exportacoes:target{display:block!important}
-
-/* Catálogo com hierarquia visual mais clara. */
-.adminPage #imoveis{padding:0!important;overflow:hidden!important;border:1px solid #dce4ea!important;border-radius:22px!important;background:#fff!important;box-shadow:0 10px 30px rgba(17,35,52,.06)!important}
-.adminPage #imoveis>.adminPanelHeader{margin:0!important;padding:20px 22px!important;align-items:center!important;background:linear-gradient(135deg,#071f38 0%,#0d355a 100%)!important;border-bottom:0!important}
-.adminPage #imoveis>.adminPanelHeader .eyebrow{color:#e2b84e!important}
-.adminPage #imoveis>.adminPanelHeader h2{margin:5px 0 0!important;color:#fff!important;font-size:28px!important}
-.adminPage #imoveis>.adminPanelHeader .adminPanelTools{color:#dce6ee!important}
-.adminPage #imoveis>.adminPanelHeader .miniButton{border-color:rgba(255,255,255,.2)!important;background:rgba(255,255,255,.1)!important;color:#fff!important}
-.adminPage #imoveis>.formMessage{margin:14px 18px 0!important}
-.adminPage #imoveis .adminFilters{display:grid!important;grid-template-columns:minmax(220px,2fr) repeat(4,minmax(125px,1fr)) auto!important;gap:10px!important;align-items:center!important;margin:0!important;padding:16px 18px!important;background:#f3f6f8!important;border-bottom:1px solid #e1e7eb!important}
-.adminPage #imoveis .adminFilters input,.adminPage #imoveis .adminFilters select{width:100%!important;min-width:0!important;height:42px!important;padding:0 11px!important;border:1px solid #d3dce3!important;border-radius:10px!important;background:#fff!important;color:#203040!important;font-size:12px!important;box-sizing:border-box!important}
+/* Catálogo: visual limpo e denso para suportar muitos imóveis. */
+.adminPage #imoveis{
+  overflow:hidden!important;
+  border:1px solid #dfe5ea!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 8px 24px rgba(17,35,52,.05)!important;
+}
+.adminPage #imoveis>.adminPanelHeader{
+  margin:0!important;
+  padding:18px 20px!important;
+  border-bottom:1px solid #e7ecef!important;
+  background:#fbfcfd!important;
+}
+.adminPage #imoveis>.adminPanelHeader h2{margin:4px 0 0!important;font-size:27px!important;color:#13263a!important}
+.adminPage #imoveis .adminFilters{
+  display:grid!important;
+  grid-template-columns:minmax(230px,2fr) repeat(4,minmax(125px,1fr)) auto!important;
+  gap:9px!important;
+  align-items:center!important;
+  padding:14px 16px!important;
+  border-bottom:1px solid #e5eaee!important;
+  background:#f5f7f9!important;
+}
+.adminPage #imoveis .adminFilters input,
+.adminPage #imoveis .adminFilters select{
+  width:100%!important;
+  min-width:0!important;
+  height:42px!important;
+  padding:0 11px!important;
+  border:1px solid #d3dbe2!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#203040!important;
+  font-size:12px!important;
+  box-sizing:border-box!important;
+}
 .adminPage #imoveis .adminFilters .miniButton{height:42px!important;padding:0 14px!important;border-radius:10px!important}
-.adminPage #imoveis .adminTableWrap{overflow:visible!important;width:100%!important;padding:18px!important;box-sizing:border-box!important}
+
+.adminPage #imoveis .adminTableWrap{overflow:visible!important;width:100%!important;padding:16px!important;box-sizing:border-box!important}
 .adminPage #imoveis .adminTable{display:block!important;width:100%!important;min-width:0!important}
 .adminPage #imoveis .adminTable thead{display:none!important}
-.adminPage #imoveis .adminTable tbody{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important;width:100%!important}
-.adminPage #imoveis .adminTable tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;min-width:0!important;width:auto!important;padding:0!important;overflow:hidden!important;border:1px solid #dfe6eb!important;border-radius:18px!important;background:#fff!important;box-shadow:0 8px 22px rgba(17,35,52,.07)!important;box-sizing:border-box!important}
-.adminPage #imoveis .adminTable td{display:block!important;min-width:0!important;max-width:100%!important;padding:11px 14px!important;border:0!important;background:#fff!important;font-size:13px!important;overflow-wrap:anywhere!important;box-sizing:border-box!important}
-.adminPage #imoveis .adminTable td:first-child{grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:14px!important;min-height:112px!important;padding:14px!important;background:linear-gradient(135deg,#f7fafc 0%,#eef3f6 100%)!important;border-bottom:1px solid #e3e9ed!important}
+.adminPage #imoveis .adminTable tbody{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:14px!important;
+  width:100%!important;
+}
+.adminPage #imoveis .adminTable tr{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px 12px!important;
+  min-width:0!important;
+  padding:14px!important;
+  border:1px solid #e0e6eb!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 5px 16px rgba(17,35,52,.045)!important;
+  box-sizing:border-box!important;
+}
+.adminPage #imoveis .adminTable td{display:block!important;min-width:0!important;padding:0!important;border:0!important;font-size:12px!important;overflow-wrap:anywhere!important}
+.adminPage #imoveis .adminTable td:first-child{grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:12px!important;min-height:86px!important;padding-bottom:11px!important;border-bottom:1px solid #edf0f2!important}
 .adminPage #imoveis .adminTable td:nth-child(2){display:none!important}
-.adminPage #imoveis .adminTable td:nth-child(3),.adminPage #imoveis .adminTable td:nth-child(4),.adminPage #imoveis .adminTable td:nth-child(5),.adminPage #imoveis .adminTable td:nth-child(6){margin:0 4px!important;padding:11px 12px!important;border:1px solid #e7ecef!important;border-radius:11px!important;background:#fbfcfd!important}
-.adminPage #imoveis .adminTable td:nth-child(3),.adminPage #imoveis .adminTable td:nth-child(5){margin-left:12px!important}
-.adminPage #imoveis .adminTable td:nth-child(4),.adminPage #imoveis .adminTable td:nth-child(6){margin-right:12px!important}
-.adminPage #imoveis .adminTable td:last-child{grid-column:1/-1!important;width:100%!important;margin:4px 0 0!important;padding:12px!important;border-top:1px solid #e8edf0!important;background:#f8fafb!important}
-.adminPage #imoveis .adminPropertyThumb{flex:0 0 126px!important;width:126px!important;height:88px!important;max-width:38%!important;object-fit:cover!important;border-radius:12px!important;border:1px solid #dce4e9!important;background:#fff!important;box-shadow:0 4px 12px rgba(17,35,52,.08)!important}
-.adminPage #imoveis .adminPropertyCell strong{display:block!important;color:#10253b!important;font-size:17px!important;line-height:1.2!important}
-.adminPage #imoveis .adminPropertyCode{display:block!important;margin-top:5px!important;color:#687887!important;font-size:11px!important;font-weight:800!important}
-.adminPage #imoveis .statusSelect{width:100%!important;max-width:170px!important}
-.adminPage #imoveis .tableActions,.adminPage #imoveis .adminPropertyActionsRow{width:100%!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
-.adminPage #imoveis .tableActions .miniButton,.adminPage #imoveis .adminPropertyActionsRow .miniButton{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;border-radius:9px!important}
+.adminPage #imoveis .adminTable td:nth-child(3)::before{content:"Local";display:block;margin-bottom:3px;color:#87919a;font-size:9px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.adminPage #imoveis .adminTable td:nth-child(4)::before{content:"Finalidade";display:block;margin-bottom:3px;color:#87919a;font-size:9px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.adminPage #imoveis .adminTable td:nth-child(5)::before{content:"Valor";display:block;margin-bottom:3px;color:#87919a;font-size:9px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.adminPage #imoveis .adminTable td:nth-child(6)::before{content:"Status";display:block;margin-bottom:3px;color:#87919a;font-size:9px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.adminPage #imoveis .adminTable td:last-child{grid-column:1/-1!important;margin-top:4px!important;padding-top:10px!important;border-top:1px solid #edf0f2!important}
+.adminPage #imoveis .adminPropertyThumb{flex:0 0 92px!important;width:92px!important;height:68px!important;object-fit:cover!important;border-radius:11px!important;border:1px solid #dce3e8!important;background:#f7f8f9!important}
+.adminPage #imoveis .adminPropertyCell strong{display:block!important;color:#10253b!important;font-size:15px!important;line-height:1.2!important}
+.adminPage #imoveis .adminPropertyCode{display:block!important;margin-top:4px!important;color:#6c7a87!important;font-size:10px!important;font-weight:800!important}
+.adminPage #imoveis .tableActions,
+.adminPage #imoveis .adminPropertyActionsRow{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;width:100%!important}
+.adminPage #imoveis .tableActions .miniButton,
+.adminPage #imoveis .adminPropertyActionsRow .miniButton{width:100%!important;min-height:36px!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;border-radius:9px!important}
 
-@media (min-width:701px) and (max-width:1200px){.adminPage #imoveis .adminFilters{grid-template-columns:repeat(3,minmax(0,1fr))!important}.adminPage #imoveis .adminFilters>input:first-child{grid-column:1/-1!important}.adminPage #imoveis .adminFilters .miniButton{width:100%!important}}
-@media (min-width:701px){.adminPage .adminModuleGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important}.adminPage #imoveis .adminTable tbody{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media (max-width:700px){.adminPage .container.adminShell{width:calc(100% - 20px)!important;padding-top:12px!important}.adminHamburger{top:16px!important;left:105px!important;width:40px!important;height:40px!important}.adminPage .adminModuleGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.adminPage .adminModuleGrid .adminModuleCard[href="#acompanhamentos"],.adminPage .adminModuleGrid .adminModuleCard[href="#novo-imovel"],.adminPage .adminModuleGrid .adminModuleCard[href="#catalogo-config"],.adminPage .adminModuleGrid .adminModuleCard[href="#meu-plano"],.adminPage .adminModuleGrid .adminModuleCard[href="#documentos"],.adminPage .adminModuleGrid .adminModuleCard[href="#emails-profissionais"]{min-height:84px!important;padding:12px!important}.adminPage #imoveis>.adminPanelHeader{padding:16px!important;align-items:flex-start!important}.adminPage #imoveis>.adminPanelHeader h2{font-size:24px!important}.adminPage #imoveis .adminFilters{grid-template-columns:1fr 1fr!important;padding:12px!important}.adminPage #imoveis .adminFilters>input:first-child{grid-column:1/-1!important}.adminPage #imoveis .adminFilters .miniButton{grid-column:1/-1!important;width:100%!important}.adminPage #imoveis .adminTableWrap{padding:12px!important}.adminPage #imoveis .adminTable tbody{grid-template-columns:1fr!important}.adminPage #imoveis .adminTable tr{grid-template-columns:1fr 1fr!important}.adminPage #imoveis .adminPropertyThumb{width:104px!important;height:76px!important;flex-basis:104px!important}.adminPage #imoveis .adminPropertyCell strong{font-size:15px!important}}
+@media (max-width:1250px){
+  .adminPage #imoveis .adminTable tbody{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .adminPage #imoveis .adminFilters{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .adminPage #imoveis .adminFilters>input:first-child{grid-column:1/-1!important}
+}
+@media (max-width:900px){
+  .adminPage .container.adminShell{width:92%!important}
+  .adminPage .adminModuleGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .adminPage #imoveis .adminTable tbody{grid-template-columns:1fr!important}
+}
+@media (max-width:700px){
+  .adminPage .container.adminShell{width:calc(100% - 20px)!important;padding-top:12px!important}
+  .adminHamburger{top:16px!important;left:105px!important;width:40px!important;height:40px!important}
+  .adminPage #imoveis .adminFilters{grid-template-columns:1fr 1fr!important;padding:12px!important}
+  .adminPage #imoveis .adminFilters>input:first-child{grid-column:1/-1!important}
+  .adminPage #imoveis .adminFilters .miniButton{grid-column:1/-1!important;width:100%!important}
+  .adminPage #imoveis .adminTableWrap{padding:12px!important}
+}
