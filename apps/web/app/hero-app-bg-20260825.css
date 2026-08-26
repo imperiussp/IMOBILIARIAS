@@ -1,4 +1,5 @@
 /* Hero público — correção direta do background desktop */
+/* Asset validado: /platform-hero-app-bg.webp */
 @media (min-width: 701px) {
   .platformLanding .platformHero {
     grid-template-columns: minmax(0,720px) minmax(0,1fr) !important;
