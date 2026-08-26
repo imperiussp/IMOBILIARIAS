@@ -1,0 +1,22 @@
+/* Cards marcados pelo cliente: ficam disponíveis somente no menu sanduíche. */
+.adminPage .adminModuleGrid .adminModuleCard[href="#funil-comercial"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#tempo-resposta"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#perfil-compra"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#consentimento-compradores"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#oportunidades-ia"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#entregas-oportunidades"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#respostas-oportunidades"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#acompanhamentos"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#historico-contato"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#documentacao-imovel"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#desempenho-corretores"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#catalogo-config"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#corretores"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#usuarios"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#convites"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#documentos"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#arquivos-documentos"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#configuracoes"],
+.adminPage .adminModuleGrid .adminModuleCard[href="#dominios"]{
+  display:none!important;
+}
