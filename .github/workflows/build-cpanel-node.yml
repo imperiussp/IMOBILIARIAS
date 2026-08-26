@@ -104,8 +104,6 @@ jobs:
             cp -a current-cpanel/. update-cpanel/
           fi
 
-          # Em atualizações comuns de interface/código, as dependências já instaladas no cPanel
-          # não precisam viajar novamente. Só incluímos node_modules quando os manifests mudarem.
           DEPS_CHANGED=0
           if git rev-parse HEAD^ >/dev/null 2>&1; then
             if git diff --name-only HEAD^ HEAD -- package.json pnpm-lock.yaml pnpm-workspace.yaml 'packages/**/package.json' 'apps/web/package.json' | grep -q .; then
@@ -124,6 +122,17 @@ jobs:
           echo "Pacote incremental:"
           du -h cpanel-node-build/imobiliarias-update-cpanel.zip
           echo "Dependências alteradas: $DEPS_CHANGED"
+
+      - name: Upload cPanel Node packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: imobiliarias-cpanel-node
+          path: |
+            cpanel-node-build/imobiliarias-standalone-cpanel.zip
+            cpanel-node-build/imobiliarias-update-cpanel.zip
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Publish cPanel packages
         run: |
           git config user.name "github-actions[bot]"
