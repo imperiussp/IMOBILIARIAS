@@ -11,96 +11,126 @@ export default function AdminCatalogTypeFilter() {
   useEffect(() => {
     if (!window.location.pathname.includes("/admin") || !isSupabaseConfigured || !supabaseBrowser) return;
 
-    let disposed = false;
-    let observer: MutationObserver | null = null;
+    let cancelled = false;
+    let retryTimer: number | null = null;
     let selectedType = "";
-    let propertiesByCode = new Map<string, string | null>();
-    let types: PropertyType[] = [];
+    let codeToType = new Map<string, string | null>();
+    let knownTypes: PropertyType[] = [];
+    let installedFilters: HTMLElement | null = null;
+    let installedSelect: HTMLSelectElement | null = null;
+    let installedClear: HTMLButtonElement | null = null;
 
-    const rowCode = (row: HTMLTableRowElement) => {
-      const decorated = row.querySelector<HTMLElement>(".adminPropertyCode")?.textContent?.trim();
-      if (decorated) return decorated;
-      return row.querySelector<HTMLTableCellElement>("td:first-child")?.textContent?.trim().split(/\s+/).pop() || "";
+    const getRowCode = (row: HTMLTableRowElement) => {
+      const explicit = row.querySelector<HTMLElement>(".adminPropertyCode")?.textContent?.trim();
+      if (explicit && codeToType.has(explicit)) return explicit;
+      const firstCellText = row.querySelector<HTMLTableCellElement>("td:first-child")?.textContent || "";
+      for (const code of codeToType.keys()) {
+        if (firstCellText.includes(code)) return code;
+      }
+      return "";
     };
 
-    const apply = () => {
-      if (disposed) return;
-      const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".adminPage #imoveis .adminTable tbody tr"));
-      let visible = 0;
+    const applyTypeFilter = () => {
+      if (cancelled) return;
+      const rows = document.querySelectorAll<HTMLTableRowElement>(".adminPage #imoveis .adminTable tbody tr");
       rows.forEach((row) => {
-        const code = rowCode(row);
-        const matches = !selectedType || propertiesByCode.get(code) === selectedType;
-        if (matches) {
+        if (!selectedType) {
           row.style.removeProperty("display");
-          visible += 1;
-        } else {
-          row.style.setProperty("display", "none", "important");
+          return;
         }
+        const code = getRowCode(row);
+        if (!code) {
+          row.style.removeProperty("display");
+          return;
+        }
+        if (codeToType.get(code) === selectedType) row.style.removeProperty("display");
+        else row.style.setProperty("display", "none", "important");
       });
-      const count = document.querySelector<HTMLElement>(".adminPage #imoveis .adminPanelTools span");
-      if (count && !count.textContent?.includes("Carregando")) count.textContent = `${visible} exibido(s)`;
     };
 
-    const installSelect = () => {
+    const handleFiltersChange = () => {
+      window.setTimeout(applyTypeFilter, 0);
+      window.setTimeout(applyTypeFilter, 80);
+    };
+
+    const install = () => {
+      if (cancelled || installedSelect) return true;
       const filters = document.querySelector<HTMLElement>(".adminPage #imoveis .adminFilters");
-      if (!filters || filters.querySelector(".adminTypeFilterSelect")) return;
+      if (!filters) return false;
 
       const select = document.createElement("select");
       select.className = "adminTypeFilterSelect";
       select.setAttribute("aria-label", "Filtrar por tipo de imóvel");
-      const all = document.createElement("option");
-      all.value = "";
-      all.textContent = "Todos os tipos";
-      select.appendChild(all);
-      types.forEach((type) => {
+      select.innerHTML = '<option value="">Todos os tipos</option>';
+      knownTypes.forEach((type) => {
         const option = document.createElement("option");
         option.value = type.id;
         option.textContent = type.name;
         select.appendChild(option);
       });
-      const publicationSelect = filters.querySelector("select:nth-of-type(3)");
+
+      const publicationSelect = filters.querySelector<HTMLSelectElement>("select:nth-of-type(3)");
       if (publicationSelect) filters.insertBefore(select, publicationSelect);
       else filters.appendChild(select);
 
       select.addEventListener("change", () => {
         selectedType = select.value;
-        apply();
+        applyTypeFilter();
       });
 
-      const clearButton = Array.from(filters.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent?.trim().toLowerCase() === "limpar");
+      const clearButton = Array.from(filters.querySelectorAll<HTMLButtonElement>("button")).find(
+        (button) => button.textContent?.trim().toLowerCase() === "limpar",
+      ) || null;
+
       clearButton?.addEventListener("click", () => {
         selectedType = "";
         select.value = "";
-        window.requestAnimationFrame(apply);
+        handleFiltersChange();
       });
+
+      filters.addEventListener("input", handleFiltersChange);
+      filters.addEventListener("change", handleFiltersChange);
+
+      installedFilters = filters;
+      installedSelect = select;
+      installedClear = clearButton;
+      applyTypeFilter();
+      return true;
     };
 
     void (async () => {
       try {
         const agency = await getCurrentAgency();
-        if (!agency || disposed || !supabaseBrowser) return;
+        if (!agency || cancelled || !supabaseBrowser) return;
+
         const [typeResult, propertyResult] = await Promise.all([
           supabaseBrowser.from("property_types").select("id,name").eq("active", true).order("name"),
           supabaseBrowser.from("properties").select("code,property_type_id").eq("agency_id", agency.agencyId),
         ]);
-        if (disposed) return;
-        types = (typeResult.data || []) as PropertyType[];
-        propertiesByCode = new Map(((propertyResult.data || []) as PropertyRow[]).map((item) => [item.code, item.property_type_id]));
-        installSelect();
-        apply();
-        observer = new MutationObserver(() => {
-          installSelect();
-          apply();
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+        if (cancelled) return;
+
+        knownTypes = (typeResult.data || []) as PropertyType[];
+        codeToType = new Map(((propertyResult.data || []) as PropertyRow[]).map((item) => [item.code, item.property_type_id]));
+
+        let attempts = 0;
+        const tryInstall = () => {
+          attempts += 1;
+          if (install() || attempts >= 40 || cancelled) return;
+          retryTimer = window.setTimeout(tryInstall, 250);
+        };
+        tryInstall();
       } catch {
-        // O filtro complementar não interfere no restante do painel em caso de falha.
+        // Falha no filtro complementar não bloqueia o painel.
       }
     })();
 
     return () => {
-      disposed = true;
-      observer?.disconnect();
+      cancelled = true;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      installedFilters?.removeEventListener("input", handleFiltersChange);
+      installedFilters?.removeEventListener("change", handleFiltersChange);
+      installedSelect?.remove();
+      installedClear = null;
     };
   }, []);
 
