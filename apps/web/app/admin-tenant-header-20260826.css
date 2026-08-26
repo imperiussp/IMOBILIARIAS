@@ -1,0 +1,21 @@
+.adminTopbar .adminNav>.brand{display:none!important}
+.adminTopbar .adminNav{display:flex!important;align-items:center!important;justify-content:flex-end!important}
+.adminTopbar .adminNavActions{width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important}
+.adminTopbar .adminNavActions>a.button[href="../"]{display:none!important}
+.adminAgencyHeaderContext{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.adminTenantBrandWrap{display:flex;align-items:center;gap:10px;min-width:0}
+.adminTenantBrand{display:flex;align-items:center;min-width:0;text-decoration:none}
+.adminTenantBrand img{display:block;max-width:170px;max-height:54px;width:auto;height:auto;object-fit:contain}
+.adminTenantBrand strong{color:#fff;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
+.adminTenantBrandLoading{width:120px;height:36px}
+.adminTenantSiteLink{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 13px;border:1px solid rgba(255,255,255,.3);border-radius:9px;color:#fff!important;text-decoration:none;font-size:12px;font-weight:800;white-space:nowrap}
+.adminTenantSiteLink:hover{background:rgba(255,255,255,.1)}
+.adminAgencyHeaderContext .agencyContext{margin-left:auto}
+@media(max-width:700px){
+  .adminTopbar .adminNav{padding-left:58px!important}
+  .adminAgencyHeaderContext{gap:8px}
+  .adminTenantBrand img{max-width:110px;max-height:38px}
+  .adminTenantBrand strong{max-width:120px;font-size:14px}
+  .adminTenantSiteLink{min-height:32px;padding:0 9px;font-size:11px}
+  .adminAgencyHeaderContext .agencyContext{display:none!important}
+}
