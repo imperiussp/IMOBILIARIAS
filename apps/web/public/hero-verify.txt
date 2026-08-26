@@ -1,2 +1,0 @@
-hero-source=uploaded-image-163f297f-5cda-4152-a33c-a79eb8abe524(3).png
-converted=1200x653 webp quality62
