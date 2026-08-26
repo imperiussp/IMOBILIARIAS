@@ -14,6 +14,9 @@ export type SiteSettings = {
   address: string | null;
   company_creci: string | null;
   logo_url: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  youtube_url?: string | null;
   agency_id?: string | null;
   primary_color?: string | null;
   secondary_color?: string | null;
@@ -32,6 +35,9 @@ export const defaultSiteSettings: SiteSettings = {
   address: null,
   company_creci: null,
   logo_url: null,
+  instagram_url: null,
+  facebook_url: null,
+  youtube_url: null,
   agency_id: null,
   primary_color: "#17202a",
   secondary_color: "#d6ac58",
@@ -52,21 +58,31 @@ export function useSiteSettings() {
       if (!active) return;
       if (tenant) {
         let theme: Partial<SiteSettings> = {};
-        const themeResult = await supabaseBrowser.rpc("resolve_agency_theme", { p_agency_id: tenant.agency_id });
+        let socials: Partial<SiteSettings> = {};
+        const [themeResult, socialResult] = await Promise.all([
+          supabaseBrowser.rpc("resolve_agency_theme", { p_agency_id: tenant.agency_id }),
+          supabaseBrowser.rpc("public_agency_socials_for_host", { p_hostname: window.location.hostname }),
+        ]);
         if (!themeResult.error && Array.isArray(themeResult.data) && themeResult.data[0]) {
           theme = themeResult.data[0] as Partial<SiteSettings>;
+        }
+        if (!socialResult.error && Array.isArray(socialResult.data) && socialResult.data[0]) {
+          socials = socialResult.data[0] as Partial<SiteSettings>;
         }
         if (!active) return;
         setSettings({
           ...defaultSiteSettings,
           agency_name: tenant.name,
           tagline: tenant.tagline || defaultSiteSettings.tagline,
-          phone: tenant.phone,
-          whatsapp: tenant.whatsapp,
+          phone: socials.phone || tenant.phone,
+          whatsapp: socials.whatsapp || tenant.whatsapp,
           email: tenant.email,
           address: tenant.address,
           company_creci: tenant.company_creci,
           logo_url: tenant.logo_url,
+          instagram_url: socials.instagram_url || null,
+          facebook_url: socials.facebook_url || null,
+          youtube_url: socials.youtube_url || null,
           agency_id: tenant.agency_id,
           primary_color: tenant.primary_color || theme.primary_color || defaultSiteSettings.primary_color,
           secondary_color: tenant.secondary_color || theme.secondary_color || defaultSiteSettings.secondary_color,
@@ -80,7 +96,7 @@ export function useSiteSettings() {
 
       const validBackend = await isImobiliariasBackend();
       if (!active || !validBackend) return;
-      const { data } = await supabaseBrowser.from("site_settings").select("agency_name,tagline,phone,whatsapp,email,address,company_creci,logo_url").eq("id", 1).maybeSingle();
+      const { data } = await supabaseBrowser.from("site_settings").select("agency_name,tagline,phone,whatsapp,email,address,company_creci,logo_url,instagram_url,facebook_url,youtube_url").eq("id", 1).maybeSingle();
       if (active && data) setSettings({ ...defaultSiteSettings, ...data } as SiteSettings);
     })();
     return () => { active = false; };
