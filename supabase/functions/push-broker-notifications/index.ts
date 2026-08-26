@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const internalSecret = Deno.env.get("PUSH_DISPATCH_SECRET") || "";
-const maintenanceSecret = Deno.env.get("PLATFORM_MAINTENANCE_SECRET") || "";
 const oneSignalApiKey = Deno.env.get("ONESIGNAL_API_KEY") || "";
 const oneSignalAppId = Deno.env.get("ONESIGNAL_APP_ID") || "";
 
@@ -24,17 +23,29 @@ Deno.serve(async (request) => {
   if (!supabaseUrl || !serviceRoleKey) return json({ error: "server_not_configured" }, 500);
   if (!oneSignalApiKey || !oneSignalAppId) return json({ error: "onesignal_not_configured" }, 503);
 
-  const dispatchAuthorized = Boolean(
-    internalSecret && request.headers.get("x-dispatch-secret") === internalSecret,
-  );
-  const schedulerAuthorized = Boolean(
-    maintenanceSecret && request.headers.get("x-platform-maintenance-secret") === maintenanceSecret,
-  );
-  if (!dispatchAuthorized && !schedulerAuthorized) return json({ error: "unauthorized" }, 401);
-
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
+
+  const suppliedSecret =
+    request.headers.get("x-dispatch-secret") ||
+    request.headers.get("x-platform-maintenance-secret") ||
+    "";
+
+  const dispatchAuthorized = Boolean(
+    internalSecret && suppliedSecret && suppliedSecret === internalSecret,
+  );
+
+  let schedulerAuthorized = false;
+  if (!dispatchAuthorized && suppliedSecret) {
+    const verification = await supabase.rpc("verify_platform_maintenance_secret", {
+      p_secret: suppliedSecret,
+    });
+    if (verification.error) return json({ error: "scheduler_auth_validation_failed" }, 500);
+    schedulerAuthorized = verification.data === true;
+  }
+
+  if (!dispatchAuthorized && !schedulerAuthorized) return json({ error: "unauthorized" }, 401);
 
   const gate = await supabase.rpc("platform_runtime_action_allowed", { p_action: "push" });
   if (gate.error) return json({ error: gate.error.message }, 500);
