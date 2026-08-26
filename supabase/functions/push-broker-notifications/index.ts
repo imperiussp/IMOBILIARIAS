@@ -5,7 +5,6 @@ const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const internalSecret = Deno.env.get("PUSH_DISPATCH_SECRET") || "";
 const oneSignalApiKey = Deno.env.get("ONESIGNAL_API_KEY") || "";
 const oneSignalAppId = Deno.env.get("ONESIGNAL_APP_ID") || "";
-const broadcastTestNotificationId = "26a0b21d-9717-413e-95a8-fa6c9c5ffc1d";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -78,11 +77,7 @@ Deno.serve(async (request) => {
     const attempts = Number(notification.push_attempts || 0) + 1;
 
     try {
-      const isBroadcastTest = notification.id === broadcastTestNotificationId;
-      const target = isBroadcastTest
-        ? { included_segments: ["Subscribed Users"] }
-        : { include_aliases: { external_id: [notification.user_id] } };
-
+      const targetUrl = "https://imoveis.lenoy.com.br/app/";
       const response = await fetch("https://api.onesignal.com/notifications", {
         method: "POST",
         headers: {
@@ -93,15 +88,19 @@ Deno.serve(async (request) => {
         body: JSON.stringify({
           app_id: oneSignalAppId,
           target_channel: "push",
-          ...target,
+          include_aliases: {
+            external_id: [notification.user_id],
+          },
           headings: {
             en: notification.title,
+            pt: notification.title,
           },
           contents: {
             en: notification.body || "Você recebeu uma nova notificação no LENOY Imobiliárias.",
+            pt: notification.body || "Você recebeu uma nova notificação no LENOY Imobiliárias.",
           },
-          url: "https://imoveis.lenoy.com.br/app/",
           data: {
+            targetUrl,
             notificationId: notification.id,
             leadId: notification.lead_id || "",
             agencyId: notification.agency_id,
@@ -116,7 +115,7 @@ Deno.serve(async (request) => {
       }
 
       if (!result?.id) {
-        throw new Error(`OneSignal não encontrou uma assinatura push válida para o destino: ${JSON.stringify(result)}`);
+        throw new Error(`OneSignal não encontrou uma assinatura push válida para o usuário: ${JSON.stringify(result)}`);
       }
 
       await supabase
