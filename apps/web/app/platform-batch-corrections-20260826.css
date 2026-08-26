@@ -1,0 +1,83 @@
+/* LENOY Imobiliárias — lote de correções visuais do site SaaS
+   Correção 1 de 5 — 26/08/2026 */
+
+/* Logo nova no cabeçalho */
+.platformLanding .platformNav .brand{
+  display:block!important;
+  width:190px!important;
+  height:58px!important;
+  flex:0 0 190px!important;
+  background:url('/lenoy-imobiliarias-logo-20260826.png') center center/contain no-repeat!important;
+}
+.platformLanding .platformNav .brand img{
+  display:none!important;
+}
+
+/* Botão Comparar planos: uma linha, maior e destacado */
+.platformLanding .plansIntroActions .button{
+  min-width:180px!important;
+  padding-left:22px!important;
+  padding-right:22px!important;
+  white-space:nowrap!important;
+  background:#e7b94e!important;
+  border-color:#e7b94e!important;
+  color:#07182b!important;
+  font-weight:800!important;
+  text-align:center!important;
+}
+.platformLanding .plansIntroActions .button:hover{
+  filter:brightness(.96)!important;
+}
+
+/* Comparativo: leitura maior no desktop */
+.platformLanding .planCompare th,
+.platformLanding .planCompare td{
+  font-size:14px!important;
+  line-height:1.4!important;
+  padding:12px 14px!important;
+}
+.platformLanding .planCompare thead th{
+  font-size:15px!important;
+  font-weight:800!important;
+}
+.platformLanding .planCompare .group td{
+  font-size:14px!important;
+  font-weight:800!important;
+  letter-spacing:.03em!important;
+}
+.platformLanding .planCompareNote{
+  font-size:13px!important;
+  line-height:1.5!important;
+}
+
+/* Rodapé centralizado, somente logo + texto institucional existente */
+.platformLanding .platformFooter{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  gap:8px!important;
+}
+.platformLanding .platformFooter>div:first-child{
+  width:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+.platformLanding .platformFooter>div:first-child img{
+  display:none!important;
+}
+.platformLanding .platformFooter>div:first-child::before{
+  content:""!important;
+  display:block!important;
+  width:210px!important;
+  height:98px!important;
+  background:url('/lenoy-imobiliarias-logo-20260826.png') center center/contain no-repeat!important;
+}
+.platformLanding .platformFooter>div:first-child p,
+.platformLanding .platformFooter>div:nth-child(2){
+  display:none!important;
+}
