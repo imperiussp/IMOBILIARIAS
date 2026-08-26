@@ -34,6 +34,7 @@ import "./admin-polish-20260825.css";
 import "./hotfix-20260825.css";
 import "./tenant-theme.css";
 import "./hero-app-bg-20260825.css";
+import "./refinement-20260826.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
