@@ -2,6 +2,15 @@ name: Build cPanel Node package
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/build-cpanel-node.yml"
 
 permissions:
   contents: write
