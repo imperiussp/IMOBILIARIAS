@@ -18,7 +18,7 @@ import AdminLeadQualificationBoard from "./AdminLeadQualificationBoard";
 import AdminLeadTimeline from "./AdminLeadTimeline";
 import AdminLiveData from "./AdminLiveData";
 import AdminPlan from "./AdminPlan";
-import AdminPriceHistory from "./AdminPriceHistory";
+import AdminPropertyPriceHistory from "./AdminPropertyPriceHistory";
 import AdminPropertyForm from "./AdminPropertyForm";
 import AdminPropertyLifecycle from "./AdminPropertyLifecycle";
 import AdminPropertyPerformance from "./AdminPropertyPerformance";
@@ -130,7 +130,7 @@ export default function MobileWebApp(){
   case"imoveis":return <div className="mobileModule livePropertiesOnly"><AdminLiveData/></div>;
   case"desempenho-imoveis":return <div className="mobileModule"><AdminPropertyPerformance/></div>;
   case"ciclo-imoveis":return <CollapsedModule title="Abrir disponibilidade e histórico"><AdminPropertyLifecycle/></CollapsedModule>;
-  case"historico-precos":return <CollapsedModule title="Abrir histórico de preços"><AdminPriceHistory/></CollapsedModule>;
+  case"historico-precos":return <CollapsedModule title="Abrir histórico de preços"><AdminPropertyPriceHistory/></CollapsedModule>;
   case"novo-imovel":return isAdmin?<div className="mobileStack"><CollapsedModule title="Cadastrar novo imóvel"><AdminPropertyForm/></CollapsedModule><CollapsedModule title="Gerar descrição com IA"><AdminAiDescription compact/></CollapsedModule></div>:<Unavailable text="Este recurso é administrativo."/>;
   case"contatos":return <div className="mobileModule liveContactsOnly"><AdminLiveData/></div>;
   case"classificacao":return summary.contacts>0?<div className="mobileModule"><AdminLeadQualificationBoard/></div>:<Unavailable text="Nenhum contato para classificar."/>;
