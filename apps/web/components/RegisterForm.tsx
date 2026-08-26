@@ -158,6 +158,13 @@ export default function RegisterForm() {
     setLoading(false);
     if (error) return setStatus(error.message);
 
+    const identities = signupData.user?.identities;
+    const maskedExistingAccount = Boolean(signupData.user && Array.isArray(identities) && identities.length === 0);
+    if (!signupData.user || maskedExistingAccount) {
+      setStatus("Não foi possível confirmar a criação desta conta. Se este e-mail já estiver cadastrado, entre na sua conta ou use a recuperação de senha.");
+      return;
+    }
+
     if (invitationMode) {
       if (signupData.session) {
         window.location.assign(redirect);
