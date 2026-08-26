@@ -1,4 +1,5 @@
-/* Hero desktop — fonte única, sem degradê e com cache-busting */
+/* Hero desktop — fonte única, sem degradê e com cache-busting.
+   Build obrigatório: este arquivo precisa entrar no CSS compilado do Next.js. */
 @media (min-width: 701px) {
   html body .platformLanding .platformHero {
     background: #061322 url('/platform-hero-app-bg-v2.webp') center center / cover no-repeat !important;
