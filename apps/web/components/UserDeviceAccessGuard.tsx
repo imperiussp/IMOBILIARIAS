@@ -116,7 +116,7 @@ export default function UserDeviceAccessGuard() {
       const result = (data || {}) as { allowed?: boolean };
       if (result.allowed === false) {
         window.alert("Este dispositivo foi desconectado da sua conta porque outro acesso foi autorizado.");
-        await client.auth.signOut();
+        await client.auth.signOut({ scope: "local" });
         window.location.assign("/login/");
       }
     };
