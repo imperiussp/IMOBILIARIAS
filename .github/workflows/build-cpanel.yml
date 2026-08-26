@@ -67,7 +67,24 @@ jobs:
           git add -f cpanel-build/status.txt cpanel-build/build.log
           [ -f cpanel-build/imobiliarias-cpanel.zip ] && git add -f cpanel-build/imobiliarias-cpanel.zip
           git commit -m "build: cPanel package result [skip netlify]" || true
-          git push || true
+
+          # O workflow Node também publica artefatos no main. Se ele avançar a branch
+          # enquanto esta build estática roda, rebaseamos o commit do pacote antes de enviar.
+          if ! git diff --quiet HEAD^ HEAD 2>/dev/null; then
+            PUBLISHED=0
+            for ATTEMPT in 1 2 3; do
+              git pull --rebase origin main || { git rebase --abort || true; sleep 2; continue; }
+              if git push origin HEAD:main; then
+                PUBLISHED=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$PUBLISHED" -ne 1 ]; then
+              echo "Falha ao publicar o pacote estático no main após 3 tentativas."
+              exit 1
+            fi
+          fi
           exit "$CODE"
       - name: Upload cPanel package artifact
         if: success()
