@@ -1,0 +1,137 @@
+/* LENOY IMOBILIÁRIAS — hardfix estrutural do dashboard — 26/08/2026 */
+
+/* Esta folha é carregada por último e neutraliza layouts antigos do admin. */
+.adminPage .container.adminShell{
+  display:block!important;
+  grid-template-columns:none!important;
+  width:min(1680px,calc(100% - 32px))!important;
+  max-width:1680px!important;
+  min-width:0!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  padding:20px 0 60px!important;
+}
+.adminPage .adminSidebar,
+.adminPage .adminSidebar.adminSidebarCompact{
+  display:none!important;
+  width:0!important;
+  min-width:0!important;
+  max-width:0!important;
+}
+.adminPage .adminContent{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+}
+.adminPage .adminContent>*{
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+.adminPage .adminHeading{
+  width:100%!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+.adminPage .adminMetrics,
+.adminPage #imoveis,
+.adminPage .adminModulesSection{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+}
+
+/* Remove definitivamente o segundo atalho antigo de download. */
+.adminPage .adminQuickActions{
+  display:none!important;
+}
+
+/* Cards do dashboard: quatro no desktop, dois no mobile. */
+.adminPage .adminModuleGrid{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:14px!important;
+}
+.adminPage .adminModuleCard{
+  min-width:0!important;
+  width:auto!important;
+  min-height:92px!important;
+  box-sizing:border-box!important;
+}
+
+/* Imóveis: dois cards por linha no desktop; ações embaixo. */
+.adminPage #imoveis .adminTableWrap{overflow:visible!important;width:100%!important}
+.adminPage #imoveis .adminTable{display:block!important;width:100%!important;min-width:0!important}
+.adminPage #imoveis .adminTable thead{display:none!important}
+.adminPage #imoveis .adminTable tbody{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:16px!important;
+  width:100%!important;
+}
+.adminPage #imoveis .adminTable tr{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:10px 14px!important;
+  min-width:0!important;
+  width:auto!important;
+  padding:18px!important;
+  border:1px solid #e1e5e9!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 5px 16px rgba(17,35,52,.04)!important;
+  box-sizing:border-box!important;
+}
+.adminPage #imoveis .adminTable td{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important}
+.adminPage #imoveis .adminTable td:nth-child(2){display:none!important}
+.adminPage #imoveis .adminTable td:last-child{
+  grid-column:1/-1!important;
+  width:100%!important;
+  margin-top:8px!important;
+  padding-top:12px!important;
+  border-top:1px solid #edf0f2!important;
+}
+.adminPage #imoveis .tableActions,
+.adminPage #imoveis .adminPropertyActionsRow{
+  width:100%!important;
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+}
+.adminPage #imoveis .tableActions .miniButton,
+.adminPage #imoveis .adminPropertyActionsRow .miniButton{
+  flex:1 1 110px!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+
+/* Largura intermediária continua sendo desktop: não reduz para 3 colunas. */
+@media (min-width:701px){
+  .adminPage .adminModuleGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .adminPage #imoveis .adminTable tbody{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+@media (max-width:700px){
+  .adminPage .container.adminShell{
+    width:calc(100% - 20px)!important;
+    padding-top:12px!important;
+  }
+  .adminPage .adminModuleGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  .adminPage .adminModuleCard{
+    min-height:84px!important;
+    padding:12px!important;
+  }
+  .adminPage #imoveis .adminTable tbody{
+    grid-template-columns:1fr!important;
+  }
+  .adminPage #imoveis .adminTable tr{
+    grid-template-columns:1fr 1fr!important;
+    padding:14px!important;
+  }
+}
