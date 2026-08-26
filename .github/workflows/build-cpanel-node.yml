@@ -88,7 +88,9 @@ jobs:
           git add -f cpanel-node-build/imobiliarias-standalone-cpanel.zip
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "build: publish standalone cPanel package [skip netlify]"
+          # O build do Next pode deixar arquivos rastreados modificados (por exemplo next-env.d.ts).
+          # O ZIP já está salvo no commit acima, então descartamos apenas resíduos de build antes do rebase.
+          git reset --hard HEAD
           # Outro workflow pode ter publicado o ZIP estático enquanto este build rodava.
-          # Rebaseia o commit do standalone sobre o main atual para evitar push non-fast-forward.
           git pull --rebase origin main
           git push
