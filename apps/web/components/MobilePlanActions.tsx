@@ -1,0 +1,54 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { getCurrentAgency } from "../lib/currentAgency";
+import { supabaseBrowser } from "../lib/supabaseBrowser";
+
+type Plan = { id:string; name:string; description:string|null; monthly_price:number|null; annual_price:number|null; display_order:number };
+type Subscription = { plan_id:string; status:string; ends_at:string|null };
+
+function money(value:number|null) { return value == null ? "Valor não definido" : new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(value)); }
+
+export default function MobilePlanActions() {
+  const [agencyId,setAgencyId]=useState("");
+  const [plans,setPlans]=useState<Plan[]>([]);
+  const [subscription,setSubscription]=useState<Subscription|null>(null);
+  const [selectedId,setSelectedId]=useState("");
+  const [cycle,setCycle]=useState<"monthly"|"annual">("monthly");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("");
+
+  useEffect(()=>{ if(!supabaseBrowser)return; void(async()=>{
+    const agency=await getCurrentAgency(); if(!agency)return; setAgencyId(agency.agencyId);
+    const [p,s]=await Promise.all([
+      supabaseBrowser.from("subscription_plans").select("id,name,description,monthly_price,annual_price,display_order").eq("active",true).order("display_order").order("name"),
+      supabaseBrowser.from("agency_subscriptions").select("plan_id,status,ends_at").eq("agency_id",agency.agencyId).order("starts_at",{ascending:false}).limit(1).maybeSingle(),
+    ]);
+    if(p.error)return setMessage("Não foi possível carregar os planos agora.");
+    setPlans((p.data||[]) as Plan[]); setSubscription((s.data||null) as Subscription|null);
+  })(); },[]);
+
+  const otherPlans=useMemo(()=>plans.filter((p)=>p.id!==subscription?.plan_id),[plans,subscription]);
+  const current=useMemo(()=>plans.find((p)=>p.id===subscription?.plan_id)||null,[plans,subscription]);
+  const selected=useMemo(()=>plans.find((p)=>p.id===selectedId)||null,[plans,selectedId]);
+  const price=selected ? (cycle==="annual"?selected.annual_price:selected.monthly_price) : null;
+
+  async function checkout(planId:string, billingCycle:"monthly"|"annual") {
+    if(!supabaseBrowser||!agencyId)return;
+    setBusy(true); setMessage("");
+    const result=await supabaseBrowser.functions.invoke("create-infinitepay-checkout",{body:{agency_id:agencyId,plan_id:planId,billing_cycle:billingCycle}});
+    setBusy(false);
+    if(result.error||result.data?.error)return setMessage("Não foi possível iniciar o pagamento agora.");
+    const url=String(result.data?.checkout_url||""); if(!url)return setMessage("O pagamento não retornou um endereço válido.");
+    window.location.assign(url);
+  }
+
+  return <div className="mobilePlanActions">
+    {current ? <section className="mobileCurrentPlan"><span>PLANO ATUAL</span><strong>{current.name}</strong><small>{current.description||"Assinatura atual"}{subscription?.ends_at ? ` · válida até ${new Date(subscription.ends_at).toLocaleDateString("pt-BR")}`:""}</small><button type="button" onClick={()=>void checkout(current.id,"monthly")} disabled={busy||current.monthly_price==null}>{busy?"Aguarde...":`Renovar · ${money(current.monthly_price)}`}</button></section>:null}
+    <details className="mobileUpgradeBox"><summary><strong>Upgrade / alterar plano</strong><span>+</span></summary><div className="mobileUpgradeBody">
+      <div className="mobilePlanChoices">{otherPlans.map((plan)=><button type="button" key={plan.id} className={selectedId===plan.id?"active":""} onClick={()=>setSelectedId(plan.id)}><strong>{plan.name}</strong><small>{money(plan.monthly_price)}/mês</small></button>)}</div>
+      {selected ? <div className="mobileSelectedPlan"><strong>{selected.name}</strong><p>{selected.description||"Plano disponível para sua imobiliária."}</p><label>Cobrança<select value={cycle} onChange={(e)=>setCycle(e.target.value as "monthly"|"annual")}><option value="monthly">Mensal</option><option value="annual">Anual</option></select></label><div className="mobileSelectedPrice">{money(price)}</div><button type="button" onClick={()=>void checkout(selected.id,cycle)} disabled={busy||price==null||Number(price)<=0}>{busy?"Aguarde...":`Escolher ${selected.name}`}</button></div>:null}
+    </div></details>
+    {message?<div className="formMessage">{message}</div>:null}
+  </div>;
+}
