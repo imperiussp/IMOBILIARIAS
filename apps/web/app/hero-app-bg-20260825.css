@@ -1,21 +1,24 @@
-/* Hero público — correção direta do background desktop */
-/* Asset validado: /platform-hero-app-bg.webp */
+/* Hero público — correção definitiva do background desktop */
+/* Asset cache-busted aprovado: /platform-hero-app-bg-v2.webp */
 @media (min-width: 701px) {
-  .platformLanding .platformHero {
+  html body .platformLanding .platformHero {
     grid-template-columns: minmax(0,720px) minmax(0,1fr) !important;
     gap: 24px !important;
-    background-color: #061322 !important;
-    background-image: url('/platform-hero-app-bg.webp') !important;
-    background-repeat: no-repeat !important;
-    background-position: center center !important;
-    background-size: cover !important;
+    background: #061322 url('/platform-hero-app-bg-v2.webp') center center / cover no-repeat !important;
   }
 
-  .platformLanding .platformHeroCard {
+  html body .platformLanding .platformHero::before,
+  html body .platformLanding .platformHero::after {
+    content: none !important;
     display: none !important;
   }
 
-  .platformLanding .platformHero > div:first-child {
+  html body .platformLanding .platformHeroCard {
+    display: none !important;
+  }
+
+  html body .platformLanding .platformHero > div:first-child {
+    position: relative !important;
     z-index: 2 !important;
     max-width: 690px !important;
   }
