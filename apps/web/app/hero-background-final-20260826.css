@@ -1,10 +1,12 @@
-/* Correção pontual do hero desktop — 26/08/2026 */
+/* Hero desktop — fonte única, sem degradê e com cache-busting */
 @media (min-width: 701px) {
-  .platformLanding .platformHero {
-    background-color: #061322 !important;
-    background-image: url('/platform-hero-app-bg.webp') !important;
-    background-repeat: no-repeat !important;
-    background-position: center center !important;
-    background-size: cover !important;
+  html body .platformLanding .platformHero {
+    background: #061322 url('/platform-hero-app-bg-v2.webp') center center / cover no-repeat !important;
+  }
+
+  html body .platformLanding .platformHero::before,
+  html body .platformLanding .platformHero::after {
+    content: none !important;
+    display: none !important;
   }
 }
