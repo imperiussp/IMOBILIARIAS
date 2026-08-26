@@ -39,6 +39,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Preserve previous cPanel package
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f cpanel-node-build/imobiliarias-standalone-cpanel.zip ]; then
+            cp cpanel-node-build/imobiliarias-standalone-cpanel.zip /tmp/imobiliarias-previous-cpanel.zip
+          fi
       - name: Install all build dependencies
         run: pnpm install --no-frozen-lockfile
       - name: Build standalone production runtime
@@ -46,11 +53,11 @@ jobs:
           NODE_ENV: production
           CPANEL_STANDALONE: "1"
         run: pnpm --filter @imobiliarias/web build
-      - name: Assemble standalone package
+      - name: Assemble standalone and incremental packages
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf cpanel-node-build package-cpanel
+          rm -rf cpanel-node-build package-cpanel previous-cpanel update-cpanel
           mkdir -p cpanel-node-build package-cpanel
           STANDALONE="apps/web/.next/standalone"
           test -d "$STANDALONE"
@@ -78,19 +85,36 @@ jobs:
           EOF
           fi
           printf "commit=%s\nbuilt_at=%s\nmode=standalone\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > package-cpanel/cpanel-build.txt
-          # Passenger/cPanel recarrega o processo Node depois da extração deste pacote.
           mkdir -p package-cpanel/tmp
           printf "restart=%s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > package-cpanel/tmp/restart.txt
+
           cd package-cpanel
           zip -qr ../cpanel-node-build/imobiliarias-standalone-cpanel.zip . -x "*.log"
           cd ..
-      - name: Publish standalone package
+
+          mkdir -p update-cpanel
+          if [ -f /tmp/imobiliarias-previous-cpanel.zip ]; then
+            mkdir -p previous-cpanel
+            unzip -q /tmp/imobiliarias-previous-cpanel.zip -d previous-cpanel
+            rsync -a --checksum --compare-dest="$GITHUB_WORKSPACE/previous-cpanel/" package-cpanel/ update-cpanel/
+          else
+            cp -a package-cpanel/. update-cpanel/
+          fi
+
+          cd update-cpanel
+          zip -qr ../cpanel-node-build/imobiliarias-update-cpanel.zip . -x "*.log"
+          cd ..
+          echo "Pacote completo:"
+          du -h cpanel-node-build/imobiliarias-standalone-cpanel.zip
+          echo "Pacote incremental:"
+          du -h cpanel-node-build/imobiliarias-update-cpanel.zip
+      - name: Publish cPanel packages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f cpanel-node-build/imobiliarias-standalone-cpanel.zip
+          git add -f cpanel-node-build/imobiliarias-standalone-cpanel.zip cpanel-node-build/imobiliarias-update-cpanel.zip
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "build: publish standalone cPanel package [skip netlify]"
+          git commit -m "build: publish cPanel packages [skip netlify]"
           git reset --hard HEAD
           git pull --rebase origin main
           git push
