@@ -1,0 +1,221 @@
+/* LENOY IMOBILIÁRIAS — menus em cards e ordem alfabética — 26/08/2026 */
+
+/* Ao abrir qualquer menu, o botão de sanduíche original deixa de aparecer. */
+body:has(.adminMobileMenuLayer) .adminHamburger,
+body:has(.mobileMenuLayer) .mobileMenuButton{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+/* =========================
+   PAINEL /ADMIN — DESKTOP
+   ========================= */
+.adminMobileMenuLayer{
+  display:grid!important;
+  place-items:center!important;
+  padding:18px!important;
+}
+.adminMobileMenuBackdrop{position:absolute!important;inset:0!important}
+.adminMobileDrawer{
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  width:min(1180px,94vw)!important;
+  height:auto!important;
+  max-height:92dvh!important;
+  margin:0!important;
+  border-radius:20px!important;
+  overflow:auto!important;
+  background:#071f38!important;
+  box-shadow:0 28px 80px rgba(0,0,0,.34)!important;
+}
+.adminMobileDrawerHead{
+  position:sticky!important;
+  top:0!important;
+  z-index:3!important;
+  padding:16px 18px!important;
+  margin:0!important;
+  background:#071f38!important;
+}
+.adminMobileDrawer nav{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:9px!important;
+  padding:14px 16px 18px!important;
+}
+.adminMobileDrawer nav a{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  min-height:62px!important;
+  padding:9px 8px!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.065)!important;
+  color:#f3f7fa!important;
+  text-align:center!important;
+  line-height:1.22!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  overflow-wrap:anywhere!important;
+}
+.adminMobileDrawer nav a:hover{
+  background:rgba(255,255,255,.13)!important;
+  border-color:rgba(222,184,79,.48)!important;
+}
+
+/* Ordem alfabética do menu do painel. */
+.adminMobileDrawer nav a[href="#acompanhamentos"]{order:1}
+.adminMobileDrawer nav a[href="#agenda-visitas"]{order:2}
+.adminMobileDrawer nav a[href="#alertas-operacionais"]{order:3}
+.adminMobileDrawer nav a[href="#documentacao-imovel"]{order:4}
+.adminMobileDrawer nav a[href="#qualificacao-contatos"]{order:5}
+.adminMobileDrawer nav a[href="#convites"]{order:6}
+.adminMobileDrawer nav a[href="#corretores"]{order:7}
+.adminMobileDrawer nav a[href="#desempenho-corretores"]{order:8}
+.adminMobileDrawer nav a[href="#desempenho-imoveis"]{order:9}
+.adminMobileDrawer nav a[href="#documentos"]{order:10}
+.adminMobileDrawer nav a[href="#arquivos-documentos"]{order:11}
+.adminMobileDrawer nav a[href="#dominios"]{order:12}
+.adminMobileDrawer nav a[href="#emails-profissionais"]{order:13}
+.adminMobileDrawer nav a[href="#entregas-oportunidades"]{order:14}
+.adminMobileDrawer nav a[href="#exportacoes"]{order:15}
+.adminMobileDrawer nav a[href="#funil-comercial"]{order:16}
+.adminMobileDrawer nav a[href="#historico-contato"]{order:17}
+.adminMobileDrawer nav a[href="#imoveis"]{order:18}
+.adminMobileDrawer nav a[href="#metas-corretores"]{order:19}
+.adminMobileDrawer nav a[href="#meu-plano"]{order:20}
+.adminMobileDrawer nav a[href="#novo-imovel"]{order:21}
+.adminMobileDrawer nav a[href="#oportunidades-ia"]{order:22}
+.adminMobileDrawer nav a[href="#perfil-compra"]{order:23}
+.adminMobileDrawer nav a[href="#consentimento-compradores"]{order:24}
+.adminMobileDrawer nav a[href="#configuracoes"]{order:25}
+.adminMobileDrawer nav a[href="#qualidade-imoveis"]{order:26}
+.adminMobileDrawer nav a[href="#respostas-oportunidades"]{order:27}
+.adminMobileDrawer nav a[href="#tempo-resposta"]{order:28}
+.adminMobileDrawer nav a[href="#catalogo-config"]{order:29}
+.adminMobileDrawer nav a[href="#uso-documentos"]{order:30}
+.adminMobileDrawer nav a[href="#usuarios"]{order:31}
+.adminMobileDrawer nav a[href="#visao-geral"]{order:32}
+
+/* =========================
+   APP /APP — CARDS
+   ========================= */
+.mobileMenuLayer{
+  align-items:center!important;
+  justify-content:center!important;
+  padding:12px!important;
+}
+.mobileMenuDrawer{
+  position:relative!important;
+  width:min(1120px,96vw)!important;
+  height:auto!important;
+  max-height:92dvh!important;
+  padding:0 12px 14px!important;
+  border-radius:20px!important;
+  overflow:auto!important;
+  box-shadow:0 28px 80px rgba(7,24,45,.32)!important;
+}
+.mobileDrawerHead{
+  position:sticky!important;
+  top:0!important;
+  z-index:3!important;
+  margin:0 -12px!important;
+  padding:12px 14px!important;
+  background:#fff!important;
+  border-bottom:1px solid #dde3e9!important;
+}
+.mobileMenuList{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin-top:12px!important;
+}
+.mobileMenuList a{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  min-height:62px!important;
+  padding:8px!important;
+  border:1px solid #dde3e9!important;
+  border-radius:12px!important;
+  background:#f7f9fb!important;
+  text-align:center!important;
+  color:#07182d!important;
+  line-height:1.18!important;
+}
+.mobileMenuList a.active,
+.mobileMenuList a:hover{
+  background:#eaf0f6!important;
+  border-color:#c8d4df!important;
+}
+.mobileMenuList a>span{display:block!important;min-width:0!important}
+.mobileMenuList a b,
+.mobileMenuList a small{display:none!important}
+.mobileMenuList a strong{
+  display:block!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.mobileSignOut{margin-top:10px!important}
+
+/* Personalizar volta a aparecer com o nome esperado no app. */
+.mobileMenuList a[href*="view=identidade"] strong{
+  font-size:0!important;
+}
+.mobileMenuList a[href*="view=identidade"] strong::after{
+  content:"Personalizar";
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+
+/* Ordem alfabética do menu do app. */
+.mobileMenuList a[href*="view=acompanhamentos"]{order:1}
+.mobileMenuList a[href*="view=documentos"]{order:2}
+.mobileMenuList a[href*="view=classificacao"]{order:3}
+.mobileMenuList a[href*="view=contatos"]{order:4}
+.mobileMenuList a[href*="view=exportacoes"]{order:5}
+.mobileMenuList a[href*="view=corretores"]{order:6}
+.mobileMenuList a[href*="view=desempenho-corretores"]{order:7}
+.mobileMenuList a[href*="view=desempenho-imoveis"]{order:8}
+.mobileMenuList a[href*="view=ciclo-imoveis"]{order:9}
+.mobileMenuList a[href*="view=dominios"]{order:10}
+.mobileMenuList a[href*="view=emails"]{order:11}
+.mobileMenuList a[href*="view=entregas"]{order:12}
+.mobileMenuList a[href*="view=historico-precos"]{order:13}
+.mobileMenuList a[href*="view=historico-contato"]{order:14}
+.mobileMenuList a[href*="view=imoveis"]{order:15}
+.mobileMenuList a[href="/app/"]{order:16}
+.mobileMenuList a[href*="view=metas-corretores"]{order:17}
+.mobileMenuList a[href*="view=meu-plano"]{order:18}
+.mobileMenuList a[href*="view=novo-imovel"]{order:19}
+.mobileMenuList a[href*="view=oportunidades"]{order:20}
+.mobileMenuList a[href*="view=perfil-compra"]{order:21}
+.mobileMenuList a[href*="view=usuarios"]{order:22}
+.mobileMenuList a[href*="view=identidade"]{order:23}
+.mobileMenuList a[href*="view=visitas"]{order:24}
+
+/* Mobile: três cards por linha; telas muito estreitas usam dois. */
+@media(max-width:700px){
+  .adminMobileMenuLayer{padding:8px!important}
+  .adminMobileDrawer{width:calc(100vw - 16px)!important;max-height:94dvh!important;border-radius:16px!important}
+  .adminMobileDrawerHead{padding:12px 13px!important}
+  .adminMobileDrawer nav{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;padding:10px!important}
+  .adminMobileDrawer nav a{min-height:54px!important;padding:7px 5px!important;font-size:9px!important;border-radius:10px!important}
+
+  .mobileMenuLayer{padding:7px!important}
+  .mobileMenuDrawer{width:calc(100vw - 14px)!important;max-height:95dvh!important;border-radius:16px!important;padding:0 8px 10px!important}
+  .mobileDrawerHead{margin:0 -8px!important;padding:9px 10px!important}
+  .mobileMenuList{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}
+  .mobileMenuList a{min-height:54px!important;padding:6px 4px!important;border-radius:10px!important}
+  .mobileMenuList a strong,.mobileMenuList a[href*="view=identidade"] strong::after{font-size:9px!important}
+}
+
+@media(max-width:350px){
+  .adminMobileDrawer nav,
+  .mobileMenuList{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
