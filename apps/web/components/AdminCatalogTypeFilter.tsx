@@ -38,7 +38,7 @@ export default function AdminCatalogTypeFilter() {
         }
       });
       const count = document.querySelector<HTMLElement>(".adminPage #imoveis .adminPanelTools span");
-      if (count && selectedType && !count.textContent?.includes("Carregando")) count.textContent = `${visible} exibido(s)`;
+      if (count && !count.textContent?.includes("Carregando")) count.textContent = `${visible} exibido(s)`;
     };
 
     const installSelect = () => {
@@ -94,7 +94,7 @@ export default function AdminCatalogTypeFilter() {
         });
         observer.observe(document.body, { childList: true, subtree: true });
       } catch {
-        // O filtro complementar não deve interferir no restante do painel em caso de falha.
+        // O filtro complementar não interfere no restante do painel em caso de falha.
       }
     })();
 
