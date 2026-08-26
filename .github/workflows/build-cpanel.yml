@@ -68,6 +68,12 @@ jobs:
           [ -f cpanel-build/imobiliarias-cpanel.zip ] && git add -f cpanel-build/imobiliarias-cpanel.zip
           git commit -m "build: cPanel package result [skip netlify]" || true
 
+          # A exportação remove app/api e gera arquivos locais. Eles não pertencem ao
+          # commit do pacote e impedem um rebase. Limpamos o workspace somente depois
+          # de o diagnóstico/ZIP já estar salvo no commit local.
+          git reset --hard HEAD
+          git clean -fd apps/web/out || true
+
           # O workflow Node também publica artefatos no main. Se ele avançar a branch
           # enquanto esta build estática roda, rebaseamos o commit do pacote antes de enviar.
           if ! git diff --quiet HEAD^ HEAD 2>/dev/null; then
