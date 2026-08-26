@@ -4,6 +4,7 @@ import AdminMobileMenu from "../components/AdminMobileMenu";
 import AdminCatalogTypeFilter from "../components/AdminCatalogTypeFilter";
 import AdminSidebarActiveTracker from "../components/AdminSidebarActiveTracker";
 import UserDeviceAccessGuard from "../components/UserDeviceAccessGuard";
+import WebNotificationBellMount from "../components/WebNotificationBellMount";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -42,6 +43,7 @@ import "./platform-batch-corrections-20260826.css";
 import "./admin-dashboard-cards-20260826.css";
 import "./admin-dashboard-hardfix-20260826.css";
 import "./menu-cards-20260826.css";
+import "./release-corrections-20260826.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -77,7 +79,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /></body>
+      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /></body>
     </html>
   );
 }
