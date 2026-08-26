@@ -3,38 +3,40 @@
 import { useEffect, useState } from "react";
 
 const sections = [
-  ["Visão geral", "#visao-geral"],
-  ["Imóveis", "#imoveis"],
   ["Acompanhamentos", "#acompanhamentos"],
-  ["Novo imóvel", "#novo-imovel"],
-  ["Tipos", "#catalogo-config"],
-  ["Meu plano", "#meu-plano"],
-  ["Documentos", "#documentos"],
-  ["E-mails profissionais", "#emails-profissionais"],
-  ["Alertas operacionais", "#alertas-operacionais"],
-  ["Funil comercial", "#funil-comercial"],
-  ["Tempo de resposta", "#tempo-resposta"],
   ["Agenda de visitas", "#agenda-visitas"],
+  ["Alertas operacionais", "#alertas-operacionais"],
+  ["Checklist documental", "#documentacao-imovel"],
+  ["Classificação de contatos", "#qualificacao-contatos"],
+  ["Contatos recebidos", "#contatos"],
+  ["Convites de acesso", "#convites"],
+  ["Corretores", "#corretores"],
+  ["Desempenho dos corretores", "#desempenho-corretores"],
+  ["Desempenho dos imóveis", "#desempenho-imoveis"],
+  ["Destaques e selos", "#destaques-selos"],
+  ["Documentos", "#documentos"],
+  ["Documentos enviados", "#arquivos-documentos"],
+  ["Domínios", "#dominios"],
+  ["E-mails profissionais", "#emails-profissionais"],
+  ["Entregas automáticas", "#entregas-oportunidades"],
+  ["Exportações e cópia", "#exportacoes"],
+  ["Funil comercial", "#funil-comercial"],
+  ["Histórico dos contatos", "#historico-contato"],
+  ["Imóveis", "#imoveis"],
+  ["Metas dos corretores", "#metas-corretores"],
+  ["Meu plano", "#meu-plano"],
+  ["Novo imóvel", "#novo-imovel"],
+  ["Oportunidades automáticas", "#oportunidades-ia"],
   ["Perfil de compra", "#perfil-compra"],
   ["Permissões e consentimentos", "#consentimento-compradores"],
-  ["Oportunidades automáticas", "#oportunidades-ia"],
-  ["Entregas automáticas", "#entregas-oportunidades"],
-  ["Respostas IA", "#respostas-oportunidades"],
-  ["Classificação de contatos", "#qualificacao-contatos"],
-  ["Histórico dos contatos", "#historico-contato"],
-  ["Checklist documental", "#documentacao-imovel"],
-  ["Desempenho dos imóveis", "#desempenho-imoveis"],
-  ["Qualidade dos anúncios", "#qualidade-imoveis"],
-  ["Uso de documentos", "#uso-documentos"],
-  ["Desempenho dos corretores", "#desempenho-corretores"],
-  ["Metas dos corretores", "#metas-corretores"],
-  ["Corretores", "#corretores"],
-  ["Usuários e permissões", "#usuarios"],
-  ["Convites de acesso", "#convites"],
-  ["Documentos enviados", "#arquivos-documentos"],
   ["Personalizar", "#configuracoes"],
-  ["Domínios", "#dominios"],
-  ["Exportações e cópia", "#exportacoes"],
+  ["Qualidade dos anúncios", "#qualidade-imoveis"],
+  ["Respostas IA", "#respostas-oportunidades"],
+  ["Tempo de resposta", "#tempo-resposta"],
+  ["Tipos", "#catalogo-config"],
+  ["Uso de documentos", "#uso-documentos"],
+  ["Usuários e permissões", "#usuarios"],
+  ["Visão geral", "#visao-geral"],
 ] as const;
 
 export default function AdminMobileMenu() {
@@ -54,9 +56,9 @@ export default function AdminMobileMenu() {
 
   if (!isAdmin) return null;
   return <>
-    <button className="adminHamburger" type="button" aria-label="Abrir menu do painel" aria-expanded={open} onClick={() => setOpen(true)}>
+    {!open ? <button className="adminHamburger" type="button" aria-label="Abrir menu do painel" aria-expanded={false} onClick={() => setOpen(true)}>
       <span></span><span></span><span></span>
-    </button>
+    </button> : null}
     {open ? <div className="adminMobileMenuLayer" role="dialog" aria-modal="true" aria-label="Menu do painel">
       <button className="adminMobileMenuBackdrop" type="button" aria-label="Fechar menu" onClick={() => setOpen(false)} />
       <aside className="adminMobileDrawer">
