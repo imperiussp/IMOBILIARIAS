@@ -1,0 +1,10 @@
+/* Correção pontual do hero desktop — 26/08/2026 */
+@media (min-width: 701px) {
+  .platformLanding .platformHero {
+    background-color: #061322 !important;
+    background-image: url('/platform-hero-app-bg.webp') !important;
+    background-repeat: no-repeat !important;
+    background-position: center center !important;
+    background-size: cover !important;
+  }
+}
