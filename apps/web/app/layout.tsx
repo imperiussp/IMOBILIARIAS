@@ -9,6 +9,7 @@ import AdminThemeBridge from "../components/AdminThemeBridge";
 import AdminHighlightsPanelMount from "../components/AdminHighlightsPanelMount";
 import PublicFeaturedPropertiesMount from "../components/PublicFeaturedPropertiesMount";
 import AdminContactsPanelMount from "../components/AdminContactsPanelMount";
+import PreserveCurrentFixesMount from "../components/PreserveCurrentFixesMount";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -87,7 +88,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /></body>
+      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><PreserveCurrentFixesMount /></body>
     </html>
   );
 }
