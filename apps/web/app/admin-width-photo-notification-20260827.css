@@ -39,6 +39,102 @@
   box-sizing:border-box!important;
 }
 
+/* Desktop: avaliações recebidas ficam em cards compactos, três por linha. */
+@media (min-width: 901px){
+  .ownerReviewList{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    align-items:start!important;
+    gap:14px!important;
+  }
+  .ownerReviewCard{
+    min-width:0!important;
+    padding:14px!important;
+  }
+  .ownerReviewCardTop{
+    gap:8px!important;
+  }
+  .ownerReviewCardTop>div{
+    min-width:0!important;
+  }
+  .ownerReviewCardTop h3{
+    font-size:17px!important;
+    line-height:1.2!important;
+    overflow-wrap:anywhere!important;
+  }
+  .ownerReviewCardTop small{
+    font-size:10px!important;
+    line-height:1.35!important;
+  }
+
+  /* O card mostra somente a foto principal; as demais continuam disponíveis no visualizador. */
+  .ownerReviewPhotos{
+    display:block!important;
+    margin:12px 0!important;
+  }
+  .ownerReviewPhotos img{
+    display:none!important;
+  }
+  .ownerReviewPhotos img:first-child{
+    display:block!important;
+    width:100%!important;
+    aspect-ratio:16/10!important;
+    object-fit:cover!important;
+    border-radius:12px!important;
+    background:#eef2f6!important;
+  }
+
+  /* Informações organizadas dentro de cada card, sem espalhar pela largura da página. */
+  .ownerReviewData{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  .ownerReviewData>div{
+    min-width:0!important;
+    padding:9px!important;
+  }
+  .ownerReviewData>div:nth-child(1),
+  .ownerReviewData>div:nth-child(2),
+  .ownerReviewData>div:nth-child(5){
+    grid-column:1 / -1!important;
+  }
+  .ownerReviewData strong,
+  .ownerReviewData small{
+    overflow-wrap:anywhere!important;
+  }
+  .ownerReviewDescription{
+    margin-top:8px!important;
+    padding:9px 10px!important;
+  }
+  .ownerReviewDescription p{
+    font-size:12px!important;
+    line-height:1.45!important;
+    overflow-wrap:anywhere!important;
+  }
+  .ownerReviewActions{
+    gap:7px!important;
+    margin-top:10px!important;
+  }
+  .ownerReviewActions>button,
+  .ownerReviewActions>a{
+    flex:1 1 calc(50% - 4px)!important;
+    min-height:38px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    padding:8px 9px!important;
+  }
+
+  /* Ao editar dentro do card estreito, os campos continuam legíveis. */
+  .ownerReviewEdit .ownerReviewGrid,
+  .ownerReviewEdit .ownerReviewGrid.three{
+    grid-template-columns:1fr!important;
+  }
+  .ownerReviewEdit .ownerReviewGrid.four{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+
 /* Fotos enviadas pelo proprietário passam a indicar claramente que podem ser abertas. */
 .ownerReviewPhotos img[data-viewer-ready="true"]{
   cursor:zoom-in!important;
