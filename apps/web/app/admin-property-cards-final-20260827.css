@@ -1,0 +1,133 @@
+/* LENOY IMOBILIÁRIAS — correção final dos cards de imóveis — 27/08/2026 */
+
+/*
+  Diagnóstico aplicado aqui:
+  1) Imóveis para avaliação eram renderizados por OwnerPropertyReviewMount em uma grade sem colunas definidas,
+     por isso cada card podia ocupar a linha inteira.
+  2) As fotos extras continuam no DOM para o visualizador, mas somente a principal deve aparecer no card.
+  3) Imóveis cadastrados já eram transformados em cards, porém um breakpoint anterior reduzia a grade
+     para duas colunas entre 901px e 1250px. Este arquivo é carregado por último e fixa o comportamento final.
+*/
+
+/* Todas as avaliações exibem somente a foto principal no card.
+   As demais imagens continuam presentes no DOM e são usadas pelo visualizador ao clicar na principal. */
+.ownerReviewPhotos{
+  display:block!important;
+  margin:12px 0!important;
+}
+.ownerReviewPhotos img{
+  display:none!important;
+}
+.ownerReviewPhotos img:first-child{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  aspect-ratio:16/10!important;
+  object-fit:cover!important;
+  border-radius:12px!important;
+  background:#eef2f6!important;
+}
+
+/* DESKTOP: três imóveis por linha nas duas áreas. */
+@media (min-width:901px){
+  .ownerReviewList{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    align-items:start!important;
+    gap:14px!important;
+    width:100%!important;
+  }
+  .ownerReviewCard{
+    min-width:0!important;
+    width:auto!important;
+    max-width:none!important;
+    padding:14px!important;
+    box-sizing:border-box!important;
+  }
+  .ownerReviewCardTop{
+    gap:8px!important;
+  }
+  .ownerReviewCardTop>div{
+    min-width:0!important;
+  }
+  .ownerReviewCardTop h3{
+    font-size:17px!important;
+    line-height:1.2!important;
+    overflow-wrap:anywhere!important;
+  }
+  .ownerReviewCardTop small{
+    font-size:10px!important;
+    line-height:1.35!important;
+  }
+  .ownerReviewData{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  .ownerReviewData>div{
+    min-width:0!important;
+    padding:9px!important;
+  }
+  .ownerReviewData>div:nth-child(1),
+  .ownerReviewData>div:nth-child(2),
+  .ownerReviewData>div:nth-child(5){
+    grid-column:1 / -1!important;
+  }
+  .ownerReviewData strong,
+  .ownerReviewData small,
+  .ownerReviewDescription p{
+    overflow-wrap:anywhere!important;
+  }
+  .ownerReviewDescription{
+    margin-top:8px!important;
+    padding:9px 10px!important;
+  }
+  .ownerReviewDescription p{
+    font-size:12px!important;
+    line-height:1.45!important;
+  }
+  .ownerReviewActions{
+    gap:7px!important;
+    margin-top:10px!important;
+  }
+  .ownerReviewActions>button,
+  .ownerReviewActions>a{
+    flex:1 1 calc(50% - 4px)!important;
+    min-height:38px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    padding:8px 9px!important;
+    box-sizing:border-box!important;
+  }
+
+  /* Imóveis cadastrados: mantém três cards por linha em todo desktop,
+     anulando o breakpoint antigo que reduzia para duas colunas. */
+  .adminPage #imoveis .adminTable tbody{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:14px!important;
+    width:100%!important;
+  }
+}
+
+/* MOBILE/TABLET: um imóvel por linha. */
+@media (max-width:900px){
+  .ownerReviewList{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+    width:100%!important;
+  }
+  .ownerReviewCard{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+  .adminPage #imoveis .adminTable tbody{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    width:100%!important;
+  }
+}
