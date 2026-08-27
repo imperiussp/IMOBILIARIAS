@@ -21,6 +21,16 @@ function timeLabel(value: string) {
   return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+function notificationHref(row: NotificationRow) {
+  if (!row.lead_id) return "";
+  const lead = encodeURIComponent(row.lead_id);
+  const notification = encodeURIComponent(row.id);
+  if (window.location.pathname.includes("/app")) {
+    return `/app/?view=contatos&lead=${lead}&notification=${notification}`;
+  }
+  return `/admin/?lead=${lead}&notification=${notification}#contatos`;
+}
+
 export default function WebNotificationBellMount() {
   const [target, setTarget] = useState<Element | null>(null);
   const [agencyId, setAgencyId] = useState("");
@@ -114,6 +124,13 @@ export default function WebNotificationBellMount() {
     if (!error) setRows((current) => current.map((row) => row.id === id ? { ...row, read_at: row.read_at || now } : row));
   }
 
+  async function openNotification(row: NotificationRow) {
+    await markRead(row.id);
+    setOpen(false);
+    const href = notificationHref(row);
+    if (href) window.location.assign(href);
+  }
+
   async function markAllRead() {
     if (!supabaseBrowser || !agencyId || !userId || !unread) return;
     const now = new Date().toISOString();
@@ -137,7 +154,7 @@ export default function WebNotificationBellMount() {
       {open ? <div className="webNotificationPanel" role="dialog" aria-label="Notificações">
         <div className="webNotificationHead"><div><strong>Notificações</strong><small>{unread ? `${unread} não lida(s)` : "Tudo em dia"}</small></div>{unread ? <button type="button" onClick={() => void markAllRead()}>Marcar todas como lidas</button> : null}</div>
         <div className="webNotificationList">
-          {rows.length ? rows.map((row) => <button key={row.id} type="button" className={`webNotificationItem${row.read_at ? " read" : " unread"}`} onClick={() => void markRead(row.id)}>
+          {rows.length ? rows.map((row) => <button key={row.id} type="button" className={`webNotificationItem${row.read_at ? " read" : " unread"}`} onClick={() => void openNotification(row)}>
             <span className="webNotificationDot" aria-hidden="true"></span>
             <span><strong>{row.title}</strong>{row.body ? <small>{row.body}</small> : null}<em>{timeLabel(row.created_at)}</em></span>
           </button>) : <div className="webNotificationEmpty">Nenhuma notificação.</div>}
