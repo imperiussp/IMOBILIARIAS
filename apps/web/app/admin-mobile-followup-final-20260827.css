@@ -1,0 +1,140 @@
+/* LENOY IMOBILIÁRIAS — correção mobile pós-diagnóstico — 27/08/2026 */
+
+/*
+  Diagnóstico:
+  1) o tamanho do menu estava sendo aplicado ao <a>, mas regras antigas com !important
+     continuam definindo 9/10px diretamente no <strong> interno;
+  2) o sino do /admin era portalizado dentro de .adminHeadingActions e apenas deslocado
+     visualmente por position:fixed; agora ele é montado no .adminNav real;
+  3) #novo-imovel não recebeu a mesma normalização de largura aplicada a #imoveis e
+     #desempenho-imoveis, por isso continuava como painel aninhado e estreito no celular.
+*/
+
+/* Menu sanduíche — desktop: maior, porém mais leve. */
+@media (min-width:901px){
+  .adminMobileDrawer nav a,
+  .adminMobileDrawer nav a strong{
+    font-size:16px!important;
+    font-weight:500!important;
+    line-height:1.3!important;
+  }
+}
+
+/* Menu sanduíche — celular/tablet: aumenta a fonte no elemento que realmente a controla. */
+@media (max-width:900px){
+  .adminMobileDrawer nav a,
+  .adminMobileDrawer nav a strong,
+  .mobileMenuList a strong{
+    font-size:14px!important;
+    font-weight:700!important;
+    line-height:1.25!important;
+  }
+
+  .adminMobileDrawer nav a[href="#configuracoes"] strong,
+  .mobileMenuList a[href*="view=identidade"] strong{
+    font-size:14px!important;
+  }
+
+  .adminMobileDrawer nav a[href="#configuracoes"] strong::after,
+  .mobileMenuList a[href*="view=identidade"] strong::after{
+    font-size:14px!important;
+    line-height:1.25!important;
+  }
+
+  /* O Admin mobile usa quase toda a largura da tela, com apenas 6px de respiro por lado. */
+  .adminPage .container.adminShell{
+    display:block!important;
+    width:calc(100% - 12px)!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .adminPage .adminContent{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  /* Cadastrar imóvel: elimina o estreitamento extra do painel e do formulário. */
+  .adminPage #novo-imovel.adminPanel{
+    position:static!important;
+    left:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    padding:12px!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+  }
+
+  .adminPage #novo-imovel > .adminPanelHeader,
+  .adminPage #novo-imovel .propertyForm,
+  .adminPage #novo-imovel .mobilePropertyForm,
+  .adminPage #novo-imovel .formGrid,
+  .adminPage #novo-imovel .formGrid.three,
+  .adminPage #novo-imovel .formGrid.four,
+  .adminPage #novo-imovel label,
+  .adminPage #novo-imovel input,
+  .adminPage #novo-imovel select,
+  .adminPage #novo-imovel textarea{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+
+  /* Sino agora está no cabeçalho real do /admin. */
+  .adminPage .adminNav > .webNotificationBellWrap{
+    position:fixed!important;
+    top:15px!important;
+    right:72px!important;
+    z-index:4600!important;
+    display:flex!important;
+    visibility:visible!important;
+    margin:0!important;
+  }
+
+  .adminPage .adminNav > .webNotificationBellWrap .webNotificationBell{
+    width:38px!important;
+    height:38px!important;
+    border-radius:10px!important;
+  }
+}
+
+/* Telefones estreitos: não manter grades internas que comprimem os campos do cadastro. */
+@media (max-width:480px){
+  .adminPage #novo-imovel .formGrid,
+  .adminPage #novo-imovel .formGrid.three,
+  .adminPage #novo-imovel .formGrid.four{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* Mantém o posicionamento aprovado no desktop depois da mudança real de portal do sino. */
+@media (min-width:901px){
+  .adminPage .adminNav > .webNotificationBellWrap{
+    position:fixed!important;
+    top:17px!important;
+    right:112px!important;
+    z-index:4600!important;
+    display:flex!important;
+    visibility:visible!important;
+    margin:0!important;
+  }
+  .adminPage .adminNav > .webNotificationBellWrap .webNotificationBell{
+    width:40px!important;
+    height:40px!important;
+  }
+}
