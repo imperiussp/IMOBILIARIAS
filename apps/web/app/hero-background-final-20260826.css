@@ -1,7 +1,11 @@
-/* Hero desktop — fonte única, sem degradê e com cache-busting */
+/* Hero desktop — restaura a fonte real da imagem enviada e aprovada */
 @media (min-width: 701px) {
   html body .platformLanding .platformHero {
-    background: #061322 url('/platform-hero-app-bg-v2.webp') center center / cover no-repeat !important;
+    background-color: #061322 !important;
+    background-image: url('/platform-hero-app-bg.webp') !important;
+    background-repeat: no-repeat !important;
+    background-position: center center !important;
+    background-size: cover !important;
   }
 
   html body .platformLanding .platformHero::before,
