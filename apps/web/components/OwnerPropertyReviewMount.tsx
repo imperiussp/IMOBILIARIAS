@@ -13,7 +13,6 @@ type Submission = {
 };
 type SubmissionPhoto = { submission_id:string; storage_path:string; position:number };
 type PhotoMap = Record<string,string[]>;
-
 type Draft = Submission;
 
 function money(value:number|null){return value==null?"Não informado":new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value);}
@@ -133,10 +132,12 @@ export default function OwnerPropertyReviewMount(){
     if(result.error||!data?.ok||!data.property_id){setMessage(data?.detail||result.error?.message||"Não foi possível publicar o imóvel.");return;}
     const now=new Date().toISOString();
     setRows(current=>current.map(item=>item.id===row.id?{...item,status:"published",published_property_id:data.property_id!,published_at:now}:item));
-    setMessage("Imóvel publicado. Ele já está disponível no site e continua editável na área de imóveis cadastrados.");
+    setMessage("Imóvel publicado. Ele já está disponível no site e continua editável em Imóveis cadastrados.");
+    window.setTimeout(()=>window.location.reload(),700);
   }
 
   function publicUrl(row:Submission){return row.published_property_id&&agencySlug?`https://${agencySlug}.imoveis.lenoy.com.br/imovel/?id=${encodeURIComponent(row.published_property_id)}`:"";}
+  function catalogHref(){return window.location.pathname.includes("/app")?"/app/?view=imoveis#imoveis":"/admin/#imoveis";}
 
   if(!host)return null;
   return createPortal(<section className="ownerReviewPanel">
@@ -148,7 +149,7 @@ export default function OwnerPropertyReviewMount(){
       return <article key={row.id} data-owner-submission={row.id} className={`ownerReviewCard ${row.status}${highlightId===row.id?" highlight":""}`}>
         <div className="ownerReviewCardTop"><div><span>{row.status==="published"?"PUBLICADO":"AGUARDANDO AVALIAÇÃO"}</span><h3>{row.title || row.property_type}</h3><small>Enviado por {row.owner_name} em {new Date(row.created_at).toLocaleDateString("pt-BR")}</small></div><strong>{row.status==="published"?"Publicado":"Privado"}</strong></div>
         {photos[row.id]?.length?<div className="ownerReviewPhotos">{photos[row.id].map((url,index)=><img key={url} src={url} alt={`${row.title || row.property_type} - foto ${index+1}`}/>)}</div>:null}
-        {editing?<div className="ownerReviewEdit">
+        {editing&&row.status==="pending"?<div className="ownerReviewEdit">
           <label>Título<input value={draft!.title||""} onChange={e=>setDraft({...draft!,title:e.target.value})}/></label>
           <div className="ownerReviewGrid"><label>Proprietário<input value={draft!.owner_name} onChange={e=>setDraft({...draft!,owner_name:e.target.value})}/></label><label>WhatsApp<input value={draft!.phone} onChange={e=>setDraft({...draft!,phone:e.target.value})}/></label></div>
           <label>E-mail<input value={draft!.email||""} onChange={e=>setDraft({...draft!,email:e.target.value})}/></label>
@@ -163,11 +164,11 @@ export default function OwnerPropertyReviewMount(){
           <div className="ownerReviewData"><div><span>Proprietário</span><strong>{row.owner_name}</strong><small>{row.phone}{row.email?` · ${row.email}`:""}</small></div><div><span>Local</span><strong>{row.address}</strong><small>{row.neighborhood?`${row.neighborhood} · `:""}{row.city}{row.state_code?`/${row.state_code}`:""}</small></div><div><span>Tipo / finalidade</span><strong>{row.property_type}</strong><small>{purposeLabel(row.purpose)}</small></div><div><span>Valor</span><strong>{money(row.requested_price)}</strong><small>Financiamento: {financingLabel(row.caixa_financeable)}</small></div><div><span>Características</span><strong>{row.bedrooms??"—"} qtos · {row.bathrooms??"—"} banh. · {row.garages??"—"} vagas</strong><small>{row.area_m2!=null?`${row.area_m2} m²`:"Área não informada"}</small></div></div>
           <div className="ownerReviewDescription"><span>Descrição enviada</span><p>{row.description}</p></div>
           <div className="ownerReviewActions">
-            <button type="button" onClick={()=>beginEdit(row)}>Editar dados</button>
+            {row.status==="pending"?<button type="button" onClick={()=>beginEdit(row)}>Editar dados</button>:null}
             {wa?<a className="whatsapp" target="_blank" rel="noreferrer" href={`https://wa.me/${wa}?text=${encodeURIComponent(whatsappText(row,agencyName||"imobiliária"))}`}>WhatsApp do proprietário</a>:null}
             {row.status==="pending"?<button className="publish" type="button" disabled={busyId===row.id} onClick={()=>void publish(row)}>{busyId===row.id?"Publicando...":"Publicar no site"}</button>:null}
             {publicUrl(row)?<a className="primary" target="_blank" rel="noreferrer" href={publicUrl(row)}>Ver anúncio</a>:null}
-            {row.published_property_id?<a href={`/app/?view=imoveis&property=${encodeURIComponent(row.published_property_id)}`}>Editar anúncio</a>:null}
+            {row.published_property_id?<a href={catalogHref()}>Editar em imóveis cadastrados</a>:null}
           </div>
         </>}
       </article>})}</div>}
