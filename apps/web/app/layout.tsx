@@ -14,6 +14,7 @@ import OwnerPropertyReviewMount from "../components/OwnerPropertyReviewMount";
 import OwnerPropertyReviewEnhancer from "../components/OwnerPropertyReviewEnhancer";
 import AdminCatalogPhotosMount from "../components/AdminCatalogPhotosMount";
 import AppPropertyCatalogEnhancer from "../components/AppPropertyCatalogEnhancer";
+import AdminDirectPropertyInterests from "../components/AdminDirectPropertyInterests";
 import saasHeroBgChunk1 from "../lib/saasHeroBgChunk1";
 import saasHeroBgChunk2 from "../lib/saasHeroBgChunk2";
 import saasHeroBgChunk3 from "../lib/saasHeroBgChunk3";
@@ -115,7 +116,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /></body>
+      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /></body>
     </html>
   );
 }
