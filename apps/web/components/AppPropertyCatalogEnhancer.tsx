@@ -274,7 +274,7 @@ export default function AppPropertyCatalogEnhancer() {
           : Promise.resolve({ data: [], error: null }),
         supabaseBrowser.from("agency_contacts").select("id,name,phone,email,contact_type,status,last_interaction_at").eq("agency_id", currentAgency.agencyId).order("last_interaction_at", { ascending: false }).limit(500),
         propertyIds.length
-          ? supabaseBrowser.from("contact_interactions").select("contact_id,property_id").eq("agency_id", currentAgency.agencyId).eq("interaction_type", "property_interest_manual").in("property_id", propertyIds).limit(5000)
+          ? supabaseBrowser.from("contact_interactions").select("contact_id,property_id").eq("agency_id", currentAgency.agencyId).in("interaction_type", ["property_interest_manual", "property_interest"]).in("property_id", propertyIds).limit(5000)
           : Promise.resolve({ data: [], error: null }),
       ]);
       if (disposed) return;
