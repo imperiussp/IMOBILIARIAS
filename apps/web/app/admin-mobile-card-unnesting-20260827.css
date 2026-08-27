@@ -1,28 +1,31 @@
-/* LENOY IMOBILIÁRIAS — mobile: remover cards externos e usar a largura real da tela — 27/08/2026 */
+/* LENOY IMOBILIÁRIAS — mobile: cards na mesma largura do conteúdo normal — 27/08/2026 */
 /* Escopo exclusivo do Admin em telas de até 900px. Desktop permanece inalterado. */
 
 @media (max-width:900px){
-  /* Os dois blocos precisam escapar da largura reduzida do adminShell.
-     A centralização usa a largura da viewport, sem criar rolagem horizontal. */
+  /* Diagnóstico aplicado:
+     - NÃO escapar para 100vw;
+     - usar a mesma largura útil do adminShell usada por Ferramentas da imobiliária;
+     - remover os 90% internos e os cards externos redundantes;
+     - nenhuma rolagem horizontal. */
   .adminPage .adminContent{
-    overflow-x:visible!important;
+    overflow-x:hidden!important;
   }
 
   .adminPage #imoveis.adminPanel,
   .adminPage #desempenho-imoveis.adminPanel{
-    position:relative!important;
-    left:50%!important;
-    transform:translateX(-50%)!important;
-    width:calc(100vw - 12px)!important;
-    max-width:calc(100vw - 12px)!important;
+    position:static!important;
+    left:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:100%!important;
     margin-left:0!important;
     margin-right:0!important;
     box-sizing:border-box!important;
   }
 
   /* IMÓVEIS CADASTRADOS
-     Remove o painel/card externo e o invólucro visual da tabela.
-     O card de cada imóvel passa a usar praticamente toda a largura da tela. */
+     Remove a caixa externa e a caixa intermediária da tabela.
+     Cada imóvel ocupa 100% da mesma largura útil dos demais módulos mobile. */
   .adminPage #imoveis.adminPanel{
     padding:0!important;
     border:0!important;
@@ -32,15 +35,7 @@
     overflow:visible!important;
   }
 
-  .adminPage #imoveis > .adminPanelHeader{
-    width:100%!important;
-    max-width:100%!important;
-    margin:0!important;
-    padding:0 4px 12px!important;
-    border:0!important;
-    background:transparent!important;
-  }
-
+  .adminPage #imoveis > .adminPanelHeader,
   .adminPage #imoveis > .adminFilters,
   .adminPage #imoveis > .formMessage,
   .adminPage #imoveis > .adminTableWrap{
@@ -48,6 +43,13 @@
     max-width:100%!important;
     margin-left:0!important;
     margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .adminPage #imoveis > .adminPanelHeader{
+    padding:0 0 12px!important;
+    border:0!important;
+    background:transparent!important;
   }
 
   .adminPage #imoveis > .adminTableWrap{
@@ -60,9 +62,12 @@
   }
 
   .adminPage #imoveis .adminTable,
-  .adminPage #imoveis .adminTable tbody{
+  .adminPage #imoveis .adminTable tbody,
+  .adminPage #imoveis .adminTable tr{
     width:100%!important;
     max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
   }
 
   .adminPage #imoveis .adminTable tbody{
@@ -72,15 +77,13 @@
   }
 
   .adminPage #imoveis .adminTable tr{
-    width:100%!important;
-    max-width:100%!important;
     margin:0!important;
-    box-sizing:border-box!important;
   }
 
   /* DESEMPENHO DOS IMÓVEIS
-     Remove o card mestre e o card intermediário. Os cards de cada imóvel
-     ocupam a largura real da tela e as métricas ficam dentro deles. */
+     O painel mestre deixa de funcionar como card visual.
+     Cabeçalho, métricas e lista usam 100% da largura útil do adminShell.
+     Isto substitui explicitamente as regras antigas de 90% para <=480px. */
   .adminPage #desempenho-imoveis.adminPanel{
     padding:0!important;
     border:0!important;
@@ -99,11 +102,12 @@
     max-width:100%!important;
     margin-left:0!important;
     margin-right:0!important;
+    box-sizing:border-box!important;
   }
 
   .adminPage #desempenho-imoveis > .adminPanelHeader{
-    padding-left:4px!important;
-    padding-right:4px!important;
+    padding-left:0!important;
+    padding-right:0!important;
     border:0!important;
     background:transparent!important;
   }
@@ -122,6 +126,8 @@
   .adminPage #desempenho-imoveis .adminTable tr{
     width:100%!important;
     max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
   }
 
   .adminPage #desempenho-imoveis .adminTable tbody{
@@ -136,10 +142,23 @@
     background:#fff!important;
     box-shadow:0 4px 14px rgba(17,35,52,.05)!important;
     overflow:hidden!important;
-    box-sizing:border-box!important;
   }
 
   .adminPage #desempenho-imoveis .adminTable tr:last-child{
     margin-bottom:0!important;
+  }
+}
+
+@media (max-width:480px){
+  /* Garante que a regra antiga de 90% não volte a estreitar estes dois blocos. */
+  .adminPage #desempenho-imoveis > .adminPanelHeader,
+  .adminPage #desempenho-imoveis > .adminMetrics,
+  .adminPage #desempenho-imoveis > .adminTableWrap,
+  .adminPage #desempenho-imoveis > .formNotice,
+  .adminPage #desempenho-imoveis > .formMessage{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
   }
 }
