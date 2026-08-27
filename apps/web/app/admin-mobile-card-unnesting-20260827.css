@@ -1,15 +1,29 @@
-/* LENOY IMOBILIÁRIAS — mobile: remover cards externos desnecessários — 27/08/2026 */
-/* Escopo exclusivo do Admin em telas de até 900px. */
+/* LENOY IMOBILIÁRIAS — mobile: remover cards externos e usar a largura real da tela — 27/08/2026 */
+/* Escopo exclusivo do Admin em telas de até 900px. Desktop permanece inalterado. */
 
 @media (max-width:900px){
-  /* IMÓVEIS CADASTRADOS
-     Remove o painel/card externo e o invólucro visual da tabela.
-     O card de cada imóvel passa a usar toda a largura útil disponível. */
-  .adminPage #imoveis.adminPanel{
-    width:100%!important;
-    max-width:100%!important;
+  /* Os dois blocos precisam escapar da largura reduzida do adminShell.
+     A centralização usa a largura da viewport, sem criar rolagem horizontal. */
+  .adminPage .adminContent{
+    overflow-x:visible!important;
+  }
+
+  .adminPage #imoveis.adminPanel,
+  .adminPage #desempenho-imoveis.adminPanel{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:calc(100vw - 12px)!important;
+    max-width:calc(100vw - 12px)!important;
     margin-left:0!important;
     margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  /* IMÓVEIS CADASTRADOS
+     Remove o painel/card externo e o invólucro visual da tabela.
+     O card de cada imóvel passa a usar praticamente toda a largura da tela. */
+  .adminPage #imoveis.adminPanel{
     padding:0!important;
     border:0!important;
     border-radius:0!important;
@@ -22,7 +36,7 @@
     width:100%!important;
     max-width:100%!important;
     margin:0!important;
-    padding:0 0 12px!important;
+    padding:0 4px 12px!important;
     border:0!important;
     background:transparent!important;
   }
@@ -61,16 +75,13 @@
     width:100%!important;
     max-width:100%!important;
     margin:0!important;
+    box-sizing:border-box!important;
   }
 
   /* DESEMPENHO DOS IMÓVEIS
-     Remove o card mestre e o card intermediário. Mantém os pequenos
-     cards de métricas e a identificação do imóvel sem outro card em volta. */
+     Remove o card mestre e o card intermediário. Os cards de cada imóvel
+     ocupam a largura real da tela e as métricas ficam dentro deles. */
   .adminPage #desempenho-imoveis.adminPanel{
-    width:100%!important;
-    max-width:100%!important;
-    margin-left:0!important;
-    margin-right:0!important;
     padding:0!important;
     border:0!important;
     border-radius:0!important;
@@ -91,8 +102,8 @@
   }
 
   .adminPage #desempenho-imoveis > .adminPanelHeader{
-    padding-left:0!important;
-    padding-right:0!important;
+    padding-left:4px!important;
+    padding-right:4px!important;
     border:0!important;
     background:transparent!important;
   }
@@ -113,19 +124,22 @@
     max-width:100%!important;
   }
 
+  .adminPage #desempenho-imoveis .adminTable tbody{
+    gap:14px!important;
+  }
+
   .adminPage #desempenho-imoveis .adminTable tr{
     margin:0!important;
-    padding:0 0 14px!important;
-    border:0!important;
-    border-bottom:1px solid #e5eaee!important;
-    border-radius:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    overflow:visible!important;
+    padding:12px!important;
+    border:1px solid #e1e7ec!important;
+    border-radius:14px!important;
+    background:#fff!important;
+    box-shadow:0 4px 14px rgba(17,35,52,.05)!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
   }
 
   .adminPage #desempenho-imoveis .adminTable tr:last-child{
-    border-bottom:0!important;
-    padding-bottom:0!important;
+    margin-bottom:0!important;
   }
 }
