@@ -18,6 +18,75 @@ function errorMessage(value: unknown) {
   return String(value);
 }
 
+function normalize(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+type NotificationRecord = {
+  id: string;
+  agency_id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  lead_id: string | null;
+  source: string | null;
+  kind: string | null;
+  event_key: string | null;
+  source_response_id: string | null;
+  push_attempts: number | null;
+};
+
+function openPathFor(notification: NotificationRecord) {
+  const text = normalize([
+    notification.kind,
+    notification.source,
+    notification.event_key,
+    notification.title,
+    notification.body,
+  ].filter(Boolean).join(" "));
+
+  let view = "home";
+  let includeLead = false;
+
+  if (text.includes("imovel para avaliacao") || text.includes("owner property") || text.includes("owner_property") || text.includes("owner-property")) {
+    view = "imoveis";
+    includeLead = true;
+  } else if (text.includes("e-mail") || text.includes("email") || text.includes("webmail") || text.includes("mailbox")) {
+    view = "emails";
+  } else if (text.includes("visita") || text.includes("appointment") || text.includes("agenda")) {
+    view = "visitas";
+    includeLead = true;
+  } else if (text.includes("document")) {
+    view = "documentos";
+    includeLead = true;
+  } else if (text.includes("followup") || text.includes("follow-up") || text.includes("acompanhamento") || text.includes("retorno")) {
+    view = "acompanhamentos";
+    includeLead = true;
+  } else if (text.includes("oportunidade") || text.includes("match")) {
+    view = "oportunidades";
+    includeLead = true;
+  } else if (text.includes("entrega") || text.includes("delivery")) {
+    view = "entregas";
+    includeLead = true;
+  } else if (text.includes("plano") || text.includes("assinatura") || text.includes("subscription") || text.includes("pagamento")) {
+    view = "meu-plano";
+  } else if (text.includes("corretor") || text.includes("broker")) {
+    view = "corretores";
+  } else if (text.includes("imovel") || text.includes("property")) {
+    view = "imoveis";
+    includeLead = Boolean(notification.lead_id);
+  } else if (notification.lead_id) {
+    view = "contatos";
+    includeLead = true;
+  }
+
+  const params = new URLSearchParams();
+  if (view !== "home") params.set("view", view);
+  if (includeLead && notification.lead_id) params.set("lead", notification.lead_id);
+  params.set("notification", notification.id);
+  return `/app/?${params.toString()}`;
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   if (!supabaseUrl || !serviceRoleKey) return json({ error: "server_not_configured" }, 500);
@@ -61,8 +130,9 @@ Deno.serve(async (request) => {
 
   const { data: notifications, error: notificationError } = await supabase
     .from("app_notifications")
-    .select("id,agency_id,user_id,title,body,lead_id,source,push_attempts")
+    .select("id,agency_id,user_id,title,body,lead_id,source,kind,event_key,source_response_id,push_attempts")
     .is("push_sent_at", null)
+    .is("read_at", null)
     .lt("push_attempts", 5)
     .order("created_at", { ascending: true })
     .limit(50);
@@ -73,16 +143,12 @@ Deno.serve(async (request) => {
   let delivered = 0;
   let failed = 0;
 
-  for (const notification of notifications) {
+  for (const rawNotification of notifications) {
+    const notification = rawNotification as NotificationRecord;
     const attempts = Number(notification.push_attempts || 0) + 1;
 
     try {
-      const isOwnerProperty = Boolean(notification.lead_id) && String(notification.title || "").toLowerCase().includes("imóvel para avaliação");
-      const openPath = notification.lead_id
-        ? isOwnerProperty
-          ? `/app/?view=imoveis&lead=${encodeURIComponent(notification.lead_id)}&notification=${encodeURIComponent(notification.id)}`
-          : `/app/?view=contatos&lead=${encodeURIComponent(notification.lead_id)}&notification=${encodeURIComponent(notification.id)}`
-        : `/app/?notification=${encodeURIComponent(notification.id)}`;
+      const openPath = openPathFor(notification);
 
       const response = await fetch("https://api.onesignal.com/notifications", {
         method: "POST",
@@ -110,7 +176,10 @@ Deno.serve(async (request) => {
             notificationId: notification.id,
             leadId: notification.lead_id || "",
             agencyId: notification.agency_id,
-            source: notification.source,
+            source: notification.source || "",
+            kind: notification.kind || "",
+            eventKey: notification.event_key || "",
+            sourceResponseId: notification.source_response_id || "",
           },
         }),
       });
