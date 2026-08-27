@@ -18,7 +18,8 @@ function propertyIdFromForm(form: HTMLFormElement) {
 
 export default function PreserveCurrentFixesMount() {
   useEffect(() => {
-    if (!supabaseBrowser) return;
+    const db = supabaseBrowser;
+    if (!db) return;
 
     let active = true;
     let agencyId = "";
@@ -53,7 +54,7 @@ export default function PreserveCurrentFixesMount() {
       const selected = pending.get(form) || form.querySelector<HTMLSelectElement>('select[name="financing_accepted"]')?.value || "";
       if (selected !== "true" && selected !== "false") return;
 
-      const { error } = await supabaseBrowser
+      const { error } = await db
         .from("properties")
         .update({ financing_accepted: selected === "true" })
         .eq("id", propertyId)
