@@ -15,7 +15,8 @@ export default function AdminCatalogPhotosMount() {
     const isAdmin = pathname.includes("/admin");
     const isAppProperties = pathname.includes("/app") && new URLSearchParams(window.location.search).get("view") === "imoveis";
     if (!isAdmin && !isAppProperties) return;
-    if (!supabaseBrowser) return;
+    const client = supabaseBrowser;
+    if (!client) return;
 
     let disposed = false;
     let observer: MutationObserver | null = null;
@@ -64,7 +65,7 @@ export default function AdminCatalogPhotosMount() {
       const agency = await getCurrentAgency();
       if (!agency || disposed) return;
 
-      const propertyResult = await supabaseBrowser
+      const propertyResult = await client
         .from("properties")
         .select("id,code")
         .eq("agency_id", agency.agencyId)
@@ -75,7 +76,7 @@ export default function AdminCatalogPhotosMount() {
       const ids = properties.map((property) => property.id);
       if (!ids.length) return;
 
-      const photoResult = await supabaseBrowser
+      const photoResult = await client
         .from("property_photos")
         .select("property_id,storage_path,thumbnail_path,position,is_cover")
         .in("property_id", ids)
