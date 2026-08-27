@@ -1,0 +1,131 @@
+/* LENOY IMOBILIÁRIAS — mobile: remover cards externos desnecessários — 27/08/2026 */
+/* Escopo exclusivo do Admin em telas de até 900px. */
+
+@media (max-width:900px){
+  /* IMÓVEIS CADASTRADOS
+     Remove o painel/card externo e o invólucro visual da tabela.
+     O card de cada imóvel passa a usar toda a largura útil disponível. */
+  .adminPage #imoveis.adminPanel{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+
+  .adminPage #imoveis > .adminPanelHeader{
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+    padding:0 0 12px!important;
+    border:0!important;
+    background:transparent!important;
+  }
+
+  .adminPage #imoveis > .adminFilters,
+  .adminPage #imoveis > .formMessage,
+  .adminPage #imoveis > .adminTableWrap{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+
+  .adminPage #imoveis > .adminTableWrap{
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+
+  .adminPage #imoveis .adminTable,
+  .adminPage #imoveis .adminTable tbody{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .adminPage #imoveis .adminTable tbody{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+  }
+
+  .adminPage #imoveis .adminTable tr{
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+  }
+
+  /* DESEMPENHO DOS IMÓVEIS
+     Remove o card mestre e o card intermediário. Mantém os pequenos
+     cards de métricas e a identificação do imóvel sem outro card em volta. */
+  .adminPage #desempenho-imoveis.adminPanel{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+
+  .adminPage #desempenho-imoveis > .adminPanelHeader,
+  .adminPage #desempenho-imoveis > .adminMetrics,
+  .adminPage #desempenho-imoveis > .adminTableWrap,
+  .adminPage #desempenho-imoveis > .formNotice,
+  .adminPage #desempenho-imoveis > .formMessage{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+
+  .adminPage #desempenho-imoveis > .adminPanelHeader{
+    padding-left:0!important;
+    padding-right:0!important;
+    border:0!important;
+    background:transparent!important;
+  }
+
+  .adminPage #desempenho-imoveis > .adminTableWrap{
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable,
+  .adminPage #desempenho-imoveis .adminTable tbody,
+  .adminPage #desempenho-imoveis .adminTable tr{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable tr{
+    margin:0!important;
+    padding:0 0 14px!important;
+    border:0!important;
+    border-bottom:1px solid #e5eaee!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable tr:last-child{
+    border-bottom:0!important;
+    padding-bottom:0!important;
+  }
+}
