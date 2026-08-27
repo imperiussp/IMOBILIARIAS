@@ -25,10 +25,15 @@ function notificationHref(row: NotificationRow) {
   if (!row.lead_id) return "";
   const lead = encodeURIComponent(row.lead_id);
   const notification = encodeURIComponent(row.id);
+  const ownerProperty = row.title.toLowerCase().includes("imóvel para avaliação");
   if (window.location.pathname.includes("/app")) {
-    return `/app/?view=contatos&lead=${lead}&notification=${notification}`;
+    return ownerProperty
+      ? `/app/?view=imoveis&lead=${lead}&notification=${notification}`
+      : `/app/?view=contatos&lead=${lead}&notification=${notification}`;
   }
-  return `/admin/?lead=${lead}&notification=${notification}#contatos`;
+  return ownerProperty
+    ? `/admin/?lead=${lead}&notification=${notification}#imoveis`
+    : `/admin/?lead=${lead}&notification=${notification}#contatos`;
 }
 
 export default function WebNotificationBellMount() {
