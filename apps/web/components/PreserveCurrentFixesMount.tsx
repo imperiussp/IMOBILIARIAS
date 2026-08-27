@@ -18,8 +18,7 @@ function propertyIdFromForm(form: HTMLFormElement) {
 
 export default function PreserveCurrentFixesMount() {
   useEffect(() => {
-    const db = supabaseBrowser;
-    if (!db) return;
+    if (!supabaseBrowser) return;
 
     let active = true;
     let agencyId = "";
@@ -49,12 +48,14 @@ export default function PreserveCurrentFixesMount() {
     }
 
     async function syncFinancing(form: HTMLFormElement) {
+      const client = supabaseBrowser;
+      if (!client) return;
       const propertyId = propertyIdFromForm(form);
       if (!propertyId || synced.has(propertyId) || !agencyId) return;
       const selected = pending.get(form) || form.querySelector<HTMLSelectElement>('select[name="financing_accepted"]')?.value || "";
       if (selected !== "true" && selected !== "false") return;
 
-      const { error } = await db
+      const { error } = await client
         .from("properties")
         .update({ financing_accepted: selected === "true" })
         .eq("id", propertyId)
