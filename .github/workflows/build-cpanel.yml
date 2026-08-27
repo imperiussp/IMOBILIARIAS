@@ -74,8 +74,9 @@ jobs:
           git reset --hard HEAD
           git clean -fd apps/web/out || true
 
-          # O workflow Node também publica artefatos no main. Se ele avançar a branch
-          # enquanto esta build estática roda, rebaseamos o commit do pacote antes de enviar.
+          # Publicar o ZIP no main é apenas conveniência. A fonte oficial para instalação
+          # é o artefato desta própria execução. Se outro workflow avançar a branch e
+          # causar conflito, preservamos a build válida e seguimos para Upload Artifact.
           if ! git diff --quiet HEAD^ HEAD 2>/dev/null; then
             PUBLISHED=0
             for ATTEMPT in 1 2 3; do
@@ -87,8 +88,7 @@ jobs:
               sleep 2
             done
             if [ "$PUBLISHED" -ne 1 ]; then
-              echo "Falha ao publicar o pacote estático no main após 3 tentativas."
-              exit 1
+              echo "Aviso: o commit automático do pacote não foi publicado; o artefato desta execução continua válido."
             fi
           fi
           exit "$CODE"
