@@ -7,13 +7,13 @@
 > next build --webpack
 
 ▲ Next.js 16.3.0 (webpack)
-✓ Running next.config.mjs took 14ms
+✓ Running next.config.mjs took 18ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 
   Creating an optimized production build ...
-✓ Compiled successfully in 7.7s
+✓ Compiled successfully in 9.6s
   Running TypeScript ...
-components/PreserveCurrentFixesMount.tsx(56,31): error TS18047: 'supabaseBrowser' is possibly 'null'.
+components/PreserveCurrentFixesMount.tsx(57,31): error TS18047: 'db' is possibly 'null'.
 Failed to type check.
 
 /home/runner/work/IMOBILIARIAS/IMOBILIARIAS/apps/web:
