@@ -1,0 +1,147 @@
+/* LENOY IMOBILIÁRIAS — fundo personalizado da capa — 27/08/2026 */
+
+.adminHeroBackgroundEditorHost{
+  width:100%;
+}
+
+.heroBackgroundEditor{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);
+  gap:20px;
+  padding:20px;
+  border:1px solid #dfe6eb;
+  border-radius:16px;
+  background:#fbfcfd;
+}
+
+.heroBackgroundEditorCopy>strong{
+  display:block;
+  margin:4px 0 7px;
+  font-size:18px;
+  color:#17202a;
+}
+
+.heroBackgroundEditorCopy>p{
+  margin:0 0 13px;
+  color:#66727d;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.heroBackgroundInstructions{
+  display:grid;
+  gap:6px;
+  padding:12px 14px;
+  border-radius:12px;
+  background:#eef4f8;
+  color:#43515d;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.heroBackgroundInstructions b{
+  color:#162a3b;
+}
+
+.heroBackgroundEditorMedia{
+  display:grid;
+  align-content:start;
+  gap:10px;
+}
+
+.heroBackgroundPreview{
+  width:100%;
+  aspect-ratio:16/9;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:1px dashed #bcc8d1;
+  border-radius:14px;
+  background:#edf1f4;
+  color:#77838c;
+  font-size:12px;
+  font-weight:800;
+}
+
+.heroBackgroundPreview.hasImage{
+  border-style:solid;
+  background:#0b1724;
+}
+
+.heroBackgroundPreview img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.heroBackgroundEditorActions{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.heroBackgroundChooseButton{
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+}
+
+.heroBackgroundChooseButton input{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
+}
+
+.heroBackgroundMessage{
+  grid-column:1/-1;
+  margin:0!important;
+}
+
+.catalogHero.hasAgencyCustomBackground{
+  background-image:var(--agency-hero-background)!important;
+  background-size:cover!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+}
+
+.catalogHero.hasAgencyCustomBackground .heroGrid>div:first-child,
+.catalogHero.hasAgencyCustomBackground .heroGrid>div:first-child h1,
+.catalogHero.hasAgencyCustomBackground .heroGrid>div:first-child p,
+.catalogHero.hasAgencyCustomBackground .heroGrid>div:first-child .eyebrow,
+.catalogHero.hasAgencyCustomBackground .heroStats,
+.catalogHero.hasAgencyCustomBackground .heroStats span{
+  color:#fff!important;
+}
+
+.catalogHero.hasAgencyCustomBackground .heroGrid>div:first-child{
+  text-shadow:0 2px 18px rgba(0,0,0,.45);
+}
+
+.catalogHero.hasAgencyCustomBackground .favoriteSummary{
+  background:rgba(255,255,255,.92)!important;
+  color:#17202a!important;
+  text-shadow:none!important;
+}
+
+@media(max-width:700px){
+  .heroBackgroundEditor{
+    grid-template-columns:1fr;
+    gap:15px;
+    padding:15px;
+  }
+  .heroBackgroundEditorMedia{
+    width:100%;
+  }
+  .heroBackgroundEditorActions>*{
+    flex:1 1 auto;
+    justify-content:center;
+  }
+  .catalogHero.hasAgencyCustomBackground{
+    background-position:center center!important;
+  }
+}
