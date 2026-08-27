@@ -8,6 +8,7 @@ const sections = [
   ["Alertas operacionais", "#alertas-operacionais"],
   ["Checklist documental", "#documentacao-imovel"],
   ["Classificação de contatos", "#qualificacao-contatos"],
+  ["Contatos", "#contatos-salvos"],
   ["Contatos recebidos", "#contatos"],
   ["Convites de acesso", "#convites"],
   ["Corretores", "#corretores"],
