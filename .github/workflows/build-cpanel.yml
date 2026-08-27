@@ -61,11 +61,24 @@ jobs:
           EOF
             printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
             (cd apps/web/out && zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .)
+
+            # Patch leve: somente o index completo e o CSS completo que contém a regra do hero.
+            rm -rf cpanel-build/background-responsive
+            mkdir -p cpanel-build/background-responsive/_next/static/css
+            cp apps/web/out/index.html cpanel-build/background-responsive/index.html
+            HERO_CSS="$(grep -rl "platform-hero-home-final.webp" apps/web/out/_next/static/css | head -n 1)"
+            if [ -z "$HERO_CSS" ]; then
+              echo "CSS do hero não encontrado no export estático." >&2
+              exit 41
+            fi
+            cp "$HERO_CSS" cpanel-build/background-responsive/_next/static/css/
+            (cd cpanel-build/background-responsive && zip -qr ../imobiliarias-background-responsive.zip .)
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f cpanel-build/status.txt cpanel-build/build.log
           [ -f cpanel-build/imobiliarias-cpanel.zip ] && git add -f cpanel-build/imobiliarias-cpanel.zip
+          [ -f cpanel-build/imobiliarias-background-responsive.zip ] && git add -f cpanel-build/imobiliarias-background-responsive.zip
           git commit -m "build: cPanel package result [skip netlify]" || true
 
           # A exportação remove app/api e gera arquivos locais. Eles não pertencem ao
@@ -97,6 +110,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: imobiliarias-cpanel
-          path: cpanel-build/imobiliarias-cpanel.zip
+          path: |
+            cpanel-build/imobiliarias-cpanel.zip
+            cpanel-build/imobiliarias-background-responsive.zip
           if-no-files-found: error
           retention-days: 7
