@@ -13,6 +13,9 @@ import PreserveCurrentFixesMount from "../components/PreserveCurrentFixesMount";
 import OwnerPropertyReviewMount from "../components/OwnerPropertyReviewMount";
 import OwnerPropertyReviewEnhancer from "../components/OwnerPropertyReviewEnhancer";
 import AdminCatalogPhotosMount from "../components/AdminCatalogPhotosMount";
+import saasHeroBgChunk1 from "../lib/saasHeroBgChunk1";
+import saasHeroBgChunk2 from "../lib/saasHeroBgChunk2";
+import saasHeroBgChunk3 from "../lib/saasHeroBgChunk3";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -62,6 +65,18 @@ import "./admin-width-photo-notification-20260827.css";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 const allowIndexing = ["true", "1", "yes", "on"].includes(String(process.env.NEXT_PUBLIC_ALLOW_INDEXING || "").toLowerCase());
+const saasHeroBackground = `data:image/webp;base64,${saasHeroBgChunk1}${saasHeroBgChunk2}${saasHeroBgChunk3}`;
+const saasHeroServerCss = `
+@media (min-width:701px){
+  html body .platformLanding .platformHero{
+    background:#061322 url("${saasHeroBackground}") center center / cover no-repeat !important;
+  }
+  html body .platformLanding .platformHero::before,
+  html body .platformLanding .platformHero::after{
+    content:none !important;
+    display:none !important;
+  }
+}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -93,7 +108,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /></body>
+      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /></body>
     </html>
   );
 }
