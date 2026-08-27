@@ -122,12 +122,12 @@
   }
 }
 
-/* Mantém o posicionamento aprovado no desktop depois da mudança real de portal do sino. */
+/* Desktop: o Sair ocupa right:70px e 54px de largura; o sino fica imediatamente à esquerda, sem sobreposição. */
 @media (min-width:901px){
   .adminPage .adminNav > .webNotificationBellWrap{
     position:fixed!important;
-    top:17px!important;
-    right:112px!important;
+    top:13px!important;
+    right:136px!important;
     z-index:4600!important;
     display:flex!important;
     visibility:visible!important;
