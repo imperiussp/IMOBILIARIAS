@@ -1,10 +1,9 @@
-/* Hero público — correção definitiva do background desktop */
-/* Asset cache-busted aprovado: /platform-hero-app-bg-v2.webp */
+/* Hero público — layout desktop do banner.
+   O background é controlado exclusivamente por hero-background-final-20260826.css. */
 @media (min-width: 701px) {
   html body .platformLanding .platformHero {
     grid-template-columns: minmax(0,720px) minmax(0,1fr) !important;
     gap: 24px !important;
-    background: #061322 url('/platform-hero-app-bg-v2.webp') center center / cover no-repeat !important;
   }
 
   html body .platformLanding .platformHero::before,
