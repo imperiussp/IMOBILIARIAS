@@ -106,7 +106,7 @@ export default function WebNotificationBellMount() {
 
     const resolveTarget = () => {
       const next = pathname.includes("/admin")
-        ? document.querySelector(".adminHeadingActions") || document.querySelector(".adminNav")
+        ? document.querySelector(".adminNav")
         : document.querySelector(".mobileAppTopbar");
       if (next && !disposed) {
         setTarget(next);
