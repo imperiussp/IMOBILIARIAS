@@ -16,6 +16,8 @@ import AdminCatalogPhotosMount from "../components/AdminCatalogPhotosMount";
 import AppPropertyCatalogEnhancer from "../components/AppPropertyCatalogEnhancer";
 import AdminDirectPropertyInterests from "../components/AdminDirectPropertyInterests";
 import AppInterestedWhatsAppEnhancer from "../components/AppInterestedWhatsAppEnhancer";
+import AdminHeroBackgroundEditorMount from "../components/AdminHeroBackgroundEditorMount";
+import TenantHeroBackgroundMount from "../components/TenantHeroBackgroundMount";
 import saasHeroBgChunk1 from "../lib/saasHeroBgChunk1";
 import saasHeroBgChunk2 from "../lib/saasHeroBgChunk2";
 import saasHeroBgChunk3 from "../lib/saasHeroBgChunk3";
@@ -71,6 +73,7 @@ import "./admin-final-batch-20260827.css";
 import "./admin-mobile-followup-final-20260827.css";
 import "./app-property-catalog-final-20260827.css";
 import "./app-interested-whatsapp-20260827.css";
+import "./tenant-hero-background-20260827.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -118,7 +121,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /></body>
+      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /></body>
     </html>
   );
 }
