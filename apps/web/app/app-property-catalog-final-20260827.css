@@ -1,0 +1,510 @@
+/* LENOY IMOBILIÁRIAS — catálogo de imóveis do APP — 27/08/2026 */
+/* Escopo exclusivo do /app/. Não altera o visual aprovado do /admin/. */
+
+@media (max-width:900px){
+  html:has(.mobileAppV2),
+  body:has(.mobileAppV2),
+  .mobileAppV2{
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+
+  /* O APP usa praticamente toda a largura real do aparelho. */
+  .mobileAppV2 .mobileAppContent{
+    width:calc(100% - 8px)!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .mobileAppV2 .mobileModule,
+  .mobileAppV2 .livePropertiesOnly,
+  .mobileAppV2 .livePropertiesOnly #imoveis,
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTableWrap,
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable,
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable tbody{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+
+  /* Remove o card externo redundante do catálogo; cada imóvel continua sendo seu próprio card. */
+  .mobileAppV2 .livePropertiesOnly #imoveis.adminPanel{
+    margin:0!important;
+    padding:5px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis > .adminPanelHeader,
+  .mobileAppV2 .livePropertiesOnly #imoveis > .formMessage,
+  .mobileAppV2 .livePropertiesOnly #imoveis > .adminFilters,
+  .mobileAppV2 .livePropertiesOnly #imoveis > .adminTableWrap{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminPanelHeader{
+    padding:4px 2px!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminFilters{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+    padding:4px 0 9px!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminFilters input,
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminFilters select,
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminFilters button{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTableWrap{
+    overflow:visible!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable{
+    display:block!important;
+    min-width:0!important;
+    border-collapse:separate!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable thead{
+    display:none!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable tbody{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable tr.appPropertyCardRow{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:10px!important;
+    border:1px solid #dfe5ea!important;
+    border-radius:14px!important;
+    background:#fff!important;
+    box-shadow:0 3px 12px rgba(7,24,45,.055)!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable tr.appPropertyCardRow > td{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:8px!important;
+    border:0!important;
+    border-radius:9px!important;
+    background:#f7f9fb!important;
+    box-sizing:border-box!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  /* Foto principal + NOME do imóvel no topo do card. */
+  .mobileAppV2 .livePropertiesOnly #imoveis .adminTable tr.appPropertyCardRow > td.appPropertyIdentityCell{
+    grid-column:1 / -1!important;
+    padding:0 0 9px!important;
+    border-radius:0!important;
+    border-bottom:1px solid #e7ebef!important;
+    background:transparent!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyIdentityCell > strong{
+    display:none!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyLegacyTitleCell{
+    display:none!important;
+  }
+
+  .mobileAppV2 .appPropertyHero{
+    display:grid!important;
+    grid-template-columns:112px minmax(0,1fr)!important;
+    gap:11px!important;
+    align-items:center!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+  }
+
+  .mobileAppV2 .appPropertyHeroMedia{
+    width:112px!important;
+    height:82px!important;
+    border-radius:10px!important;
+    overflow:hidden!important;
+    background:#eef2f5!important;
+  }
+
+  .mobileAppV2 .appPropertyHeroMedia img{
+    display:block!important;
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+  }
+
+  .mobileAppV2 .appPropertyNoPhoto{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:100%!important;
+    height:100%!important;
+    color:#7f8a94!important;
+    font-size:11px!important;
+    font-weight:700!important;
+  }
+
+  .mobileAppV2 .appPropertyHeroCopy{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    min-width:0!important;
+  }
+
+  .mobileAppV2 .appPropertyTitle{
+    display:block!important;
+    width:100%!important;
+    color:#07182d!important;
+    font-size:16px!important;
+    font-weight:800!important;
+    line-height:1.22!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  .mobileAppV2 .appPropertyCode{
+    display:block!important;
+    margin-top:4px!important;
+    color:#71808c!important;
+    font-size:11px!important;
+    font-weight:700!important;
+  }
+
+  .mobileAppV2 .appPropertyDraftBadge{
+    display:inline-flex!important;
+    margin-top:6px!important;
+    padding:4px 7px!important;
+    border-radius:999px!important;
+    background:#fff4ce!important;
+    color:#775c05!important;
+    font-size:9px!important;
+    font-weight:850!important;
+    text-transform:uppercase!important;
+  }
+
+  /* Legendas das informações que continuam vindo do AdminLiveData. */
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyLocationCell::before,
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyPurposeCell::before,
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyValueCell::before,
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyStatusCell::before{
+    display:block!important;
+    margin-bottom:3px!important;
+    color:#83909a!important;
+    font-size:9px!important;
+    font-weight:900!important;
+    letter-spacing:.04em!important;
+    text-transform:uppercase!important;
+  }
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyLocationCell::before{content:"Local"!important}
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyPurposeCell::before{content:"Finalidade"!important}
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyValueCell::before{content:"Valor"!important}
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyStatusCell::before{content:"Status"!important}
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyStatusCell .statusSelect{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .mobileAppV2 .livePropertiesOnly #imoveis .appPropertyActionsCell{
+    grid-column:1 / -1!important;
+    padding:9px 0 0!important;
+    border-radius:0!important;
+    border-top:1px solid #e7ebef!important;
+    background:transparent!important;
+  }
+
+  /* Mantém Ver anúncio / Editar / Arquivar exatamente como já funcionavam. */
+  .mobileAppV2 .appPropertyExistingActions{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    width:100%!important;
+  }
+
+  .mobileAppV2 .appPropertyExistingActions > *{
+    width:100%!important;
+    min-width:0!important;
+    min-height:36px!important;
+    padding:7px 4px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    font-size:10px!important;
+    line-height:1.15!important;
+    box-sizing:border-box!important;
+  }
+
+  /* Três novos botões solicitados. */
+  .mobileAppV2 .appPropertyQuickActions{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    width:100%!important;
+    max-width:100%!important;
+    margin-top:7px!important;
+  }
+
+  .mobileAppV2 .appPropertyQuickButton{
+    appearance:none!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:38px!important;
+    padding:7px 4px!important;
+    border:1px solid #cdd8e1!important;
+    border-radius:9px!important;
+    background:#eef4f8!important;
+    color:#0b2a43!important;
+    text-decoration:none!important;
+    text-align:center!important;
+    font-family:inherit!important;
+    font-size:10px!important;
+    font-weight:800!important;
+    line-height:1.12!important;
+    cursor:pointer!important;
+    box-sizing:border-box!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  .mobileAppV2 .appPropertyWhatsApp:not(:disabled){
+    background:#eaf8ef!important;
+    border-color:#bce0c7!important;
+    color:#176b35!important;
+  }
+
+  .mobileAppV2 .appPropertyQuickButton:disabled{
+    opacity:.5!important;
+    cursor:not-allowed!important;
+  }
+
+  /* Imóveis enviados para avaliação: remove o 90% herdado do Admin no APP. */
+  .mobileAppV2 .ownerPropertyReviewPortalHost,
+  .mobileAppV2 .ownerReviewPanel,
+  .mobileAppV2 .ownerReviewHeading,
+  .mobileAppV2 .ownerReviewMessage,
+  .mobileAppV2 .ownerReviewEmpty,
+  .mobileAppV2 .ownerReviewList,
+  .mobileAppV2 .ownerReviewCard{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .mobileAppV2 .ownerReviewList{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* Telefones realmente estreitos: foto ainda aparece, sem comprimir o título. */
+@media (max-width:350px){
+  .mobileAppV2 .appPropertyHero{
+    grid-template-columns:94px minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  .mobileAppV2 .appPropertyHeroMedia{
+    width:94px!important;
+    height:72px!important;
+  }
+  .mobileAppV2 .appPropertyTitle{font-size:14px!important}
+  .mobileAppV2 .appPropertyQuickButton,
+  .mobileAppV2 .appPropertyExistingActions > *{font-size:9px!important}
+}
+
+/* Modal dos interessados — disponível somente quando acionado pelo APP. */
+.appInterestedLayer{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:grid;
+  place-items:center;
+  padding:10px;
+}
+.appInterestedBackdrop{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:rgba(4,18,31,.72);
+}
+.appInterestedDialog{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  width:min(560px,calc(100vw - 20px));
+  max-width:calc(100vw - 20px);
+  max-height:88dvh;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #d9e1e7;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(0,0,0,.28);
+  box-sizing:border-box;
+}
+.appInterestedHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px;
+  border-bottom:1px solid #e5eaee;
+}
+.appInterestedHead>div{display:grid;gap:2px;min-width:0}
+.appInterestedHead small{color:#9b7415;font-size:9px;font-weight:900;letter-spacing:.08em}
+.appInterestedHead strong{color:#07182d;font-size:17px;line-height:1.2;overflow-wrap:anywhere}
+.appInterestedHead span{color:#73818c;font-size:11px}
+.appInterestedHead>button{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border:1px solid #d9e1e7;
+  border-radius:9px;
+  background:#f6f8fa;
+  color:#162d40;
+  font-size:22px;
+  line-height:1;
+}
+.appInterestedTools{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:7px;
+  padding:10px 12px;
+  border-bottom:1px solid #edf0f3;
+}
+.appInterestedTools input{
+  width:100%;
+  min-width:0;
+  padding:10px;
+  border:1px solid #d8e0e6;
+  border-radius:9px;
+  box-sizing:border-box;
+}
+.appInterestedTools button{
+  border:1px solid #cdd8e1;
+  border-radius:9px;
+  background:#eef4f8;
+  color:#17364e;
+  padding:8px 10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.appInterestedMessage{
+  margin:8px 12px 0;
+  padding:9px 10px;
+  border-radius:9px;
+  background:#eef7ff;
+  color:#23557c;
+  font-size:11px;
+  line-height:1.35;
+}
+.appInterestedList{
+  display:grid;
+  gap:7px;
+  padding:10px 12px;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.appInterestedContact{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:9px;
+  align-items:center;
+  width:100%;
+  min-width:0;
+  padding:10px;
+  border:1px solid #e0e6eb;
+  border-radius:10px;
+  background:#fafbfc;
+  box-sizing:border-box;
+}
+.appInterestedContact input{width:18px;height:18px;margin:0}
+.appInterestedContact>span{display:grid;gap:2px;min-width:0}
+.appInterestedContact strong{font-size:13px;color:#102b41;overflow-wrap:anywhere}
+.appInterestedContact small{font-size:10px;color:#78858f;overflow-wrap:anywhere}
+.appInterestedContact em{font-size:9px;color:#39724b;font-style:normal;font-weight:800;text-align:right}
+.appInterestedContact.already{background:#f1f8f3;border-color:#d4e8da}
+.appInterestedEmpty{padding:22px;text-align:center;color:#74818b;font-size:12px}
+.appInterestedFooter{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:8px;
+  padding:11px 12px;
+  border-top:1px solid #e5eaee;
+  background:#fff;
+}
+.appInterestedFooter button{
+  min-height:40px;
+  padding:8px 11px;
+  border-radius:9px;
+  font-weight:800;
+  font-family:inherit;
+}
+.appInterestedFooter .secondary{border:1px solid #d6dee4;background:#fff;color:#183248}
+.appInterestedFooter .primary{border:1px solid #163a56;background:#163a56;color:#fff}
+.appInterestedFooter button:disabled{opacity:.5}
+.appPropertyToast{
+  position:fixed;
+  left:50%;
+  bottom:78px;
+  z-index:10020;
+  transform:translateX(-50%);
+  width:max-content;
+  max-width:calc(100vw - 28px);
+  padding:10px 13px;
+  border-radius:10px;
+  background:#07182d;
+  color:#fff;
+  box-shadow:0 12px 30px rgba(0,0,0,.22);
+  font-size:12px;
+  text-align:center;
+}
+
+@media(max-width:420px){
+  .appInterestedTools{grid-template-columns:1fr}
+  .appInterestedTools button{width:100%}
+  .appInterestedFooter{grid-template-columns:1fr}
+  .appInterestedFooter button{width:100%}
+}
