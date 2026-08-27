@@ -13,6 +13,12 @@ type OneSignalInfo = {
   } | null;
 };
 
+type PushOpenPayload = Record<string, unknown> & {
+  openPath?: string;
+  notificationId?: string;
+  leadId?: string;
+};
+
 type MedianOneSignalBridge = {
   login?: (externalId: string) => Promise<unknown> | unknown;
   logout?: () => Promise<unknown> | unknown;
@@ -26,6 +32,7 @@ type MedianWindow = Window & {
   };
   median_library_ready?: () => void;
   median_onesignal_info?: (data: OneSignalInfo) => void;
+  median_onesignal_push_opened?: (data: unknown) => void;
 };
 
 function getMedianWindow() {
@@ -35,6 +42,30 @@ function getMedianWindow() {
 
 function getOneSignalBridge() {
   return getMedianWindow()?.median?.onesignal || null;
+}
+
+function recordFrom(value: unknown): Record<string, unknown> | null {
+  if (!value) return null;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value as Record<string, unknown> : null;
+}
+
+function normalizePushPayload(value: unknown): PushOpenPayload {
+  const root = recordFrom(value) || {};
+  const notification = recordFrom(root.notification);
+  const additional = recordFrom(root.additionalData)
+    || recordFrom(root.data)
+    || recordFrom(notification?.additionalData)
+    || recordFrom(notification?.data)
+    || {};
+  return { ...root, ...additional } as PushOpenPayload;
 }
 
 async function readOneSignalInfo(bridge: MedianOneSignalBridge): Promise<OneSignalInfo | null> {
@@ -58,12 +89,13 @@ async function readOneSignalInfo(bridge: MedianOneSignalBridge): Promise<OneSign
   return null;
 }
 
-// Vincula automaticamente cada instalação nativa ao UUID do usuário autenticado.
-// O external_id usado no backend é exatamente o Supabase auth.user.id.
+// Vincula automaticamente cada instalação nativa ao UUID do usuário autenticado
+// e trata o toque da notificação dentro do WebView do aplicativo.
 export default function MedianOneSignalSync() {
   useEffect(() => {
     if (!supabaseBrowser) return;
 
+    const db = supabaseBrowser;
     const medianWindow = getMedianWindow();
     if (!medianWindow) return;
 
@@ -80,6 +112,48 @@ export default function MedianOneSignalSync() {
         confirmedExternalId = data.externalId;
       }
       previousInfoCallback?.(data);
+    };
+
+    const previousPushOpenedCallback = medianWindow.median_onesignal_push_opened;
+    medianWindow.median_onesignal_push_opened = (raw: unknown) => {
+      try {
+        previousPushOpenedCallback?.(raw);
+      } catch {
+        // Um callback anterior não pode impedir a abertura da notificação.
+      }
+
+      const payload = normalizePushPayload(raw);
+      const notificationId = typeof payload.notificationId === "string" ? payload.notificationId : "";
+      const leadId = typeof payload.leadId === "string" ? payload.leadId : "";
+      const suppliedPath = typeof payload.openPath === "string" ? payload.openPath : "";
+      const openPath = suppliedPath.startsWith("/app/")
+        ? suppliedPath
+        : leadId
+          ? `/app/?view=contatos&lead=${encodeURIComponent(leadId)}${notificationId ? `&notification=${encodeURIComponent(notificationId)}` : ""}`
+          : "/app/";
+
+      void (async () => {
+        if (notificationId) {
+          try {
+            const session = (await db.auth.getSession()).data.session;
+            const userId = session?.user?.id || "";
+            if (userId) {
+              await db
+                .from("app_notifications")
+                .update({ read_at: new Date().toISOString() })
+                .eq("id", notificationId)
+                .eq("user_id", userId)
+                .is("read_at", null);
+            }
+          } catch {
+            // A leitura pode ser sincronizada depois; a navegação não deve falhar.
+          }
+        }
+
+        window.dispatchEvent(new CustomEvent("lenoy:notification-opened", { detail: payload }));
+        const current = `${window.location.pathname}${window.location.search}`;
+        if (current !== openPath) window.location.assign(openPath);
+      })();
     };
 
     async function syncOneSignalIdentity(): Promise<void> {
@@ -130,13 +204,13 @@ export default function MedianOneSignalSync() {
     };
     medianWindow.median_library_ready = onMedianReady;
 
-    void supabaseBrowser.auth.getSession().then(({ data }) => {
+    void db.auth.getSession().then(({ data }) => {
       if (disposed) return;
       currentExternalId = data.session?.user?.id || null;
       if (currentExternalId) void syncOneSignalIdentity();
     });
 
-    const { data: authListener } = supabaseBrowser.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = db.auth.onAuthStateChange((event, session) => {
       if (disposed) return;
 
       const nextExternalId = event === "SIGNED_OUT" ? null : session?.user?.id || null;
@@ -175,6 +249,9 @@ export default function MedianOneSignalSync() {
       }
       if (medianWindow.median_onesignal_info) {
         medianWindow.median_onesignal_info = previousInfoCallback;
+      }
+      if (medianWindow.median_onesignal_push_opened) {
+        medianWindow.median_onesignal_push_opened = previousPushOpenedCallback;
       }
     };
   }, []);
