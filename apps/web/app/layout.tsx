@@ -11,6 +11,7 @@ import PublicFeaturedPropertiesMount from "../components/PublicFeaturedPropertie
 import AdminContactsPanelMount from "../components/AdminContactsPanelMount";
 import PreserveCurrentFixesMount from "../components/PreserveCurrentFixesMount";
 import OwnerPropertyReviewMount from "../components/OwnerPropertyReviewMount";
+import OwnerPropertyReviewEnhancer from "../components/OwnerPropertyReviewEnhancer";
 import AdminCatalogPhotosMount from "../components/AdminCatalogPhotosMount";
 import "./globals.css";
 import "./property.css";
@@ -56,6 +57,7 @@ import "./admin-card-visibility-20260826.css";
 import "./tenant-admin-highlights-20260826.css";
 import "./crm-contacts-20260826.css";
 import "./admin-catalog-photos-20260827.css";
+import "./admin-width-photo-notification-20260827.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -91,7 +93,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /></body>
+      <body>{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /></body>
     </html>
   );
 }
