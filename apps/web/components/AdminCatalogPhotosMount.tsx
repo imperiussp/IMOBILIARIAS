@@ -177,6 +177,19 @@ export default function AdminCatalogPhotosMount() {
       updateViewer();
     }
 
+    function bindVisibleCover(row: HTMLTableRowElement, code: string) {
+      const cover = row.querySelector<HTMLImageElement>(".adminPropertyThumb");
+      if (!cover || cover.dataset.catalogViewerBound === code) return;
+      cover.dataset.catalogViewerBound = code;
+      cover.dataset.galleryReady = "true";
+      cover.tabIndex = 0;
+      const open = () => openViewer(code, 0);
+      cover.addEventListener("click", open);
+      cover.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+      });
+    }
+
     function render() {
       if (disposed) return;
       document.querySelectorAll<HTMLTableRowElement>(".adminTable tbody tr").forEach((row) => {
@@ -190,6 +203,8 @@ export default function AdminCatalogPhotosMount() {
         ).trim();
         const photos = galleries.get(code);
         if (!photos?.length) return;
+
+        bindVisibleCover(row, code);
 
         const isMobilePerformance = window.matchMedia("(max-width: 900px)").matches && Boolean(row.closest("#desempenho-imoveis"));
         const target = isMobilePerformance ? cells[0] : cells[1];
