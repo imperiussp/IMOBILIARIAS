@@ -7,14 +7,14 @@
 > next build --webpack
 
 ▲ Next.js 16.3.0 (webpack)
-✓ Running next.config.mjs took 15ms
+✓ Running next.config.mjs took 17ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 
   Creating an optimized production build ...
-✓ Compiled successfully in 9.8s
+✓ Compiled successfully in 10.0s
   Running TypeScript ...
-components/AdminCatalogPhotosMount.tsx(67,36): error TS18047: 'supabaseBrowser' is possibly 'null'.
-components/AdminCatalogPhotosMount.tsx(78,33): error TS18047: 'supabaseBrowser' is possibly 'null'.
+components/AdminCatalogPhotosMount.tsx(68,36): error TS18047: 'client' is possibly 'null'.
+components/AdminCatalogPhotosMount.tsx(79,33): error TS18047: 'client' is possibly 'null'.
 Failed to type check.
 
 /home/runner/work/IMOBILIARIAS/IMOBILIARIAS/apps/web:
