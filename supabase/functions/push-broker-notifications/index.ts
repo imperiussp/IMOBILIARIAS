@@ -77,8 +77,11 @@ Deno.serve(async (request) => {
     const attempts = Number(notification.push_attempts || 0) + 1;
 
     try {
+      const isOwnerProperty = Boolean(notification.lead_id) && String(notification.title || "").toLowerCase().includes("imóvel para avaliação");
       const openPath = notification.lead_id
-        ? `/app/?view=contatos&lead=${encodeURIComponent(notification.lead_id)}&notification=${encodeURIComponent(notification.id)}`
+        ? isOwnerProperty
+          ? `/app/?view=imoveis&lead=${encodeURIComponent(notification.lead_id)}&notification=${encodeURIComponent(notification.id)}`
+          : `/app/?view=contatos&lead=${encodeURIComponent(notification.lead_id)}&notification=${encodeURIComponent(notification.id)}`
         : `/app/?notification=${encodeURIComponent(notification.id)}`;
 
       const response = await fetch("https://api.onesignal.com/notifications", {
@@ -102,9 +105,6 @@ Deno.serve(async (request) => {
             en: notification.body || "Você recebeu uma nova notificação no LENOY Imobiliárias.",
             pt: notification.body || "Você recebeu uma nova notificação no LENOY Imobiliárias.",
           },
-          // Não usamos targetUrl aqui: em WebView nativa ele pode ser tratado pelo
-          // sistema como URL externa. O app recebe openPath no callback nativo e
-          // faz a navegação dentro do próprio WebView.
           data: {
             openPath,
             notificationId: notification.id,
