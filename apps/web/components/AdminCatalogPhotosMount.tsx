@@ -27,11 +27,14 @@ export default function AdminCatalogPhotosMount() {
       document.querySelectorAll<HTMLTableRowElement>(".adminTable tbody tr").forEach((row) => {
         const cells = row.querySelectorAll<HTMLTableCellElement>("td");
         if (cells.length < 2) return;
-        const code = (cells[0].textContent || "").trim();
+        const code = (cells[0].querySelector("strong")?.textContent || cells[0].textContent || "").trim();
         const photos = galleries.get(code);
         if (!photos?.length) return;
 
-        const target = cells[1];
+        const isMobilePerformance = window.matchMedia("(max-width: 900px)").matches && Boolean(row.closest("#desempenho-imoveis"));
+        const target = isMobilePerformance ? cells[0] : cells[1];
+        const rowGallery = row.querySelector<HTMLElement>("[data-admin-catalog-gallery]");
+        if (rowGallery && rowGallery.parentElement !== target) rowGallery.remove();
         const current = target.querySelector<HTMLElement>("[data-admin-catalog-gallery]");
         if (current?.dataset.photoSignature === photos.map((photo) => photo.url).join("|")) return;
         current?.remove();
@@ -103,17 +106,24 @@ export default function AdminCatalogPhotosMount() {
       render();
     }
 
+    const onResize = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(render, 80);
+    };
+
     void load();
     observer = new MutationObserver(() => {
       window.clearTimeout(timer);
       timer = window.setTimeout(render, 80);
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", onResize);
 
     return () => {
       disposed = true;
       observer?.disconnect();
       window.clearTimeout(timer);
+      window.removeEventListener("resize", onResize);
       document.querySelectorAll("[data-admin-catalog-gallery]").forEach((node) => node.remove());
     };
   }, []);
