@@ -1,69 +1,389 @@
-/* LENOY IMOBILIÁRIAS — WhatsApp dos interessados no APP — 27/08/2026 */
+/* LENOY IMOBILIÁRIAS — interessados + WhatsApp — Admin desktop/mobile + APP — 27/08/2026 */
 
-.appInterestedContactActions{
+/* Botão Interessados dentro de cada card do Admin. */
+.adminPage #imoveis .propertyInterestMessageTrigger{
+  width:100%!important;
+  min-height:36px!important;
+  margin-top:7px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:1px solid #c8d8e5!important;
+  border-radius:9px!important;
+  background:#eef5fa!important;
+  color:#143a56!important;
+  font-weight:850!important;
+  text-align:center!important;
+  box-sizing:border-box!important;
+}
+
+/* Modal único: Admin desktop, Admin celular e APP. */
+.propertyInterestMessagingLayer{
+  position:fixed;
+  inset:0;
+  z-index:20000;
+  display:grid;
+  place-items:center;
+  padding:16px;
+  box-sizing:border-box;
+}
+.propertyInterestMessagingBackdrop{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:rgba(4,18,31,.72);
+}
+.propertyInterestMessagingDialog{
+  position:relative;
+  z-index:1;
   display:flex;
   flex-direction:column;
-  align-items:flex-end;
-  justify-content:center;
-  gap:5px;
-  min-width:78px;
+  width:min(760px,calc(100vw - 32px));
+  max-width:calc(100vw - 32px);
+  max-height:92dvh;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #d8e1e8;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 26px 80px rgba(0,0,0,.3);
+  box-sizing:border-box;
 }
-
-.appInterestedContactActions em{
+.propertyInterestMessagingHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:16px 18px;
+  border-bottom:1px solid #e3e9ee;
+  background:#fff;
+}
+.propertyInterestMessagingHead>div{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.propertyInterestMessagingHead small{
+  color:#a47b18;
   font-size:9px;
-  color:#39724b;
-  font-style:normal;
-  font-weight:800;
-  text-align:right;
+  font-weight:900;
+  letter-spacing:.08em;
 }
-
-.appInterestedWhatsAppLink,
-.appInterestedWhatsAppUnavailable{
-  display:inline-flex;
+.propertyInterestMessagingHead strong{
+  color:#07182d;
+  font-size:19px;
+  line-height:1.2;
+  overflow-wrap:anywhere;
+}
+.propertyInterestMessagingHead span{
+  color:#74828d;
+  font-size:11px;
+  font-weight:700;
+}
+.propertyInterestMessagingHead>button{
+  flex:0 0 36px;
+  width:36px;
+  height:36px;
+  border:1px solid #d8e0e6;
+  border-radius:10px;
+  background:#f5f7f9;
+  color:#17364e;
+  font-size:23px;
+  line-height:1;
+  cursor:pointer;
+}
+.propertyInterestMessagingBody{
+  display:grid;
+  gap:14px;
+  padding:14px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.propertyInterestCurrentSection,
+.propertyInterestAddSection{
+  display:grid;
+  gap:10px;
+  padding:13px;
+  border:1px solid #e1e7ec;
+  border-radius:13px;
+  background:#fbfcfd;
+}
+.propertyInterestSectionTitle{
+  display:flex;
   align-items:center;
-  justify-content:center;
-  min-height:30px;
-  padding:6px 9px;
-  border-radius:8px;
+  justify-content:space-between;
+  gap:12px;
+}
+.propertyInterestSectionTitle>div{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+.propertyInterestSectionTitle strong{
+  color:#102b41;
+  font-size:14px;
+}
+.propertyInterestSectionTitle small{
+  color:#74818b;
+  font-size:10px;
+  line-height:1.35;
+}
+.propertyInterestSectionTitle>button{
+  flex:0 0 auto;
+  min-height:34px;
+  padding:7px 10px;
+  border:1px solid #cbd8e2;
+  border-radius:9px;
+  background:#eef4f8;
+  color:#17364e;
   font-family:inherit;
   font-size:10px;
   font-weight:850;
-  line-height:1;
-  text-decoration:none;
-  white-space:nowrap;
+  cursor:pointer;
+}
+.propertyInterestCurrentList,
+.propertyInterestAddList{
+  display:grid;
+  gap:7px;
+}
+.propertyInterestCurrentRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  width:100%;
+  min-width:0;
+  padding:10px;
+  border:1px solid #dee6eb;
+  border-radius:10px;
+  background:#fff;
   box-sizing:border-box;
 }
-
-.appInterestedWhatsAppLink{
-  border:1px solid #b9dfc4;
-  background:#eaf8ef;
-  color:#176b35;
+.propertyInterestSelectPerson,
+.propertyInterestAddRow{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:9px;
+  align-items:center;
+  min-width:0;
+  cursor:pointer;
 }
-
-.appInterestedWhatsAppUnavailable{
+.propertyInterestSelectPerson input,
+.propertyInterestAddRow input{
+  width:18px;
+  height:18px;
+  margin:0;
+}
+.propertyInterestSelectPerson>span,
+.propertyInterestAddRow>span{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+.propertyInterestSelectPerson strong,
+.propertyInterestAddRow strong{
+  color:#112d43;
+  font-size:13px;
+  line-height:1.2;
+  overflow-wrap:anywhere;
+}
+.propertyInterestSelectPerson small,
+.propertyInterestAddRow small{
+  color:#77848e;
+  font-size:10px;
+  line-height:1.25;
+  overflow-wrap:anywhere;
+}
+.propertyInterestWhatsButton,
+.propertyInterestNoWhats{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:100px;
+  min-height:34px;
+  padding:7px 10px;
+  border-radius:9px;
+  font-family:inherit;
+  font-size:10px;
+  font-weight:850;
+  line-height:1.1;
+  box-sizing:border-box;
+}
+.propertyInterestWhatsButton{
+  border:1px solid #b8dec3;
+  background:#e9f8ee;
+  color:#176b35;
+  cursor:pointer;
+}
+.propertyInterestNoWhats{
   border:1px solid #d9e0e5;
   background:#f2f4f6;
   color:#8a949c;
 }
+.propertyInterestSendBar{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.propertyInterestSendBar button,
+.propertyInterestAddButton,
+.propertyInterestQueue button{
+  min-height:40px;
+  padding:8px 10px;
+  border-radius:9px;
+  font-family:inherit;
+  font-weight:850;
+  cursor:pointer;
+  box-sizing:border-box;
+}
+.propertyInterestSendBar .secondary{
+  border:1px solid #ccd8e1;
+  background:#eef4f8;
+  color:#153a56;
+}
+.propertyInterestSendBar .primary,
+.propertyInterestAddButton,
+.propertyInterestQueue button{
+  border:1px solid #174866;
+  background:#174866;
+  color:#fff;
+}
+.propertyInterestSendBar button:disabled,
+.propertyInterestAddButton:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+.propertyInterestQueue{
+  display:grid;
+  gap:5px;
+  padding:10px;
+  border:1px solid #d6e4ed;
+  border-radius:10px;
+  background:#eff7fb;
+}
+.propertyInterestQueue strong{
+  color:#143b55;
+  font-size:12px;
+}
+.propertyInterestQueue small{
+  color:#5f7687;
+  font-size:10px;
+  line-height:1.35;
+}
+.propertyInterestQueue button{
+  justify-self:start;
+  min-height:34px;
+  margin-top:3px;
+}
+.propertyInterestSearch{
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  padding:9px 10px;
+  border:1px solid #d7e0e6;
+  border-radius:9px;
+  background:#fff;
+  font-family:inherit;
+  box-sizing:border-box;
+}
+.propertyInterestAddList{
+  max-height:210px;
+  overflow:auto;
+}
+.propertyInterestAddRow{
+  padding:9px;
+  border:1px solid #e0e6eb;
+  border-radius:9px;
+  background:#fff;
+  box-sizing:border-box;
+}
+.propertyInterestAddButton{
+  width:100%;
+}
+.propertyInterestNotice{
+  padding:10px 11px;
+  border-radius:9px;
+  background:#eef7ff;
+  color:#24577e;
+  font-size:11px;
+  line-height:1.35;
+}
+.propertyInterestEmpty{
+  padding:18px 10px;
+  text-align:center;
+  color:#74818b;
+  font-size:11px;
+}
+
+@media (max-width:900px){
+  .propertyInterestMessagingLayer{
+    padding:8px;
+  }
+  .propertyInterestMessagingDialog{
+    width:calc(100vw - 16px);
+    max-width:calc(100vw - 16px);
+    max-height:94dvh;
+    border-radius:15px;
+  }
+  .propertyInterestMessagingHead{
+    padding:13px;
+  }
+  .propertyInterestMessagingHead strong{
+    font-size:17px;
+  }
+  .propertyInterestMessagingBody{
+    gap:10px;
+    padding:9px;
+  }
+  .propertyInterestCurrentSection,
+  .propertyInterestAddSection{
+    padding:10px;
+  }
+  .propertyInterestSectionTitle{
+    align-items:flex-start;
+  }
+  .propertyInterestSectionTitle>button{
+    min-height:32px;
+    padding:6px 8px;
+    font-size:9px;
+  }
+  .propertyInterestCurrentRow{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+    padding:9px;
+  }
+  .propertyInterestWhatsButton,
+  .propertyInterestNoWhats{
+    min-width:88px;
+    min-height:34px;
+    padding:7px 8px;
+    font-size:9px;
+  }
+  .adminPage #imoveis .propertyInterestMessageTrigger{
+    min-height:38px!important;
+    font-size:10px!important;
+  }
+}
 
 @media (max-width:420px){
-  .appInterestedContact{
-    grid-template-columns:auto minmax(0,1fr)!important;
+  .propertyInterestSectionTitle{
+    display:grid;
+    grid-template-columns:1fr;
   }
-
-  .appInterestedContactActions{
-    grid-column:2;
+  .propertyInterestSectionTitle>button{
+    width:100%;
+  }
+  .propertyInterestCurrentRow{
+    grid-template-columns:1fr;
+  }
+  .propertyInterestWhatsButton,
+  .propertyInterestNoWhats{
     width:100%;
     min-width:0;
-    flex-direction:row;
-    align-items:center;
-    justify-content:space-between;
   }
-
-  .appInterestedWhatsAppLink,
-  .appInterestedWhatsAppUnavailable{
-    min-height:32px;
-    padding:7px 10px;
-    font-size:10px;
+  .propertyInterestSendBar{
+    grid-template-columns:1fr;
   }
 }
