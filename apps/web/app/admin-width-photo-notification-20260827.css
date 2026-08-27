@@ -1,0 +1,110 @@
+/* LENOY IMOBILIÁRIAS — largura geral + fotos de avaliações — 27/08/2026 */
+
+/* Desktop: todo o conteúdo administrativo segue a mesma largura de 90%. */
+@media (min-width: 901px){
+  .adminPage .container.adminShell{
+    width:90%!important;
+    max-width:1680px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  .mobileAppContent,
+  .mobileLabelDock{
+    width:90%!important;
+    max-width:1680px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+}
+
+/* Tablet e celular continuam usando a área útil inteira, sem estreitar artificialmente. */
+@media (max-width: 900px){
+  .mobileAppContent,
+  .mobileLabelDock{
+    width:100%!important;
+    max-width:100%!important;
+    box-sizing:border-box!important;
+  }
+}
+
+.adminPage .adminContent,
+.adminPage #imoveis,
+.adminPage #imoveis .adminTableWrap,
+.adminPage #imoveis .adminTable,
+.adminPage #imoveis .adminTable tbody,
+.ownerPropertyReviewPortalHost,
+.ownerReviewPanel{
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+
+/* Fotos enviadas pelo proprietário passam a indicar claramente que podem ser abertas. */
+.ownerReviewPhotos img[data-viewer-ready="true"]{
+  cursor:zoom-in!important;
+  transition:transform .16s ease,box-shadow .16s ease!important;
+}
+.ownerReviewPhotos img[data-viewer-ready="true"]:hover,
+.ownerReviewPhotos img[data-viewer-ready="true"]:focus{
+  transform:translateY(-2px)!important;
+  box-shadow:0 8px 20px rgba(15,23,42,.16)!important;
+  outline:2px solid color-mix(in srgb,var(--tenant-primary,#173a63) 45%,transparent)!important;
+  outline-offset:2px!important;
+}
+.ownerReviewActions .ownerReviewDeleteButton{
+  background:#fff1f2!important;
+  border-color:#fecdd3!important;
+  color:#b42333!important;
+}
+.ownerReviewActions .ownerReviewDeleteButton:hover{background:#ffe4e6!important}
+
+.ownerPhotoViewer{
+  position:fixed!important;
+  inset:0!important;
+  z-index:99999!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:24px!important;
+  background:rgba(2,10,20,.9)!important;
+  backdrop-filter:blur(5px)!important;
+}
+.ownerPhotoViewerInner{
+  width:min(1180px,96vw)!important;
+  max-height:94vh!important;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  gap:12px!important;
+  padding:14px!important;
+  border:1px solid rgba(255,255,255,.15)!important;
+  border-radius:18px!important;
+  background:#071725!important;
+  box-shadow:0 30px 80px rgba(0,0,0,.5)!important;
+}
+.ownerPhotoViewerTop{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;color:#fff!important}
+.ownerPhotoViewerTop>div{display:grid!important;gap:2px!important}
+.ownerPhotoViewerTop strong{font-size:15px!important}
+.ownerPhotoViewerTop small{font-size:11px!important;color:#aebdca!important}
+.ownerPhotoViewerTop>button{
+  width:40px!important;height:40px!important;border:0!important;border-radius:10px!important;background:rgba(255,255,255,.1)!important;color:#fff!important;font-size:28px!important;cursor:pointer!important
+}
+.ownerPhotoViewerStage{position:relative!important;min-height:0!important;display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:14px!important;background:#02080e!important}
+.ownerPhotoViewerStage>img{display:block!important;max-width:100%!important;max-height:72vh!important;width:auto!important;height:auto!important;object-fit:contain!important}
+.ownerPhotoViewerStage>button{
+  position:absolute!important;top:50%!important;transform:translateY(-50%)!important;z-index:2!important;width:46px!important;height:58px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:12px!important;background:rgba(0,0,0,.45)!important;color:#fff!important;font-size:38px!important;line-height:1!important;cursor:pointer!important
+}
+.ownerPhotoViewerStage>.previous{left:12px!important}.ownerPhotoViewerStage>.next{right:12px!important}
+.ownerPhotoViewerThumbs{display:flex!important;gap:8px!important;overflow-x:auto!important;padding:2px!important}
+.ownerPhotoViewerThumbs>button{flex:0 0 82px!important;width:82px!important;height:62px!important;padding:2px!important;border:2px solid transparent!important;border-radius:10px!important;background:transparent!important;cursor:pointer!important}
+.ownerPhotoViewerThumbs>button.active{border-color:#fff!important}
+.ownerPhotoViewerThumbs img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:7px!important}
+
+/* Notificações já lidas nunca permanecem visualmente na lista. */
+.webNotificationItem.read{display:none!important}
+
+@media(max-width:700px){
+  .ownerPhotoViewer{padding:8px!important}
+  .ownerPhotoViewerInner{width:100%!important;max-height:98vh!important;padding:9px!important;border-radius:14px!important}
+  .ownerPhotoViewerStage>img{max-height:72vh!important}
+  .ownerPhotoViewerStage>button{width:40px!important;height:50px!important;font-size:32px!important}
+  .ownerPhotoViewerThumbs>button{flex-basis:66px!important;width:66px!important;height:52px!important}
+}
