@@ -1,0 +1,292 @@
+/* LENOY IMOBILIÁRIAS — correções finais do Admin no celular — 27/08/2026 */
+/* Somente mobile/tablet. Desktop permanece inalterado. */
+
+@media (max-width: 900px){
+  html,
+  body,
+  .adminPage,
+  .adminPage .container.adminShell,
+  .adminPage .adminContent{
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+
+  .adminPage .adminContent,
+  .adminPage .adminContent *{
+    box-sizing:border-box!important;
+    min-width:0!important;
+  }
+
+  /* Imóveis para avaliação: painel externo ocupa toda a área útil;
+     cards internos ficam com 90% e centralizados. */
+  .ownerPropertyReviewPortalHost,
+  .ownerReviewPanel{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    overflow-x:hidden!important;
+  }
+
+  .ownerReviewHeading,
+  .ownerReviewMessage,
+  .ownerReviewEmpty,
+  .ownerReviewList{
+    width:90%!important;
+    max-width:90%!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+
+  .ownerReviewList{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+  }
+
+  .ownerReviewCard{
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+    overflow:hidden!important;
+  }
+
+  .ownerReviewCardTop,
+  .ownerReviewData,
+  .ownerReviewDescription,
+  .ownerReviewActions,
+  .ownerReviewEdit,
+  .ownerReviewEdit .ownerReviewGrid,
+  .ownerReviewEdit .ownerReviewGrid.three,
+  .ownerReviewEdit .ownerReviewGrid.four{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .ownerReviewData,
+  .ownerReviewEdit .ownerReviewGrid,
+  .ownerReviewEdit .ownerReviewGrid.three,
+  .ownerReviewEdit .ownerReviewGrid.four{
+    grid-template-columns:1fr!important;
+  }
+
+  .ownerReviewPhotos{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+  }
+
+  .ownerReviewPhotos img{
+    display:none!important;
+  }
+
+  .ownerReviewPhotos img:first-child{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+    aspect-ratio:16/10!important;
+    object-fit:cover!important;
+  }
+
+  .ownerReviewActions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+
+  .ownerReviewActions > button,
+  .ownerReviewActions > a{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  /* Desempenho dos imóveis: painel externo 100%, conteúdo interno 90%. */
+  .adminPage #desempenho-imoveis{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    overflow:hidden!important;
+  }
+
+  .adminPage #desempenho-imoveis > .adminPanelHeader,
+  .adminPage #desempenho-imoveis > .adminMetrics,
+  .adminPage #desempenho-imoveis > .adminTableWrap,
+  .adminPage #desempenho-imoveis > .formNotice,
+  .adminPage #desempenho-imoveis > .formMessage{
+    width:90%!important;
+    max-width:90%!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+
+  .adminPage #desempenho-imoveis > .adminMetrics{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTableWrap{
+    overflow:visible!important;
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    table-layout:fixed!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable thead{
+    display:none!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable tbody{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable tr{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+    padding:12px!important;
+    border:1px solid #e1e7ec!important;
+    border-radius:14px!important;
+    background:#fff!important;
+    box-shadow:0 4px 14px rgba(17,35,52,.05)!important;
+    overflow:hidden!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable td{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    padding:8px!important;
+    border:0!important;
+    border-radius:10px!important;
+    background:#f7f9fb!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  /* Topo do card: foto à esquerda e código/descrição à direita. */
+  .adminPage #desempenho-imoveis .adminTable td:first-child{
+    grid-column:1 / -1!important;
+    display:grid!important;
+    grid-template-columns:88px minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    column-gap:10px!important;
+    row-gap:3px!important;
+    align-items:center!important;
+    padding:0 0 10px!important;
+    border-radius:0!important;
+    border-bottom:1px solid #e7ebef!important;
+    background:transparent!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable td:first-child > .adminCatalogPhotoGallery{
+    grid-column:1!important;
+    grid-row:1 / 3!important;
+    width:88px!important;
+    height:70px!important;
+    margin:0!important;
+    overflow:hidden!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable td:first-child > strong{
+    grid-column:2!important;
+    grid-row:1!important;
+    align-self:end!important;
+    font-size:14px!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable td:first-child > .tableSub{
+    grid-column:2!important;
+    grid-row:2!important;
+    align-self:start!important;
+    display:block!important;
+    margin:0!important;
+    font-size:12px!important;
+    line-height:1.35!important;
+    color:#5f6f7d!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminCatalogPhotoStrip{
+    display:block!important;
+    width:88px!important;
+    height:70px!important;
+    overflow:hidden!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminCatalogPhotoStrip img{
+    display:none!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminCatalogPhotoStrip img:first-child{
+    display:block!important;
+    width:88px!important;
+    height:70px!important;
+    object-fit:cover!important;
+    border-radius:10px!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminCatalogPhotoCount{
+    display:none!important;
+  }
+
+  /* Indicadores ficam abaixo da foto/descrição, sem rolagem horizontal. */
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(n+2)::before{
+    display:block!important;
+    margin-bottom:3px!important;
+    color:#7a8793!important;
+    font-size:9px!important;
+    font-weight:900!important;
+    letter-spacing:.04em!important;
+    text-transform:uppercase!important;
+  }
+
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(2)::before{content:"Favoritos"!important}
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(3)::before{content:"Leads"!important}
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(4)::before{content:"Últimos 30d"!important}
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(5)::before{content:"Visitas"!important}
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(6)::before{content:"Próximas"!important}
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(7)::before{content:"Fechados"!important}
+  .adminPage #desempenho-imoveis .adminTable td:nth-child(8)::before{content:"Dias publicado"!important}
+
+  /* Segurança contra qualquer tabela/card antigo que tente criar largura extra. */
+  .adminPage .adminTableWrap,
+  .adminPage .adminTable,
+  .adminPage .adminTable tbody,
+  .adminPage .adminTable tr,
+  .adminPage .adminPanel,
+  .adminPage .adminMetrics,
+  .adminPage .adminModuleGrid{
+    max-width:100%!important;
+  }
+}
+
+@media (max-width: 480px){
+  .ownerReviewHeading,
+  .ownerReviewMessage,
+  .ownerReviewEmpty,
+  .ownerReviewList,
+  .adminPage #desempenho-imoveis > .adminPanelHeader,
+  .adminPage #desempenho-imoveis > .adminMetrics,
+  .adminPage #desempenho-imoveis > .adminTableWrap,
+  .adminPage #desempenho-imoveis > .formNotice,
+  .adminPage #desempenho-imoveis > .formMessage{
+    width:90%!important;
+    max-width:90%!important;
+  }
+}
