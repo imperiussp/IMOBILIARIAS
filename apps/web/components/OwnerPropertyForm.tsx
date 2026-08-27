@@ -5,7 +5,7 @@ import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 import { currentHostname } from "../lib/tenantResolver";
 import { useSiteSettings } from "../lib/useSiteSettings";
 
-const MAX_PHOTOS = 6;
+const MAX_PHOTOS = 20;
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
