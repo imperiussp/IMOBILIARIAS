@@ -80,6 +80,7 @@ import "./platform-commercial-20260827.css";
 import "./demo-tour-20260828.css";
 import "./demo-client-product-20260828.css";
 import "./demo-purchase-cta-20260828.css";
+import "./demo-app-menu-fix-20260828.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -96,14 +97,27 @@ if (!heroAssetPath) {
 const saasHeroBackground = `data:image/webp;base64,${readFileSync(heroAssetPath).toString("base64")}`;
 
 const saasHeroServerCss = `
+:root{
+  --lenoy-approved-platform-hero:url("${saasHeroBackground}");
+}
 @media (min-width:701px){
-  html body .platformLanding .platformHero{
-    background:#061322 url("${saasHeroBackground}") center center / cover no-repeat !important;
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero{
+    background-color:#061322 !important;
+    background-image:var(--lenoy-approved-platform-hero) !important;
+    background-repeat:no-repeat !important;
+    background-position:center center !important;
+    background-size:cover !important;
   }
-  html body .platformLanding .platformHero::before,
-  html body .platformLanding .platformHero::after{
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero::before,
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero::after{
     content:none !important;
     display:none !important;
+  }
+}
+@media (min-width:1100px){
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero{
+    background-position:right center !important;
+    background-size:auto 100% !important;
   }
 }`;
 
