@@ -70,16 +70,44 @@ jobs:
             printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
             (cd apps/web/out && zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .)
 
-            # Patch leve: somente o index completo e o CSS completo que contém a regra do hero.
+            # Patch leve protegido da home de vendas: recria o ZIP do zero e sempre
+            # leva junto a arte aprovada. Se a imagem ou a regra responsiva sumirem,
+            # o build falha em vez de publicar uma home sem o background.
             rm -rf cpanel-build/background-responsive
+            rm -f cpanel-build/imobiliarias-background-responsive.zip
             mkdir -p cpanel-build/background-responsive/_next/static/css
             cp apps/web/out/index.html cpanel-build/background-responsive/index.html
+
             HERO_CSS="$(grep -rl "platform-hero-home-final.webp" apps/web/out/_next/static/css | head -n 1)"
             if [ -z "$HERO_CSS" ]; then
-              echo "CSS do hero não encontrado no export estático." >&2
+              echo "CSS protegido do hero não encontrado no export estático." >&2
               exit 41
             fi
+
+            HERO_ASSET="apps/web/out/platform-hero-home-final.webp"
+            if [ ! -s "$HERO_ASSET" ]; then
+              echo "Imagem aprovada do hero não foi publicada no export estático." >&2
+              exit 42
+            fi
+
+            EXPECTED_HERO_SHA="6663bf7c151f708fc657805fd54b34d32fab57871ddaf2d6be31e6690c8ba29e"
+            ACTUAL_HERO_SHA="$(sha256sum "$HERO_ASSET" | awk '{print $1}')"
+            if [ "$ACTUAL_HERO_SHA" != "$EXPECTED_HERO_SHA" ]; then
+              echo "A imagem protegida do hero foi alterada. Publicação interrompida." >&2
+              exit 43
+            fi
+
+            if ! grep -q "background-size:auto 100%" "$HERO_CSS"; then
+              echo "Regra de monitor largo do hero não encontrada. Publicação interrompida." >&2
+              exit 44
+            fi
+
             cp "$HERO_CSS" cpanel-build/background-responsive/_next/static/css/
+            cp "$HERO_ASSET" cpanel-build/background-responsive/platform-hero-home-final.webp
+            chmod 0644 \
+              cpanel-build/background-responsive/index.html \
+              cpanel-build/background-responsive/_next/static/css/"$(basename "$HERO_CSS")" \
+              cpanel-build/background-responsive/platform-hero-home-final.webp
             (cd cpanel-build/background-responsive && zip -qr ../imobiliarias-background-responsive.zip .)
           fi
           git config user.name "github-actions[bot]"
