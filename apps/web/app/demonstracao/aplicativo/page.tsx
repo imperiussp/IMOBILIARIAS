@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { DemoClientApp } from "../../../components/DemoClientShowcase";
+import { DemoAppReplica } from "../../../components/DemoProductReplica";
+import "../../demo-product-replica-20260828.css";
 
 export const metadata: Metadata = {
   title: "Aplicativo modelo do corretor | LENOY IMOBILIÁRIAS",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function DemoAppPage() {
-  return <DemoClientApp />;
+  return <DemoAppReplica />;
 }
