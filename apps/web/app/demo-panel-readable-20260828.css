@@ -1,0 +1,27 @@
+/* Ajuste exclusivo do painel de demonstração: aumenta somente a leitura, sem alterar o layout geral. */
+.clientPanelDemoPage .panelDemoWindow>header span{font-size:13px}
+.clientPanelDemoPage .panelDemoWindow>header button,
+.clientPanelDemoPage .panelDemoTitle button{font-size:12px}
+.clientPanelDemoPage .panelDemoBody>aside strong{font-size:14px}
+.clientPanelDemoPage .panelDemoBody>aside span{font-size:13px;line-height:1.35}
+.clientPanelDemoPage .panelDemoTitle>div>span,
+.clientPanelDemoPage .panelDemoSectionTitle>span,
+.clientPanelDemoPage .panelDemoLower article>span{font-size:11px}
+.clientPanelDemoPage .panelDemoTitle p{font-size:13px;line-height:1.45}
+.clientPanelDemoPage .panelDemoMetrics small,
+.clientPanelDemoPage .panelDemoMetrics span,
+.clientPanelDemoPage .panelDemoLower small{font-size:11px;line-height:1.4}
+.clientPanelDemoPage .panelDemoWindow table th,
+.clientPanelDemoPage .panelDemoWindow table td{font-size:12px;line-height:1.4}
+.clientPanelDemoPage .panelDemoWindow input,
+.clientPanelDemoPage .panelDemoWindow select,
+.clientPanelDemoPage .panelDemoWindow textarea,
+.clientPanelDemoPage .panelDemoWindow label,
+.clientPanelDemoPage .panelDemoWindow button{font-size:12px}
+.clientPanelDemoPage .panelDemoWindow p{font-size:12px;line-height:1.5}
+.clientPanelDemoPage .panelDemoWindow small{font-size:11px;line-height:1.4}
+@media (max-width:700px){
+  .clientPanelDemoPage .panelDemoBody>aside span{font-size:12px}
+  .clientPanelDemoPage .panelDemoWindow table th,
+  .clientPanelDemoPage .panelDemoWindow table td{font-size:11px}
+}
