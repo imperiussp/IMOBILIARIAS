@@ -43,19 +43,28 @@ export default function PaidAccessCheckout({ agencyId, agencyName, appMode = fal
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [cycle, setCycle] = useState<"monthly" | "annual">("monthly");
+  const [preferredPlanCode, setPreferredPlanCode] = useState("");
   const [busyId, setBusyId] = useState("");
   const [message, setMessage] = useState("");
 
   async function load() {
     if (!supabaseBrowser) return;
-    const [planResult, statusResult, discountResult] = await Promise.all([
+    const [planResult, statusResult, discountResult, userResult] = await Promise.all([
       supabaseBrowser.from("subscription_plans").select("id,code,name,description,monthly_price,annual_price,implementation_fee,annual_discount_percent,features").eq("active", true).order("display_order").order("name"),
       supabaseBrowser.rpc("agency_billing_status", { p_agency_id: agencyId }),
       supabaseBrowser.rpc("agency_billing_discount_snapshot", { p_agency_id: agencyId }),
+      supabaseBrowser.auth.getUser(),
     ]);
     if (planResult.error) setMessage("Não foi possível carregar os planos agora.");
     const rows = ((planResult.data || []) as Plan[]).filter((plan) => String(plan.features?.internal_only || "false").toLowerCase() !== "true");
-    setPlans(rows);
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const metadata = userResult.data.user?.user_metadata || {};
+    const requestedCode = String(params?.get("plano") || metadata.selected_plan_code || "").toLowerCase();
+    const requestedCycle = String(params?.get("ciclo") || metadata.selected_billing_cycle || "").toLowerCase();
+    const validPreferred = rows.some((plan) => plan.code === requestedCode) ? requestedCode : "";
+    setPreferredPlanCode(validPreferred);
+    if (requestedCycle === "annual" || requestedCycle === "monthly") setCycle(requestedCycle);
+    setPlans(validPreferred ? [...rows].sort((a,b) => a.code === validPreferred ? -1 : b.code === validPreferred ? 1 : 0) : rows);
     if (!statusResult.error && Array.isArray(statusResult.data) && statusResult.data[0]) setStatus(statusResult.data[0] as BillingStatus);
     if (!discountResult.error && Array.isArray(discountResult.data)) setDiscounts(discountResult.data as Discount[]);
   }
@@ -124,7 +133,7 @@ export default function PaidAccessCheckout({ agencyId, agencyName, appMode = fal
   if (brokerOnly) return <main className="loginPage paidAccessPage"><div className="loginShell"><div className="loginCard paidAccessBrokerCard"><span className="eyebrow">ASSINATURA PENDENTE</span><h1>Aguardando liberação</h1><p>O acesso de corretores será liberado automaticamente quando o pagamento da assinatura de <strong>{agencyName}</strong> for confirmado.</p><button className="button secondary full" type="button" onClick={() => void checkAccess()}>Verificar liberação</button><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
 
   return <main className="loginPage paidAccessPage"><div className="paidAccessShell">
-    <div className="paidAccessHeading"><span className="eyebrow">ATIVAÇÃO DA LENOY IMOBILIÁRIAS</span><h1>Escolha como deseja contratar.</h1><p>Seu cadastro <strong>{agencyName}</strong> já existe. O painel e o aplicativo são liberados somente depois da confirmação do pagamento pelo servidor.</p></div>
+    <div className="paidAccessHeading"><span className="eyebrow">ETAPA 2 DE 2 · PAGAMENTO</span><h1>Conclua a contratação.</h1><p>Seu cadastro <strong>{agencyName}</strong> já existe. {preferredPlanCode ? "O plano escolhido no cadastro aparece destacado abaixo. " : ""}O painel e o aplicativo são liberados somente depois da confirmação do pagamento pelo servidor.</p></div>
     <div className="paidCycleSwitch"><button type="button" className={cycle === "monthly" ? "active" : ""} onClick={() => setCycle("monthly")}>Mensal</button><button type="button" className={cycle === "annual" ? "active" : ""} onClick={() => setCycle("annual")}>Anual · 25% OFF</button></div>
     <div className="paidAccessPlans">{plans.map((plan) => {
       const discount = discountMap.get(`${plan.id}:${cycle}`);
@@ -133,8 +142,9 @@ export default function PaidAccessCheckout({ agencyId, agencyName, appMode = fal
       const firstMonthly = implementationPending ? Number(plan.implementation_fee || 0) : effectiveSubscription;
       const payable = cycle === "annual" ? effectiveSubscription : firstMonthly;
       const isDiscounted = Boolean(discount && effectiveSubscription < normalSubscription);
-      return <article className={`paidAccessPlan ${plan.code === "profissional" ? "featured" : ""}`} key={plan.id}>
-        {plan.code === "profissional" ? <span className="paidPlanBadge">MAIS ESCOLHIDO</span> : null}
+      const preferred = plan.code === preferredPlanCode;
+      return <article className={`paidAccessPlan ${plan.code === "profissional" ? "featured" : ""} ${preferred ? "preferred" : ""}`} key={plan.id}>
+        {preferred ? <span className="paidPlanBadge preferredBadge">PLANO ESCOLHIDO</span> : plan.code === "profissional" ? <span className="paidPlanBadge">MAIS ESCOLHIDO</span> : null}
         <h2>{plan.name}</h2><p>{plan.description}</p>
         <div className="paidPlanMonthly"><strong>{money(plan.monthly_price)}</strong><span>/mês</span></div>
         {cycle === "monthly" ? <div className="paidPlanCharge"><small>{implementationPending ? "PRIMEIRO PAGAMENTO" : "PRÓXIMA COBRANÇA"}</small><strong>{money(payable)}</strong><span>{implementationPending ? `Implantação · pagamento único. A mensalidade de ${money(plan.monthly_price)} vence após os primeiros 30 dias.` : "Mensalidade do plano"}</span>{isDiscounted && !implementationPending ? <em>Desconto especial: {Number(discount?.discount_percent || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%</em> : null}</div>
