@@ -3,84 +3,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
-type Session = { id: string; agency_id: string; provider: string; status: string; amount: number | null; paid_amount: number | null; base_amount: number | null; discount_percent: number | null; currency: string; created_at: string; completed_at: string | null; plan_id: string; billing_cycle: string | null; charge_type: string | null; implementation_waived: boolean | null; receipt_url: string | null };
-type Agency = { id: string; name: string };
-type Plan = { id: string; name: string };
+type Session = { id:string; agency_id:string; provider:string; status:string; amount:number|null; paid_amount:number|null; base_amount:number|null; discount_percent:number|null; currency:string; created_at:string; completed_at:string|null; plan_id:string; billing_cycle:string|null; charge_type:string|null; implementation_waived:boolean|null; receipt_url:string|null };
+type Agency = { id:string; name:string };
+type Plan = { id:string; name:string };
+function money(value:number|null|undefined,currency="BRL"){if(value==null||!Number.isFinite(Number(value)))return "—";return new Intl.NumberFormat("pt-BR",{style:"currency",currency:currency||"BRL"}).format(Number(value));}
+function statusLabel(status:string){if(status==="paid")return "Pagamento confirmado";if(status==="pending"||status==="created")return "Aguardando pagamento";if(status==="failed")return "Pagamento não concluído";if(status==="expired")return "Cobrança expirada";if(status==="cancelled")return "Cancelado";return status;}
+function statusClass(status:string){if(status==="paid")return "paid";if(status==="pending"||status==="created")return "pending";if(status==="failed"||status==="expired")return "failed";return "neutral";}
+function chargeLabel(charge:string|null,cycle:string|null,waived:boolean|null){if(charge==="implementation")return "Implantação";if(cycle==="annual")return waived?"Plano anual · implantação grátis":"Plano anual";return "Mensalidade";}
 
-function money(value: number | null | undefined, currency = "BRL") {
-  if (value == null || !Number.isFinite(Number(value))) return "—";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: currency || "BRL" }).format(Number(value));
-}
-function statusLabel(status: string) {
-  if (status === "paid") return "Pagamento confirmado";
-  if (status === "pending" || status === "created") return "Aguardando pagamento";
-  if (status === "failed") return "Pagamento não concluído";
-  if (status === "expired") return "Cobrança expirada";
-  if (status === "cancelled") return "Cancelado";
-  return status;
-}
-function statusClass(status: string) {
-  if (status === "paid") return "paid";
-  if (status === "pending" || status === "created") return "pending";
-  if (status === "failed" || status === "expired") return "failed";
-  return "neutral";
-}
-function chargeLabel(charge: string | null, cycle: string | null, waived: boolean | null) {
-  if (charge === "implementation") return "Implantação";
-  if (cycle === "annual") return waived ? "Plano anual · implantação grátis" : "Plano anual";
-  if (charge === "renewal") return "Renovação mensal";
-  return "Mensalidade";
-}
-
-export default function PlatformBillingOverview() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [agencies, setAgencies] = useState<Agency[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if (!supabaseBrowser || !isSupabaseConfigured) return;
-    void (async () => {
-      const [sessionResult, agencyResult, planResult] = await Promise.all([
-        supabaseBrowser.from("billing_checkout_sessions").select("id,agency_id,provider,status,amount,paid_amount,base_amount,discount_percent,currency,created_at,completed_at,plan_id,billing_cycle,charge_type,implementation_waived,receipt_url").order("created_at", { ascending: false }).limit(100),
-        supabaseBrowser.from("agencies").select("id,name"),
-        supabaseBrowser.from("subscription_plans").select("id,name"),
-      ]);
-      const error = sessionResult.error || agencyResult.error || planResult.error;
-      if (error) return setMessage(error.message);
-      setSessions((sessionResult.data || []) as Session[]);
-      setAgencies((agencyResult.data || []) as Agency[]);
-      setPlans((planResult.data || []) as Plan[]);
-    })();
-  }, []);
-
-  const agencyName = useMemo(() => new Map(agencies.map((item) => [item.id, item.name])), [agencies]);
-  const planName = useMemo(() => new Map(plans.map((item) => [item.id, item.name])), [plans]);
-  const paid = sessions.filter((item) => item.status === "paid");
-  const pending = sessions.filter((item) => item.status === "created" || item.status === "pending");
-  const failed = sessions.filter((item) => item.status === "failed" || item.status === "expired");
-  const received = paid.reduce((sum, item) => sum + Number(item.paid_amount ?? item.amount ?? 0), 0);
-
-  return <div className="adminPanel commercialPaymentsPanel" id="cobranca-plataforma">
-    <div className="adminPanelHeader"><div><span className="eyebrow">PAGAMENTOS</span><h2>Histórico financeiro</h2><p>Consulte as compras e cobranças dos clientes em linguagem administrativa: valor, desconto, situação e comprovante.</p></div><span>{isSupabaseConfigured ? `${sessions.length} cobrança(s) recente(s)` : "Sem dados"}</span></div>
-    {!isSupabaseConfigured ? <div className="formNotice">A cobrança ainda não está conectada ao ambiente de produção.</div> : <>
-      <div className="commercialPaymentMetrics"><article><span>Recebido</span><strong>{money(received)}</strong><small>nas cobranças listadas</small></article><article><span>Pagamentos confirmados</span><strong>{paid.length}</strong><small>acesso/renovação processados</small></article><article className={pending.length ? "attention" : ""}><span>Aguardando pagamento</span><strong>{pending.length}</strong><small>cobranças em aberto</small></article><article className={failed.length ? "danger" : ""}><span>Não concluídos</span><strong>{failed.length}</strong><small>falha ou expiração</small></article></div>
-      {message ? <div className="formMessage">{message}</div> : null}
-      <div className="adminTableWrap commercialTableWrap"><table className="adminTable commercialTable"><thead><tr><th>Cliente</th><th>Plano</th><th>Cobrança</th><th>Valor normal</th><th>Desconto</th><th>Valor cobrado</th><th>Status</th><th>Data</th><th>Comprovante</th></tr></thead><tbody>{sessions.map((session) => {
-        const base = session.base_amount ?? session.amount;
-        const finalValue = session.paid_amount ?? session.amount;
-        return <tr key={session.id}>
-          <td data-label="Cliente"><strong>{agencyName.get(session.agency_id) || "—"}</strong></td>
-          <td data-label="Plano">{planName.get(session.plan_id) || "—"}</td>
-          <td data-label="Cobrança">{chargeLabel(session.charge_type, session.billing_cycle, session.implementation_waived)}</td>
-          <td data-label="Valor normal">{money(base, session.currency)}</td>
-          <td data-label="Desconto">{Number(session.discount_percent || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%</td>
-          <td data-label="Valor cobrado"><strong>{money(finalValue, session.currency)}</strong></td>
-          <td data-label="Status"><span className={`commercialStatus payment-${statusClass(session.status)}`}>{statusLabel(session.status)}</span></td>
-          <td data-label="Data">{new Date(session.completed_at || session.created_at).toLocaleString("pt-BR")}</td>
-          <td data-label="Comprovante">{session.receipt_url ? <a className="miniButton" href={session.receipt_url} target="_blank" rel="noreferrer">Abrir</a> : "—"}</td>
-        </tr>;
-      })}{!sessions.length ? <tr><td colSpan={9}>Nenhuma cobrança registrada ainda.</td></tr> : null}</tbody></table></div>
-    </>}
-  </div>;
+export default function PlatformBillingOverview(){
+  const [sessions,setSessions]=useState<Session[]>([]);const [agencies,setAgencies]=useState<Agency[]>([]);const [plans,setPlans]=useState<Plan[]>([]);const [message,setMessage]=useState("");
+  useEffect(()=>{if(!supabaseBrowser||!isSupabaseConfigured)return;void(async()=>{const [sessionResult,agencyResult,planResult]=await Promise.all([supabaseBrowser.from("billing_checkout_sessions").select("id,agency_id,provider,status,amount,paid_amount,base_amount,discount_percent,currency,created_at,completed_at,plan_id,billing_cycle,charge_type,implementation_waived,receipt_url").order("created_at",{ascending:false}).limit(100),supabaseBrowser.from("agencies").select("id,name"),supabaseBrowser.from("subscription_plans").select("id,name")]);const error=sessionResult.error||agencyResult.error||planResult.error;if(error)return setMessage(error.message);setSessions((sessionResult.data||[]) as Session[]);setAgencies((agencyResult.data||[]) as Agency[]);setPlans((planResult.data||[]) as Plan[]);})();},[]);
+  const agencyName=useMemo(()=>new Map(agencies.map((item)=>[item.id,item.name])),[agencies]);const planName=useMemo(()=>new Map(plans.map((item)=>[item.id,item.name])),[plans]);const paid=sessions.filter((item)=>item.status==="paid");const pending=sessions.filter((item)=>item.status==="created"||item.status==="pending");const failed=sessions.filter((item)=>item.status==="failed"||item.status==="expired");const received=paid.reduce((sum,item)=>sum+Number(item.paid_amount??item.amount??0),0);
+  return <details className="adminPanel commercialToolCard" id="cobranca-plataforma">
+    <summary className="commercialToolSummary"><span>PAGAMENTOS</span><strong>Histórico financeiro</strong><small>Toque para consultar</small></summary>
+    <div className="commercialToolBody commercialPaymentsPanel">
+      {!isSupabaseConfigured?<div className="formNotice">A cobrança ainda não está conectada ao ambiente de produção.</div>:<>
+        <div className="commercialPaymentMetrics"><article><span>Recebido</span><strong>{money(received)}</strong><small>nas cobranças listadas</small></article><article><span>Confirmados</span><strong>{paid.length}</strong><small>pagamentos processados</small></article><article className={pending.length?"attention":""}><span>Aguardando</span><strong>{pending.length}</strong><small>pagamento</small></article><article className={failed.length?"danger":""}><span>Não concluídos</span><strong>{failed.length}</strong><small>falha ou expiração</small></article></div>
+        {message?<div className="formMessage">{message}</div>:null}
+        <div className="adminTableWrap commercialTableWrap"><table className="adminTable commercialTable"><thead><tr><th>Cliente</th><th>Plano</th><th>Cobrança</th><th>Valor normal</th><th>Desconto</th><th>Valor cobrado</th><th>Status</th><th>Data</th><th>Comprovante</th></tr></thead><tbody>{sessions.map((session)=>{const base=session.base_amount??session.amount;const finalValue=session.paid_amount??session.amount;return <tr key={session.id}><td data-label="Cliente"><strong>{agencyName.get(session.agency_id)||"—"}</strong></td><td data-label="Plano">{planName.get(session.plan_id)||"—"}</td><td data-label="Cobrança">{chargeLabel(session.charge_type,session.billing_cycle,session.implementation_waived)}</td><td data-label="Valor normal">{money(base,session.currency)}</td><td data-label="Desconto">{Number(session.discount_percent||0).toLocaleString("pt-BR",{maximumFractionDigits:2})}%</td><td data-label="Valor cobrado"><strong>{money(finalValue,session.currency)}</strong></td><td data-label="Status"><span className={`commercialStatus payment-${statusClass(session.status)}`}>{statusLabel(session.status)}</span></td><td data-label="Data">{new Date(session.completed_at||session.created_at).toLocaleString("pt-BR")}</td><td data-label="Comprovante">{session.receipt_url?<a className="miniButton" href={session.receipt_url} target="_blank" rel="noreferrer">Abrir</a>:"—"}</td></tr>;})}{!sessions.length?<tr><td colSpan={9}>Nenhuma cobrança registrada ainda.</td></tr>:null}</tbody></table></div>
+      </>}
+    </div>
+  </details>;
 }
