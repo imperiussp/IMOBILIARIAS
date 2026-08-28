@@ -1,8 +1,9 @@
-/* Hero SaaS aprovado — regra protegida. Não alterar em correções de demo, painel, app ou cobrança. */
+/* Hero SaaS aprovado — regra protegida. Não alterar em correções de demo, painel, app ou cobrança.
+   A imagem é embutida no HTML pelo layout.tsx. Este CSS controla apenas enquadramento
+   e nunca deve apontar para arquivo externo, para evitar regressão no cPanel. */
 @media (min-width: 701px) {
   html body .platformLanding.platformLanding .platformHero.platformHero {
     background-color: #061322 !important;
-    background-image: url('/platform-hero-home-final.webp') !important;
     background-repeat: no-repeat !important;
     background-position: center center !important;
     background-size: cover !important;
