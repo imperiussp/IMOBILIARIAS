@@ -21,18 +21,26 @@ export default function PublicPricingEnhancer() {
 
     const topPrimary = document.querySelector<HTMLAnchorElement>(".platformActions .button.primary");
     if (topPrimary) {
-      topPrimary.href = "#painel-demo";
+      topPrimary.href = "demonstracao/";
       topPrimary.textContent = "Ver demonstração";
     }
     const heroActions = document.querySelectorAll<HTMLAnchorElement>(".platformHeroActions .button");
     if (heroActions[0]) {
-      heroActions[0].href = "#painel-demo";
+      heroActions[0].href = "demonstracao/";
       heroActions[0].textContent = "Ver demonstração";
     }
     if (heroActions[1]) {
       heroActions[1].href = "#planos";
-      heroActions[1].textContent = "Ver planos e preços";
+      heroActions[1].textContent = "Ver planos e contratar";
     }
+    const demoNavLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".platformNav nav a")).filter((link) => {
+      const href = link.getAttribute("href") || "";
+      return href === "#painel-demo" || href === "#app-demo";
+    });
+    demoNavLinks.forEach((link, index) => {
+      link.href = "demonstracao/";
+      link.textContent = index === 0 ? "Demonstração" : "Tour completo";
+    });
 
     const heading = section.querySelector("h2");
     if (heading) heading.textContent = "Planos para começar pequeno e crescer com a sua operação.";
@@ -62,7 +70,7 @@ export default function PublicPricingEnhancer() {
     `).join("");
 
     const steps = document.querySelectorAll<HTMLElement>("#como-funciona .steps article");
-    if (steps[0]) steps[0].innerHTML = '<span>01</span><h3>Veja a demonstração</h3><p>Conheça o painel, o aplicativo e o funcionamento da plataforma antes de criar qualquer cadastro.</p>';
+    if (steps[0]) steps[0].innerHTML = '<span>01</span><h3>Veja a demonstração</h3><p>Faça um tour pelo mesmo modelo de painel, site e aplicativo que será entregue após a contratação.</p>';
     if (steps[1]) steps[1].innerHTML = '<span>02</span><h3>Escolha o plano e crie a conta</h3><p>Você vê o preço primeiro, escolhe o plano e só então informa os dados da imobiliária e reserva o endereço.</p>';
     if (steps[2]) steps[2].innerHTML = '<span>03</span><h3>Pague e libere o acesso</h3><p>A contratação é concluída no pagamento. O site, o painel e o aplicativo só são liberados depois da confirmação segura.</p>';
 
