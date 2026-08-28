@@ -47,6 +47,10 @@ function numberFromText(value: string) {
   return Number(normalized) || 0;
 }
 
+function normalizeText(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
 function demoToDisplay(property: Property, index: number): DisplayProperty {
   return {
     code: property.code,
@@ -94,6 +98,7 @@ export default function PropertyExplorer({ properties }: Props) {
   const [source, setSource] = useState<"demo" | "supabase">("demo");
   const [purpose, setPurpose] = useState<Purpose>("Venda");
   const [city, setCity] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [category, setCategory] = useState("");
   const [segment, setSegment] = useState("");
   const [zone, setZone] = useState("");
@@ -166,16 +171,28 @@ export default function PropertyExplorer({ properties }: Props) {
   }
 
   function clearFilters() {
-    setCity(""); setCategory(""); setSegment(""); setZone(""); setBedrooms(""); setBathrooms(""); setParking("");
+    setCity(""); setSelectedCity(""); setCategory(""); setSegment(""); setZone(""); setBedrooms(""); setBathrooms(""); setParking("");
     setPriceMin(""); setPriceMax(""); setAreaMin(""); setFavoritesOnly(false); setSort("recent"); setCategoryLimits({});
   }
+
+  const availableCities = useMemo(() => {
+    const byNormalized = new Map<string, string>();
+    catalog.forEach((property) => {
+      const label = property.city.trim();
+      if (!label) return;
+      const key = normalizeText(label);
+      if (!byNormalized.has(key)) byNormalized.set(key, label);
+    });
+    return Array.from(byNormalized.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [catalog]);
 
   const filtered = useMemo(() => {
     const minPrice = numberFromText(priceMin), maxPrice = numberFromText(priceMax), minArea = numberFromText(areaMin);
     const rows = catalog.filter((property) => {
-      const term = city.toLowerCase();
+      const term = normalizeText(city);
       return property.purpose === purpose
-        && (!city || property.city.toLowerCase().includes(term) || property.neighborhood.toLowerCase().includes(term))
+        && (!city || normalizeText(property.city).includes(term) || normalizeText(property.neighborhood).includes(term))
+        && (!selectedCity || normalizeText(property.city) === normalizeText(selectedCity))
         && (!category || property.category.toLowerCase() === category.toLowerCase())
         && (!segment || property.segment === segment)
         && (!zone || property.zone === zone)
@@ -191,7 +208,7 @@ export default function PropertyExplorer({ properties }: Props) {
     if (sort === "price-desc") rows.sort((a,b) => b.numericPrice-a.numericPrice);
     if (sort === "area-desc") rows.sort((a,b) => b.numericArea-a.numericArea);
     return rows;
-  }, [catalog,purpose,city,category,segment,zone,bedrooms,bathrooms,parking,priceMin,priceMax,areaMin,favoritesOnly,favorites,sort]);
+  }, [catalog,purpose,city,selectedCity,category,segment,zone,bedrooms,bathrooms,parking,priceMin,priceMax,areaMin,favoritesOnly,favorites,sort]);
 
   const categories = useMemo(() => Array.from(new Set([...desiredTypes, ...catalog.map((item) => item.category)])).filter(Boolean), [catalog]);
   const latest = useMemo(() => [...catalog].sort((a,b) => b.publishedAt-a.publishedAt).slice(0,4), [catalog]);
@@ -202,6 +219,7 @@ export default function PropertyExplorer({ properties }: Props) {
   }, [filtered]);
 
   const categoryOptions = categories.map((item) => ({ value: item, label: item }));
+  const cityOptions = availableCities.map((item) => ({ value: item, label: item }));
   const quantityOptions = [1,2,3,4,5].map((n) => ({ value: String(n), label: `${n}+` }));
 
   function quickFilter(kind: string) {
@@ -235,7 +253,7 @@ export default function PropertyExplorer({ properties }: Props) {
         <div className="compactChoiceGrid"><ChoiceField icon="▱" value={bedrooms} placeholder="Quartos" options={quantityOptions} onChange={setBedrooms} /><ChoiceField icon="♨" value={bathrooms} placeholder="Banheiros" options={quantityOptions} onChange={setBathrooms} /></div>
         <div className="compactChoiceGrid"><ChoiceField icon="▣" value={parking} placeholder="Vagas" options={quantityOptions} onChange={setParking} /><ChoiceField icon="⌂" value={segment} placeholder="Uso" options={[{value:"Residencial",label:"Residencial"},{value:"Comercial",label:"Comercial"}]} onChange={setSegment} /></div>
         <ChoiceField icon="◎" value={zone} placeholder="Zona urbana ou rural" options={[{value:"Urbana",label:"Urbana"},{value:"Rural",label:"Rural"}]} onChange={setZone} />
-        <details className="advancedSearch"><summary>+ Mais filtros</summary><div className="advancedSearchGrid"><input inputMode="decimal" value={priceMin} onChange={(e)=>setPriceMin(e.target.value)} placeholder="Preço mínimo" /><input inputMode="decimal" value={priceMax} onChange={(e)=>setPriceMax(e.target.value)} placeholder="Preço máximo" /><input inputMode="decimal" value={areaMin} onChange={(e)=>setAreaMin(e.target.value)} placeholder="Área mínima (m²)" /></div></details>
+        <details className="advancedSearch"><summary>+ Mais filtros</summary><div className="advancedSearchGrid"><ChoiceField icon="⌖" value={selectedCity} placeholder="Todas as cidades" options={cityOptions} onChange={setSelectedCity} /><input inputMode="decimal" value={priceMin} onChange={(e)=>setPriceMin(e.target.value)} placeholder="Preço mínimo" /><input inputMode="decimal" value={priceMax} onChange={(e)=>setPriceMax(e.target.value)} placeholder="Preço máximo" /><input inputMode="decimal" value={areaMin} onChange={(e)=>setAreaMin(e.target.value)} placeholder="Área mínima (m²)" /></div></details>
         <div className="filterActions"><a className="button primary full" href="#imoveis">Ver resultados</a><button className="clearButton" onClick={clearFilters}>Limpar filtros</button></div>
       </div></div></section>
 
