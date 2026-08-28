@@ -3,12 +3,8 @@
 import { useEffect } from "react";
 import { getCurrentAgency } from "../lib/currentAgency";
 import { supabaseBrowser } from "../lib/supabaseBrowser";
-import saasHeroBgChunk1 from "../lib/saasHeroBgChunk1";
-import saasHeroBgChunk2 from "../lib/saasHeroBgChunk2";
-import saasHeroBgChunk3 from "../lib/saasHeroBgChunk3";
 
 const FIELD_CLASS = "restoredFinancingField";
-const SAAS_HERO_BG = `url("data:image/webp;base64,${saasHeroBgChunk1}${saasHeroBgChunk2}${saasHeroBgChunk3}")`;
 
 function propertyIdFromForm(form: HTMLFormElement) {
   const link = form.querySelector<HTMLAnchorElement>('a[href*="/imovel/?id="]');
@@ -21,29 +17,6 @@ function propertyIdFromForm(form: HTMLFormElement) {
 }
 
 export default function PreserveCurrentFixesMount() {
-  useEffect(() => {
-    function applySaasHeroBackground() {
-      if (!window.matchMedia("(min-width: 701px)").matches) return;
-      const hero = document.querySelector<HTMLElement>(".platformLanding .platformHero");
-      if (!hero) return;
-      hero.style.setProperty("background-image", SAAS_HERO_BG, "important");
-      hero.style.setProperty("background-repeat", "no-repeat", "important");
-      hero.style.setProperty("background-position", "center center", "important");
-      hero.style.setProperty("background-size", "cover", "important");
-      hero.style.setProperty("background-color", "#061322", "important");
-    }
-
-    applySaasHeroBackground();
-    const heroObserver = new MutationObserver(applySaasHeroBackground);
-    heroObserver.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("resize", applySaasHeroBackground);
-
-    return () => {
-      heroObserver.disconnect();
-      window.removeEventListener("resize", applySaasHeroBackground);
-    };
-  }, []);
-
   useEffect(() => {
     if (!supabaseBrowser) return;
 
