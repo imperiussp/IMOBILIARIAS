@@ -57,6 +57,14 @@ jobs:
           <IfModule mod_headers.c>
             Header always set X-Content-Type-Options "nosniff"
             Header always set Referrer-Policy "strict-origin-when-cross-origin"
+            <FilesMatch "\.html$">
+              Header always set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+              Header always set Pragma "no-cache"
+              Header always set Expires "0"
+            </FilesMatch>
+            <Files "cpanel-build.txt">
+              Header always set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+            </Files>
           </IfModule>
           EOF
             printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
