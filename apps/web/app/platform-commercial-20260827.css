@@ -1,0 +1,87 @@
+/* Administração comercial da plataforma LENOY */
+.platformCommercialPage{background:#f4f6f8!important;min-height:100vh}
+.platformCommercialShell{max-width:1440px!important;padding-top:30px!important;padding-bottom:56px!important}
+.platformCommercialPage .commercialHeading{margin-bottom:22px!important}
+.platformCommercialPage .commercialHeading h1{margin-bottom:8px!important}
+.platformCommercialPage .commercialHeading p{max-width:860px!important}
+
+.commercialSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.commercialSummary article,.commercialPaymentMetrics article{background:#fff;border:1px solid #e1e6ea;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(16,36,58,.05);min-width:0}
+.commercialSummary article.attention,.commercialPaymentMetrics article.attention{border-color:#e9c878;background:#fffaf0}
+.commercialSummary article.danger,.commercialPaymentMetrics article.danger{border-color:#e6aaa3;background:#fff7f6}
+.commercialSummary span,.commercialPaymentMetrics span{display:block;color:#687582;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.045em}
+.commercialSummary strong,.commercialPaymentMetrics strong{display:block;margin-top:8px;color:#0b1b30;font-size:27px;line-height:1.05;letter-spacing:-.03em;overflow-wrap:anywhere}
+.commercialSummary small,.commercialPaymentMetrics small{display:block;margin-top:7px;color:#87929c;font-size:11px;line-height:1.35}
+
+.commercialQuickNav{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:78px;z-index:30;margin:0 0 18px;padding:10px;background:rgba(244,246,248,.94);border:1px solid #e1e6ea;border-radius:15px;backdrop-filter:blur(10px)}
+.commercialQuickNav a{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border-radius:10px;background:#fff;border:1px solid #dce3e8;color:#17283c;font-size:12px;font-weight:800;text-decoration:none}
+.commercialQuickNav a:hover{background:#13253b;color:#fff;border-color:#13253b}
+
+.platformCommercialPage .adminPanel{scroll-margin-top:145px}
+.platformCommercialPage .adminPanelHeader h2,.platformCommercialPage .adminPanelHeader h3{color:#0b1b30}
+.platformCommercialPage .adminPanelHeader p{max-width:900px;color:#6e7b87}
+
+.commercialPaymentMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.commercialPaymentMetrics strong{font-size:23px}
+
+.commercialStatus{display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:4px 9px;border-radius:999px;background:#eef2f5;color:#485867;font-size:10px;font-weight:850;white-space:nowrap}
+.commercialStatus.agency-active,.commercialStatus.paid,.commercialStatus.waived,.commercialStatus.payment-paid{background:#e9f7ef;color:#1d6a42}
+.commercialStatus.agency-pending_payment,.commercialStatus.pending,.commercialStatus.payment-pending{background:#fff3d7;color:#89651b}
+.commercialStatus.agency-past_due,.commercialStatus.agency-suspended,.commercialStatus.payment-failed{background:#fde9e6;color:#9b382d}
+.commercialStatus.agency-cancelled{background:#eceff2;color:#65717b}
+
+.platformCommercialPage .commercialTableWrap{overflow-x:auto;border:1px solid #e2e7eb;border-radius:14px;background:#fff}
+.platformCommercialPage .commercialTable{min-width:1050px;margin:0}
+.platformCommercialPage .commercialTable th{background:#f7f9fa;color:#5b6976;font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.platformCommercialPage .commercialTable td{vertical-align:middle;color:#253647;font-size:12px}
+.platformCommercialPage .commercialTable td strong{color:#0b1b30}
+.platformCommercialPage .commercialTable .tableSub{display:block;margin-top:3px;color:#87929c;font-size:10px}
+.platformCommercialPage .commercialTable tbody tr:hover{background:#fafcfd}
+
+.platformCommercialPage .platformDiscountEditor{margin-top:24px;padding-top:22px;border-top:1px solid #e1e6ea}
+.platformCommercialPage .discountLiveSummary{border-radius:14px!important}
+.platformCommercialPage .formActions{flex-wrap:wrap}
+
+.platformTechnicalPage .adminHeading:after{content:"Área reservada para manutenção técnica. O trabalho comercial diário fica em Administração comercial.";display:block;margin-top:14px;padding:12px 14px;border:1px solid #dde5eb;border-radius:12px;background:#f7f9fb;color:#65727e;font-size:12px}
+
+@media(max-width:1180px){
+  .commercialSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .commercialPaymentMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:900px){
+  .platformCommercialShell{padding-left:12px!important;padding-right:12px!important}
+  .platformCommercialPage .adminTopbar .adminNav{gap:10px}
+  .platformCommercialPage .adminNavActions>span{display:none}
+  .platformCommercialPage .adminNavActions .button{padding-left:10px!important;padding-right:10px!important;font-size:10px!important}
+  .commercialQuickNav{top:66px;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}
+  .commercialQuickNav a{flex:0 0 auto}
+}
+
+@media(max-width:700px){
+  .commercialSummary,.commercialPaymentMetrics{grid-template-columns:1fr 1fr;gap:9px}
+  .commercialSummary article,.commercialPaymentMetrics article{padding:14px;border-radius:13px}
+  .commercialSummary strong,.commercialPaymentMetrics strong{font-size:21px}
+  .commercialSummary span,.commercialPaymentMetrics span{font-size:9px}
+  .commercialSummary small,.commercialPaymentMetrics small{font-size:10px}
+
+  .platformCommercialPage .commercialTableWrap{overflow:visible;border:0;background:transparent}
+  .platformCommercialPage .commercialTable{display:block;min-width:0;width:100%}
+  .platformCommercialPage .commercialTable thead{display:none}
+  .platformCommercialPage .commercialTable tbody{display:grid;gap:12px}
+  .platformCommercialPage .commercialTable tr{display:block;background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:10px 13px;box-shadow:0 6px 18px rgba(15,34,52,.04)}
+  .platformCommercialPage .commercialTable td{display:grid;grid-template-columns:minmax(110px,40%) minmax(0,1fr);gap:10px;align-items:start;width:100%!important;padding:8px 0!important;border:0!important;border-bottom:1px solid #eef1f3!important;text-align:right!important;overflow-wrap:anywhere}
+  .platformCommercialPage .commercialTable td:last-child{border-bottom:0!important}
+  .platformCommercialPage .commercialTable td:before{content:attr(data-label);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.035em;color:#798590;text-align:left}
+  .platformCommercialPage .commercialTable td>*,.platformCommercialPage .commercialTable td strong{justify-self:end;text-align:right}
+  .platformCommercialPage .commercialTable .tableSub{text-align:right}
+  .platformCommercialPage .commercialTable tr td[colspan]{display:block;text-align:center!important}
+  .platformCommercialPage .commercialTable tr td[colspan]:before{content:none}
+}
+
+@media(max-width:480px){
+  .commercialSummary,.commercialPaymentMetrics{grid-template-columns:1fr}
+  .platformCommercialPage .adminNavActions .button.secondary{display:none}
+  .platformCommercialPage .adminNavActions .button.primary{display:inline-flex!important}
+  .platformCommercialPage .commercialTable td{grid-template-columns:105px minmax(0,1fr)}
+}
