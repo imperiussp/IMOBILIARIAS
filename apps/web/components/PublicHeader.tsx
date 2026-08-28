@@ -9,9 +9,12 @@ const propertyTypes = [
   "Ponto comercial", "Prédio comercial", "Galpão", "Salão comercial", "Fazenda",
 ];
 
+function isDemoMarker(value: string | null | undefined) {
+  return /lenoy\s*store|corretor\s*teste|\bteste\b/i.test(String(value || ""));
+}
 function formatCreci(value: string | null | undefined) {
   const raw = String(value || "").trim();
-  if (!raw) return "";
+  if (!raw || isDemoMarker(raw)) return "";
   const withoutPrefix = raw.replace(/^creci\s*:?[\s-]*/i, "").trim();
   return withoutPrefix ? `CRECI ${withoutPrefix}` : "";
 }
@@ -24,10 +27,11 @@ export default function PublicHeader({ nested = false, propertyDetail = false }:
   const creci = formatCreci(settings.company_creci);
   const agencyName = String(settings.agency_name || "Imobiliária").trim() || "Imobiliária";
   const headerClass = `topbar publicTopbar${propertyDetail ? " propertyPublicTopbar" : ""}`;
+  const logoUrl = isDemoMarker(settings.company_creci) ? null : settings.logo_url;
 
   return <header className={headerClass}><div className="container nav">
     <a className="brand" href={`${prefix}#inicio`}>
-      {settings.logo_url ? <img className="brandLogo" src={settings.logo_url} alt={agencyName} /> : <span className="brandMark">{agencyName.slice(0,1).toUpperCase()}</span>}
+      {logoUrl ? <img className="brandLogo" src={logoUrl} alt={agencyName} /> : <span className="brandMark">{agencyName.slice(0,1).toUpperCase()}</span>}
       <span className="publicBrandText"><strong>{agencyName}</strong>{creci ? <small>{creci}</small> : null}</span>
     </a>
     <nav className="navLinks"><a href={`${prefix}#imoveis`}>Imóveis</a><a href={`${prefix}#anuncie`}>Anuncie seu imóvel</a><a href={`${prefix}#contato`}>Contato</a></nav>
