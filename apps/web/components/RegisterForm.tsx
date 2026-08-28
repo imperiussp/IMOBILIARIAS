@@ -173,7 +173,13 @@ export default function RegisterForm() {
       setStatus("Conta criada. Confirme seu e-mail e depois entre para aceitar o convite da imobiliária.");
       return;
     }
-    setStatus(`Conta criada. Após confirmar o e-mail, sua imobiliária estará disponível em ${normalizedSlug}.imoveis.lenoy.com.br.`);
+
+    if (signupData.session) {
+      window.location.assign("../admin/");
+      return;
+    }
+
+    setStatus(`Pré-cadastro recebido. O endereço ${normalizedSlug}.imoveis.lenoy.com.br ficou reservado, mas a imobiliária ainda não está ativa. Confirme seu e-mail, entre na conta e escolha o plano. O site, o painel e o aplicativo só serão liberados após a confirmação do pagamento.`);
   }
 
   const loginHref = redirect ? `../login/?redirect=${encodeURIComponent(redirect)}` : "../login/";
@@ -183,7 +189,7 @@ export default function RegisterForm() {
     <form className="loginCard" onSubmit={submit}>
       <span className="eyebrow">{invitationMode ? "CONVITE PARA EQUIPE" : bootstrapMode ? "HOMOLOGAÇÃO CONTROLADA" : "COMECE SUA IMOBILIÁRIA DIGITAL"}</span>
       <h1>{invitationMode ? "Criar conta para aceitar convite" : "Criar minha imobiliária"}</h1>
-      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : bootstrapMode ? "Cadastro de teste autorizado por token de homologação de uso único." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Crie sua conta e receba automaticamente um site exclusivo dentro da plataforma."}</p>
+      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : bootstrapMode ? "Cadastro de teste autorizado por token de homologação de uso único." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Crie sua conta e reserve o endereço da sua imobiliária. O site, o painel e o aplicativo só são ativados depois da confirmação do pagamento."}</p>
 
       <label>Seu nome completo<input name="full_name" autoComplete="name" required maxLength={160} disabled={blocked} /></label>
       {!invitationMode ? <>
@@ -191,13 +197,13 @@ export default function RegisterForm() {
         <label>Endereço do site
           <div className="slugField"><input name="agency_slug" value={agencySlug} onChange={(event) => { setSlugTouched(true); setAgencySlug(slugify(event.target.value)); }} placeholder="joao" required disabled={blocked} /><span>.imoveis.lenoy.com.br</span></div>
         </label>
-        <small className={`slugHint ${slugState}`}>{blocked?"Cadastro público bloqueado pelo controle de homologação.":slugState === "checking" ? "Verificando disponibilidade..." : slugState === "available" ? `Disponível: ${publicAddress}` : slugState === "unavailable" ? "Este endereço não está disponível." : `Seu site ficará em ${publicAddress}`}</small>
+        <small className={`slugHint ${slugState}`}>{blocked?"Cadastro público bloqueado pelo controle de homologação.":slugState === "checking" ? "Verificando disponibilidade..." : slugState === "available" ? `Disponível para reserva: ${publicAddress}` : slugState === "unavailable" ? "Este endereço não está disponível." : `Seu endereço poderá ser ${publicAddress}`}</small>
       </> : null}
 
       <label>E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} disabled={blocked} /></label>
       <label>Senha<input name="password" type="password" autoComplete="new-password" minLength={8} required disabled={blocked} /></label>
       <label>Confirmar senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} required disabled={blocked} /></label>
-      <button className="button primary full" type="submit" disabled={loading || blocked || (!invitationMode && slugState === "unavailable")}>{loading ? "Criando conta..." : blocked?"Cadastros temporariamente fechados":invitationMode ? "Criar conta e continuar" : "Criar minha imobiliária"}</button>
+      <button className="button primary full" type="submit" disabled={loading || blocked || (!invitationMode && slugState === "unavailable")}>{loading ? "Criando cadastro..." : blocked?"Cadastros temporariamente fechados":invitationMode ? "Criar conta e continuar" : "Criar cadastro"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
       <a className="backLink" href={loginHref}>← Já tenho acesso</a>
     </form>
