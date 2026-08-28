@@ -9,6 +9,9 @@ alter table public.agencies
 
 -- Converte somente cadastros comerciais ainda sem qualquer assinatura.
 -- Contas antigas de homologacao possuem assinatura e nao sao afetadas.
+-- O trigger protege status em operacoes normais; a migracao precisa altera-lo
+-- como operacao interna da plataforma.
+alter table public.agencies disable trigger agencies_protect_system_fields_trigger;
 update public.agencies a
 set status = 'pending_payment',
     updated_at = now()
@@ -18,6 +21,7 @@ where a.status = 'trial'
     from public.agency_subscriptions s
     where s.agency_id = a.id
   );
+alter table public.agencies enable trigger agencies_protect_system_fields_trigger;
 
 create or replace function public.handle_new_agency_owner()
 returns trigger
