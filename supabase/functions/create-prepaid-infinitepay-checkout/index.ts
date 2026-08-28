@@ -60,9 +60,16 @@ Deno.serve(async (request) => {
   if (planError || !plan) return json({ error: "plan_not_found" }, 404);
   if (String(plan.features?.internal_only || "false").toLowerCase() === "true") return json({ error: "internal_plan_not_for_sale" }, 403);
 
-  const chargeType = billingCycle === "monthly" ? "implementation" : "subscription";
-  const baseAmount = Math.round(numberValue(billingCycle === "monthly" ? plan.implementation_fee : plan.annual_price) * 100) / 100;
-  if (baseAmount <= 0) return json({ error: billingCycle === "monthly" ? "implementation_price_not_configured" : "plan_price_not_configured" }, 409);
+  const implementationFee = Math.round(numberValue(plan.implementation_fee) * 100) / 100;
+  const implementationWaived = billingCycle === "annual" || implementationFee <= 0;
+  const chargeType = billingCycle === "annual" || implementationWaived ? "subscription" : "implementation";
+  const rawAmount = billingCycle === "annual"
+    ? plan.annual_price
+    : implementationWaived
+      ? plan.monthly_price
+      : plan.implementation_fee;
+  const baseAmount = Math.round(numberValue(rawAmount) * 100) / 100;
+  if (baseAmount <= 0) return json({ error: "plan_price_not_configured" }, 409);
 
   const statusToken = randomToken();
   const statusTokenHash = await sha256(statusToken);
@@ -72,9 +79,11 @@ Deno.serve(async (request) => {
   const redirectParams = new URLSearchParams({ pedido: intentId, token: statusToken });
   const redirectUrl = `${siteUrl}/pagamento/retorno/?${redirectParams.toString()}`;
   const webhookUrl = `${supabaseUrl}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(webhookSecret)}`;
-  const description = billingCycle === "monthly"
-    ? `LENOY IMOBILIÁRIAS — Implantação · ${plan.name}`
-    : `LENOY IMOBILIÁRIAS — ${plan.name} (anual)`;
+  const description = billingCycle === "annual"
+    ? `LENOY IMOBILIÁRIAS — ${plan.name} (anual)`
+    : implementationWaived
+      ? `LENOY IMOBILIÁRIAS — ${plan.name} (mensal)`
+      : `LENOY IMOBILIÁRIAS — Implantação · ${plan.name}`;
   const checkoutPayload = {
     handle,
     redirect_url: redirectUrl,
@@ -110,12 +119,12 @@ Deno.serve(async (request) => {
     discount_percent: 0,
     discount_id: null,
     charge_type: chargeType,
-    implementation_waived: billingCycle === "annual",
+    implementation_waived: implementationWaived,
     currency: "BRL",
     billing_cycle: billingCycle,
     order_nsu: orderNsu,
     created_by: null,
-    provider_payload: { request: checkoutPayload, pricing: { base_amount: baseAmount, final_amount: baseAmount, charge_type: chargeType, implementation_waived: billingCycle === "annual" } },
+    provider_payload: { request: checkoutPayload, pricing: { base_amount: baseAmount, final_amount: baseAmount, charge_type: chargeType, implementation_waived: implementationWaived } },
   });
   if (checkoutInsert.error) {
     await admin.from("prepaid_purchase_intents").update({ status: "failed", updated_at: new Date().toISOString() }).eq("id", intentId);
@@ -137,7 +146,7 @@ Deno.serve(async (request) => {
       status: "pending",
       checkout_url: checkoutUrl,
       provider_session_id: body?.slug ? String(body.slug) : null,
-      provider_payload: { request: checkoutPayload, response: body, pricing: { base_amount: baseAmount, final_amount: baseAmount, charge_type: chargeType, implementation_waived: billingCycle === "annual" } },
+      provider_payload: { request: checkoutPayload, response: body, pricing: { base_amount: baseAmount, final_amount: baseAmount, charge_type: chargeType, implementation_waived: implementationWaived } },
       updated_at: new Date().toISOString(),
     }).eq("id", checkoutId);
     await admin.from("prepaid_purchase_intents").update({ status: "pending_payment", updated_at: new Date().toISOString() }).eq("id", intentId);
@@ -149,6 +158,7 @@ Deno.serve(async (request) => {
       plan: { code: plan.code, name: plan.name },
       billing_cycle: billingCycle,
       charge_type: chargeType,
+      implementation_waived: implementationWaived,
       amount: baseAmount,
     });
   } catch (error) {
