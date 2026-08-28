@@ -4,9 +4,10 @@ import { ReactNode, useEffect, useState } from "react";
 import { getCurrentAgency } from "../lib/currentAgency";
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+import PaidAccessCheckout from "./PaidAccessCheckout";
 
 type Props = { children: ReactNode; appMode?: boolean };
-type GateState = "checking" | "allowed" | "blocked" | "unconfirmed" | "demo" | "wrong_backend" | "inactive_broker";
+type GateState = "checking" | "allowed" | "blocked" | "unconfirmed" | "demo" | "wrong_backend" | "inactive_broker" | "payment_required";
 type TenantRole = "owner" | "admin" | "broker" | "staff" | "platform_admin" | "";
 
 function roleLabel(role: TenantRole) {
@@ -22,6 +23,7 @@ export default function AdminGate({ children, appMode = false }: Props) {
   const [state, setState] = useState<GateState>("checking");
   const [role, setRole] = useState<TenantRole>("");
   const [agencyName, setAgencyName] = useState("");
+  const [agencyId, setAgencyId] = useState("");
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabaseBrowser) {
@@ -65,6 +67,8 @@ export default function AdminGate({ children, appMode = false }: Props) {
         return;
       }
 
+      setRole(tenantRole);
+      setAgencyId(currentAgency.agencyId);
       setAgencyName(currentAgency.agencyName);
 
       if (tenantRole === "broker") {
@@ -76,13 +80,21 @@ export default function AdminGate({ children, appMode = false }: Props) {
           .maybeSingle();
         if (!active) return;
         if (brokerError || !brokerRow?.active) {
-          setRole("broker");
           setState("inactive_broker");
           return;
         }
       }
 
-      setRole(tenantRole);
+      // O front-end nunca usa o retorno do checkout como prova de pagamento.
+      // O RPC só considera uma assinatura ativada pelo backend após a conciliação da cobrança.
+      const billingResult = await supabaseBrowser.rpc("agency_billing_status", { p_agency_id: currentAgency.agencyId });
+      if (!active) return;
+      const billingRow = !billingResult.error && Array.isArray(billingResult.data) ? billingResult.data[0] : null;
+      if (!billingRow?.has_paid_access) {
+        setState("payment_required");
+        return;
+      }
+
       setState("allowed");
     })();
 
@@ -100,11 +112,12 @@ export default function AdminGate({ children, appMode = false }: Props) {
 
   const loginHref = appMode ? "../login/?redirect=%2Fapp%2F" : "../login/";
 
-  if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso e imobiliária...</strong></div></div></main>;
+  if (state === "checking") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><strong>Verificando acesso, imobiliária e assinatura...</strong></div></div></main>;
   if (state === "wrong_backend") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">PROTEÇÃO DE PROJETO</span><h1>Conexão bloqueada</h1><p>O backend configurado não se identificou como IMOBILIARIAS. Nenhum dado será acessado por este painel até a conexão correta ser configurada.</p><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
   if (state === "unconfirmed") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">CONFIRMAÇÃO NECESSÁRIA</span><h1>Confirme seu e-mail</h1><p>Seu cadastro foi recebido, mas o painel só é liberado depois da confirmação do endereço de e-mail.</p><button className="button secondary full" onClick={() => void signOut()}>Voltar ao login</button></div></div></main>;
   if (state === "inactive_broker") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO DO CORRETOR</span><h1>Perfil não liberado</h1><p>Sua conta está vinculada à imobiliária selecionada, mas o perfil de corretor ainda não está ativo nela.</p><button className="button secondary full" onClick={() => void signOut()}>Sair</button><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
   if (state === "blocked") return <main className="loginPage"><div className="loginShell"><div className="loginCard"><span className="eyebrow">ACESSO RESTRITO</span><h1>Login ou vínculo necessário</h1><p>Entre com uma conta vinculada a uma imobiliária ativa.</p><a className="button primary full" href={loginHref}>Entrar no painel</a><a className="backLink" href="../">← Voltar ao site</a></div></div></main>;
+  if (state === "payment_required" && agencyId) return <PaidAccessCheckout agencyId={agencyId} agencyName={agencyName || "sua imobiliária"} appMode={appMode} brokerOnly={role === "broker" || role === "staff"} />;
 
   const accessRole = role === "broker" || role === "staff" ? "broker" : "admin";
   return <div data-access-role={accessRole} data-tenant-role={role}>
