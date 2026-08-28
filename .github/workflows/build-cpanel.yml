@@ -77,6 +77,38 @@ jobs:
               exit 41
             fi
 
+            # Valida os bytes exatos da arte aprovada. Se o Base64 estiver truncado,
+            # corrompido ou apontar para outra imagem, a publicação é interrompida.
+            python - <<'PY'
+          import base64
+          import hashlib
+          import re
+          from pathlib import Path
+          import sys
+
+          html = Path("apps/web/out/index.html").read_text(encoding="utf-8")
+          match = re.search(r"data:image/webp;base64,([A-Za-z0-9+/=]+)", html)
+          if not match:
+              print("Base64 do hero não encontrado no index.html.", file=sys.stderr)
+              sys.exit(45)
+
+          try:
+              payload = base64.b64decode(match.group(1), validate=True)
+          except Exception as exc:
+              print(f"Base64 do hero inválido: {exc}", file=sys.stderr)
+              sys.exit(46)
+
+          expected_sha = "6663bf7c151f708fc657805fd54b34d32fab57871ddaf2d6be31e6690c8ba29e"
+          actual_sha = hashlib.sha256(payload).hexdigest()
+          if actual_sha != expected_sha:
+              print(f"Hero embutido incorreto. SHA atual: {actual_sha}", file=sys.stderr)
+              sys.exit(47)
+
+          if len(payload) != 8020 or payload[:4] != b"RIFF" or payload[8:12] != b"WEBP":
+              print("Estrutura WEBP do hero inválida.", file=sys.stderr)
+              sys.exit(48)
+          PY
+
             if grep -Rqs "platform-hero-home-final.webp" apps/web/out/_next/static/css; then
               echo "Regressão detectada: CSS voltou a apontar o hero para arquivo externo." >&2
               exit 42
