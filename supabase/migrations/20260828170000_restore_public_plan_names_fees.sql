@@ -8,10 +8,10 @@ set
     else name
   end,
   implementation_fee = case code
-    when 'inicial' then 9900
-    when 'profissional' then 9900
-    when 'imobiliaria' then 10000
-    when 'premium' then 0
+    when 'inicial' then 99.00
+    when 'profissional' then 99.00
+    when 'imobiliaria' then 100.00
+    when 'premium' then 0.00
     else implementation_fee
   end,
   updated_at = now()
