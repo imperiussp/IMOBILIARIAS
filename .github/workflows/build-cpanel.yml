@@ -68,46 +68,43 @@ jobs:
           </IfModule>
           EOF
             printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
+
+            # Proteção real da home de vendas:
+            # a imagem aprovada precisa estar EMBUTIDA no index e nenhum CSS pode
+            # voltar a substituí-la por um arquivo externo do cPanel.
+            if ! grep -q "data:image/webp;base64," apps/web/out/index.html; then
+              echo "Background embutido do hero não encontrado no index.html." >&2
+              exit 41
+            fi
+
+            if grep -Rqs "platform-hero-home-final.webp" apps/web/out/_next/static/css; then
+              echo "Regressão detectada: CSS voltou a apontar o hero para arquivo externo." >&2
+              exit 42
+            fi
+
+            HERO_CSS="$(grep -rl "background-size:auto 100%" apps/web/out/_next/static/css | head -n 1)"
+            if [ -z "$HERO_CSS" ]; then
+              echo "CSS responsivo protegido do hero não encontrado no export estático." >&2
+              exit 43
+            fi
+
+            if ! grep -q "platformLanding.platformLanding" "$HERO_CSS"; then
+              echo "Seletor protegido do hero não encontrado no CSS final." >&2
+              exit 44
+            fi
+
             (cd apps/web/out && zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .)
 
-            # Patch leve protegido da home de vendas: recria o ZIP do zero e sempre
-            # leva junto a arte aprovada. Se a imagem ou a regra responsiva sumirem,
-            # o build falha em vez de publicar uma home sem o background.
+            # Patch leve: index com a imagem embutida + o CSS atual que só controla
+            # enquadramento. Não depende mais de arquivo WEBP solto no servidor.
             rm -rf cpanel-build/background-responsive
             rm -f cpanel-build/imobiliarias-background-responsive.zip
             mkdir -p cpanel-build/background-responsive/_next/static/css
             cp apps/web/out/index.html cpanel-build/background-responsive/index.html
-
-            HERO_CSS="$(grep -rl "platform-hero-home-final.webp" apps/web/out/_next/static/css | head -n 1)"
-            if [ -z "$HERO_CSS" ]; then
-              echo "CSS protegido do hero não encontrado no export estático." >&2
-              exit 41
-            fi
-
-            HERO_ASSET="apps/web/out/platform-hero-home-final.webp"
-            if [ ! -s "$HERO_ASSET" ]; then
-              echo "Imagem aprovada do hero não foi publicada no export estático." >&2
-              exit 42
-            fi
-
-            EXPECTED_HERO_SHA="6663bf7c151f708fc657805fd54b34d32fab57871ddaf2d6be31e6690c8ba29e"
-            ACTUAL_HERO_SHA="$(sha256sum "$HERO_ASSET" | awk '{print $1}')"
-            if [ "$ACTUAL_HERO_SHA" != "$EXPECTED_HERO_SHA" ]; then
-              echo "A imagem protegida do hero foi alterada. Publicação interrompida." >&2
-              exit 43
-            fi
-
-            if ! grep -q "background-size:auto 100%" "$HERO_CSS"; then
-              echo "Regra de monitor largo do hero não encontrada. Publicação interrompida." >&2
-              exit 44
-            fi
-
             cp "$HERO_CSS" cpanel-build/background-responsive/_next/static/css/
-            cp "$HERO_ASSET" cpanel-build/background-responsive/platform-hero-home-final.webp
             chmod 0644 \
               cpanel-build/background-responsive/index.html \
-              cpanel-build/background-responsive/_next/static/css/"$(basename "$HERO_CSS")" \
-              cpanel-build/background-responsive/platform-hero-home-final.webp
+              cpanel-build/background-responsive/_next/static/css/"$(basename "$HERO_CSS")"
             (cd cpanel-build/background-responsive && zip -qr ../imobiliarias-background-responsive.zip .)
           fi
           git config user.name "github-actions[bot]"
