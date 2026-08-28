@@ -30,7 +30,7 @@ export default function PublicPricingEnhancer() {
       heroActions[0].textContent = "Ver demonstração";
     }
     if (heroActions[1]) {
-      heroActions[1].href = "#planos";
+      heroActions[1].href = "/planos/";
       heroActions[1].textContent = "Ver planos e contratar";
     }
     const demoNavLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".platformNav nav a")).filter((link) => {
@@ -38,9 +38,10 @@ export default function PublicPricingEnhancer() {
       return href === "#painel-demo" || href === "#app-demo";
     });
     demoNavLinks.forEach((link, index) => {
-      link.href = "demonstracao/";
-      link.textContent = index === 0 ? "Demonstração" : "Tour completo";
+      link.href = index === 0 ? "/demonstracao/painel/" : "/demonstracao/aplicativo/";
     });
+    const plansNav = Array.from(document.querySelectorAll<HTMLAnchorElement>(".platformNav nav a")).find((link) => (link.textContent || "").trim().toLowerCase() === "planos");
+    if (plansNav) plansNav.href = "/planos/";
 
     const heading = section.querySelector("h2");
     if (heading) heading.textContent = "Planos para começar pequeno e crescer com a sua operação.";
@@ -86,7 +87,7 @@ export default function PublicPricingEnhancer() {
 
     const footerCreate = Array.from(document.querySelectorAll<HTMLAnchorElement>(".platformFooter a")).find((link) => link.getAttribute("href")?.includes("cadastro"));
     if (footerCreate) {
-      footerCreate.href = "#planos";
+      footerCreate.href = "/planos/";
       footerCreate.textContent = "Planos e preços";
     }
   }, []);
