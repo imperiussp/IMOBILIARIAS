@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { DemoClientSite } from "../../../components/DemoClientShowcase";
+import DemoBrokerSiteEnhanced from "../../../components/DemoBrokerSiteEnhanced";
+import "../../demo-broker-site-original-20260828.css";
 
 export const metadata: Metadata = {
   title: "Site modelo da imobiliária | LENOY IMOBILIÁRIAS",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function DemoSitePage() {
-  return <DemoClientSite />;
+  return <DemoBrokerSiteEnhanced />;
 }
