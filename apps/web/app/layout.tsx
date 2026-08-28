@@ -19,6 +19,7 @@ import AppInterestedWhatsAppEnhancer from "../components/AppInterestedWhatsAppEn
 import AdminHeroBackgroundEditorMount from "../components/AdminHeroBackgroundEditorMount";
 import TenantHeroBackgroundMount from "../components/TenantHeroBackgroundMount";
 import PublicPricingEnhancer from "../components/PublicPricingEnhancer";
+import DemoLinkHardFix from "../components/DemoLinkHardFix";
 import saasHeroBgChunk1 from "../lib/saasHeroBgChunk1";
 import saasHeroBgChunk2 from "../lib/saasHeroBgChunk2";
 import saasHeroBgChunk3 from "../lib/saasHeroBgChunk3";
@@ -126,7 +127,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /><PublicPricingEnhancer /></body>
+      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /><PublicPricingEnhancer /><DemoLinkHardFix /></body>
     </html>
   );
 }
