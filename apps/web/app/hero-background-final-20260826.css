@@ -1,23 +1,22 @@
-/* Hero desktop — background aprovado, responsivo sem corte em monitor largo */
+/* Hero SaaS aprovado — regra protegida. Não alterar em correções de demo, painel, app ou cobrança. */
 @media (min-width: 701px) {
-  html body .platformLanding .platformHero {
+  html body .platformLanding.platformLanding .platformHero.platformHero {
     background-color: #061322 !important;
-    background-image: url('/platform-hero-home-final.webp') !important;
+    background-image: url('/platform-hero-app-bg.webp') !important;
     background-repeat: no-repeat !important;
     background-position: center center !important;
     background-size: cover !important;
   }
 
-  html body .platformLanding .platformHero::before,
-  html body .platformLanding .platformHero::after {
+  html body .platformLanding.platformLanding .platformHero.platformHero::before,
+  html body .platformLanding.platformLanding .platformHero.platformHero::after {
     content: none !important;
     display: none !important;
   }
 }
 
-/* Em telas mais largas, preserva a altura inteira da arte para não cortar topo/rodapé. */
 @media (min-width: 1100px) {
-  html body .platformLanding .platformHero {
+  html body .platformLanding.platformLanding .platformHero.platformHero {
     background-position: right center !important;
     background-size: auto 100% !important;
   }
