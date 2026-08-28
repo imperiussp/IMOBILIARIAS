@@ -1,23 +1,25 @@
-/* Hero SaaS aprovado — regra protegida. Não alterar em correções de demo, painel, app ou cobrança.
-   A imagem é embutida no HTML pelo layout.tsx. Este CSS controla apenas enquadramento
-   e nunca deve apontar para arquivo externo, para evitar regressão no cPanel. */
+/* Hero SaaS aprovado — PROTEGIDO.
+   Não alterar em correções de demo, painel, aplicativo, cobrança ou páginas de imóvel.
+   A variável --lenoy-approved-platform-hero contém exatamente o WEBP aprovado e é
+   criada pelo layout.tsx no HTML. Esta regra força a mesma imagem sobre regras antigas. */
 @media (min-width: 701px) {
-  html body .platformLanding.platformLanding .platformHero.platformHero {
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero {
     background-color: #061322 !important;
+    background-image: var(--lenoy-approved-platform-hero) !important;
     background-repeat: no-repeat !important;
     background-position: center center !important;
     background-size: cover !important;
   }
 
-  html body .platformLanding.platformLanding .platformHero.platformHero::before,
-  html body .platformLanding.platformLanding .platformHero.platformHero::after {
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero::before,
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero::after {
     content: none !important;
     display: none !important;
   }
 }
 
 @media (min-width: 1100px) {
-  html body .platformLanding.platformLanding .platformHero.platformHero {
+  html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero {
     background-position: right center !important;
     background-size: auto 100% !important;
   }
