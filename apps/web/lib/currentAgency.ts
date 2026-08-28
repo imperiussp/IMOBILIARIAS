@@ -9,7 +9,11 @@ export type CurrentAgency = {
 };
 
 const ACTIVE_AGENCY_KEY = "@imobiliarias/active-agency-id";
-const ACTIVE_STATUSES = ["trial", "active", "past_due"];
+// pending_payment precisa ser visível apenas para a camada autenticada de acesso,
+// para que o proprietário consiga chegar ao checkout. AdminGate bloqueia os filhos
+// enquanto agency_billing_status não confirmar o pagamento. O site público continua
+// sem resolver este status via resolve_agency_by_host.
+const ACTIVE_STATUSES = ["pending_payment", "trial", "active", "past_due"];
 
 export function getPreferredAgencyId() {
   if (typeof window === "undefined") return "";
