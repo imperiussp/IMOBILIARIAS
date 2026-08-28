@@ -1,6 +1,7 @@
 import PlatformAdminGate from "../../components/PlatformAdminGate";
 import PlatformBillingOverview from "../../components/PlatformBillingOverview";
 import PlatformCommercialDashboard from "../../components/PlatformCommercialDashboard";
+import PlatformCommercialMenu from "../../components/PlatformCommercialMenu";
 import PlatformPlanManager from "../../components/PlatformPlanManager";
 import PlatformSubscriptionManager from "../../components/PlatformSubscriptionManager";
 
@@ -10,20 +11,22 @@ export default function PlatformAdminPage() {
   return (
     <PlatformAdminGate>
       <main className="adminPage platformAdminPage platformCommercialPage">
-        <header className="adminTopbar">
-          <div className="container adminNav">
-            <a className="brand" href="../"><img src={lenoyLogo} alt="LENOY IMOBILIÁRIAS" style={{ width: 88, maxWidth: "24vw", height: "auto", display: "block" }} /></a>
-            <div className="adminNavActions"><span>Administração comercial</span><a className="button secondary small" href="./tecnico/">Área técnica</a><a className="button secondary small" href="../admin/">Painel de imobiliária</a><a className="button primary small" href="../">Ver plataforma</a></div>
+        <header className="adminTopbar commercialTopbar">
+          <div className="container adminNav commercialAdminNav">
+            <a className="brand" href="../"><img src={lenoyLogo} alt="LENOY IMOBILIÁRIAS" style={{ width: 82, maxWidth: "22vw", height: "auto", display: "block" }} /></a>
+            <div className="commercialHeaderTitle"><strong>Administração LENOY</strong><span>Clientes e pagamentos</span></div>
+            <PlatformCommercialMenu />
           </div>
         </header>
 
         <div className="container platformAdminShell platformCommercialShell">
-          <section className="adminContent">
-            <div className="adminHeading commercialHeading"><div><span className="eyebrow">ADMINISTRAÇÃO COMERCIAL</span><h1>Clientes, planos e pagamentos</h1><p>Aqui ficam somente as informações para administrar vendas: quem se cadastrou, quem pagou, qual plano possui, descontos, vencimentos, inadimplência e histórico financeiro.</p></div></div>
+          <section className="adminContent commercialAdminContent">
             <PlatformCommercialDashboard />
-            <PlatformSubscriptionManager />
-            <PlatformPlanManager />
-            <PlatformBillingOverview />
+            <section className="commercialToolsGrid" aria-label="Ferramentas comerciais">
+              <PlatformSubscriptionManager />
+              <PlatformPlanManager />
+              <PlatformBillingOverview />
+            </section>
           </section>
         </div>
       </main>
