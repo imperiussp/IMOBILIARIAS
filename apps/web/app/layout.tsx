@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import AdminUiEnhancer from "../components/AdminUiEnhancer";
 import AdminMobileMenu from "../components/AdminMobileMenu";
 import AdminCatalogTypeFilter from "../components/AdminCatalogTypeFilter";
@@ -20,9 +22,6 @@ import AdminHeroBackgroundEditorMount from "../components/AdminHeroBackgroundEdi
 import TenantHeroBackgroundMount from "../components/TenantHeroBackgroundMount";
 import PublicPricingEnhancer from "../components/PublicPricingEnhancer";
 import DemoLinkHardFix from "../components/DemoLinkHardFix";
-import saasHeroBgChunk1 from "../lib/saasHeroBgChunk1";
-import saasHeroBgChunk2 from "../lib/saasHeroBgChunk2";
-import saasHeroBgChunk3 from "../lib/saasHeroBgChunk3";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -85,7 +84,17 @@ import "./demo-purchase-cta-20260828.css";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 const allowIndexing = ["true", "1", "yes", "on"].includes(String(process.env.NEXT_PUBLIC_ALLOW_INDEXING || "").toLowerCase());
-const saasHeroBackground = `data:image/webp;base64,${saasHeroBgChunk1}${saasHeroBgChunk2}${saasHeroBgChunk3}`;
+
+const heroAssetCandidates = [
+  join(process.cwd(), "public", "platform-hero-home-final.webp"),
+  join(process.cwd(), "apps", "web", "public", "platform-hero-home-final.webp"),
+];
+const heroAssetPath = heroAssetCandidates.find((candidate) => existsSync(candidate));
+if (!heroAssetPath) {
+  throw new Error("Imagem protegida da home de vendas não encontrada: platform-hero-home-final.webp");
+}
+const saasHeroBackground = `data:image/webp;base64,${readFileSync(heroAssetPath).toString("base64")}`;
+
 const saasHeroServerCss = `
 @media (min-width:701px){
   html body .platformLanding .platformHero{
