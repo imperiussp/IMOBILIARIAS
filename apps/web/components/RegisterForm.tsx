@@ -229,7 +229,7 @@ export default function RegisterForm() {
       <span className="eyebrow">ANTES DO CADASTRO</span>
       <h1>Primeiro escolha o plano.</h1>
       <p>A LENOY não apresenta o cadastro como acesso gratuito. Veja a demonstração, confira os valores e escolha o plano antes de informar seus dados.</p>
-      <div className="registrationChoiceActions"><a className="button secondary full" href="../#painel-demo">Ver demonstração</a><a className="button primary full" href="../#planos">Ver planos e preços</a></div>
+      <div className="registrationChoiceActions"><a className="button secondary full" href="/demonstracao/">Ver demonstração</a><a className="button primary full" href="/planos/">Ver planos e preços</a></div>
       <small className="registrationNoCharge">Criar a conta não gera cobrança automática. A contratação é concluída no pagamento, e o acesso só é liberado após a confirmação.</small>
       <a className="backLink" href={loginHref}>← Já tenho acesso</a>
     </div>;
@@ -242,7 +242,7 @@ export default function RegisterForm() {
       <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : bootstrapMode ? "Cadastro de teste autorizado por token de homologação de uso único." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Você já viu o preço e escolheu o plano. Criar a conta não gera cobrança automática; o pagamento acontece na próxima etapa e somente ele libera o site, o painel e o aplicativo."}</p>
 
       {!invitationMode && selectedPlan ? <div className="registrationPlanChoice">
-        <div className="registrationPlanHeading"><span>PLANO ESCOLHIDO</span><strong>{selectedPlan.name}</strong><a href="../#planos">Trocar plano</a></div>
+        <div className="registrationPlanHeading"><span>PLANO ESCOLHIDO</span><strong>{selectedPlan.name}</strong><a href="/planos/">Trocar plano</a></div>
         <div className="registrationCycleSwitch"><button type="button" className={selectedCycle==="monthly"?"active":""} onClick={()=>setSelectedCycle("monthly")}>Mensal</button><button type="button" className={selectedCycle==="annual"?"active":""} onClick={()=>setSelectedCycle("annual")}>Anual · 25% OFF</button></div>
         {selectedCycle==="monthly" ? <div className="registrationPlanPrice"><b>{selectedPlan.monthly}</b><span>Primeiro pagamento: implantação {selectedPlan.implementation}. A primeira mensalidade vence após 30 dias.</span></div> : <div className="registrationPlanPrice annual"><b>{selectedPlan.annual}</b><span>Pagamento anual de 12 meses com 25% de desconto e implantação grátis.</span></div>}
       </div> : null}
