@@ -4,6 +4,21 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
+type PublicPlan = {
+  code: string;
+  name: string;
+  monthly: string;
+  annual: string;
+  implementation: string;
+};
+
+const publicPlans: Record<string, PublicPlan> = {
+  inicial: { code: "inicial", name: "Inicial", monthly: "R$ 39,90/mês", annual: "R$ 359,10/ano", implementation: "R$ 99,00" },
+  profissional: { code: "profissional", name: "Profissional", monthly: "R$ 59,90/mês", annual: "R$ 539,10/ano", implementation: "R$ 149,00" },
+  imobiliaria: { code: "imobiliaria", name: "Imobiliária", monthly: "R$ 79,90/mês", annual: "R$ 719,10/ano", implementation: "R$ 199,00" },
+  premium: { code: "premium", name: "Premium", monthly: "R$ 110,00/mês", annual: "R$ 990,00/ano", implementation: "R$ 249,00" },
+};
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -42,10 +57,23 @@ export default function RegisterForm() {
   const [registrationOpen,setRegistrationOpen]=useState(false);
   const [registrationChecked,setRegistrationChecked]=useState(false);
   const [releaseLabel,setReleaseLabel]=useState("Homologação interna");
+  const [planChecked,setPlanChecked]=useState(false);
+  const [selectedPlanCode,setSelectedPlanCode]=useState("");
+  const [selectedCycle,setSelectedCycle]=useState<"monthly"|"annual">("monthly");
   const redirect = typeof window !== "undefined" ? safeRedirectTarget() : "";
   const bootstrapToken = typeof window !== "undefined" ? safeBootstrapToken() : "";
   const invitationMode = redirect.startsWith("/convite/");
   const bootstrapMode = !invitationMode && Boolean(bootstrapToken);
+  const selectedPlan = publicPlans[selectedPlanCode] || null;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = String(params.get("plano") || "").toLowerCase();
+    setSelectedPlanCode(publicPlans[code] ? code : "");
+    setSelectedCycle(params.get("ciclo") === "annual" ? "annual" : "monthly");
+    setPlanChecked(true);
+  }, []);
 
   useEffect(() => {
     if (!invitationMode && !slugTouched) setAgencySlug(slugify(agencyName));
@@ -94,6 +122,10 @@ export default function RegisterForm() {
       setStatus("O cadastro será ativado quando o Supabase exclusivo do IMOBILIARIAS estiver configurado.");
       return;
     }
+    if (!invitationMode && !bootstrapMode && !selectedPlan) {
+      setStatus("Escolha um plano antes de criar a imobiliária.");
+      return;
+    }
     setLoading(true);
     const validBackend = await isImobiliariasBackend();
     if (!validBackend) {
@@ -135,9 +167,10 @@ export default function RegisterForm() {
     }
 
     const loginPath = window.location.pathname.replace(/cadastro\/?$/, "login/");
+    const paymentTarget = selectedPlan ? `/admin/?plano=${encodeURIComponent(selectedPlan.code)}&ciclo=${selectedCycle}` : "/admin/";
     const redirectTo = invitationMode
       ? `${window.location.origin}${loginPath}?redirect=${encodeURIComponent(redirect)}`
-      : `${window.location.origin}${loginPath}`;
+      : `${window.location.origin}${loginPath}?redirect=${encodeURIComponent(paymentTarget)}`;
     const { data: signupData, error } = await supabaseBrowser.auth.signUp({
       email,
       password,
@@ -150,6 +183,7 @@ export default function RegisterForm() {
           onboarding_kind: "agency_owner",
           agency_name: normalizedAgencyName,
           agency_slug: normalizedSlug,
+          ...(selectedPlan ? { selected_plan_code: selectedPlan.code, selected_billing_cycle: selectedCycle } : {}),
           ...(bootstrapMode ? { bootstrap_token: bootstrapToken } : {}),
         },
         emailRedirectTo: redirectTo,
@@ -175,21 +209,43 @@ export default function RegisterForm() {
     }
 
     if (signupData.session) {
-      window.location.assign("../admin/");
+      window.location.assign(`../admin/?plano=${encodeURIComponent(selectedPlan?.code || "")}&ciclo=${selectedCycle}`);
       return;
     }
 
-    setStatus(`Pré-cadastro recebido. O endereço ${normalizedSlug}.imoveis.lenoy.com.br ficou reservado, mas a imobiliária ainda não está ativa. Confirme seu e-mail, entre na conta e escolha o plano. O site, o painel e o aplicativo só serão liberados após a confirmação do pagamento.`);
+    setStatus(`Pré-cadastro recebido. O endereço ${normalizedSlug}.imoveis.lenoy.com.br ficou reservado. Confirme seu e-mail e entre para concluir o pagamento${selectedPlan ? ` do plano ${selectedPlan.name}` : ""}. O site, o painel e o aplicativo só serão liberados após a confirmação do pagamento.`);
   }
 
   const loginHref = redirect ? `../login/?redirect=${encodeURIComponent(redirect)}` : "../login/";
   const blocked=!invitationMode&&registrationChecked&&!registrationOpen&&!bootstrapMode;
+  const publicPlanMissing=!invitationMode&&!bootstrapMode&&registrationChecked&&registrationOpen&&planChecked&&!selectedPlan;
+
+  if (!invitationMode && !bootstrapMode && (!registrationChecked || !planChecked)) {
+    return <div className="loginCard registrationChoicePrompt"><span className="eyebrow">CONTRATAÇÃO LENOY</span><h1>Preparando os planos...</h1><p>Estamos conferindo a disponibilidade do cadastro.</p></div>;
+  }
+
+  if (publicPlanMissing) {
+    return <div className="loginCard registrationChoicePrompt">
+      <span className="eyebrow">ANTES DO CADASTRO</span>
+      <h1>Primeiro escolha o plano.</h1>
+      <p>A LENOY não apresenta o cadastro como acesso gratuito. Veja a demonstração, confira os valores e escolha o plano antes de informar seus dados.</p>
+      <div className="registrationChoiceActions"><a className="button secondary full" href="../#painel-demo">Ver demonstração</a><a className="button primary full" href="../#planos">Ver planos e preços</a></div>
+      <small className="registrationNoCharge">Criar a conta não gera cobrança automática. A contratação é concluída no pagamento, e o acesso só é liberado após a confirmação.</small>
+      <a className="backLink" href={loginHref}>← Já tenho acesso</a>
+    </div>;
+  }
 
   return (
     <form className="loginCard" onSubmit={submit}>
-      <span className="eyebrow">{invitationMode ? "CONVITE PARA EQUIPE" : bootstrapMode ? "HOMOLOGAÇÃO CONTROLADA" : "COMECE SUA IMOBILIÁRIA DIGITAL"}</span>
+      <span className="eyebrow">{invitationMode ? "CONVITE PARA EQUIPE" : bootstrapMode ? "HOMOLOGAÇÃO CONTROLADA" : "ETAPA 1 DE 2 · CADASTRO"}</span>
       <h1>{invitationMode ? "Criar conta para aceitar convite" : "Criar minha imobiliária"}</h1>
-      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : bootstrapMode ? "Cadastro de teste autorizado por token de homologação de uso único." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Crie sua conta e reserve o endereço da sua imobiliária. O site, o painel e o aplicativo só são ativados depois da confirmação do pagamento."}</p>
+      <p>{invitationMode ? "Crie apenas sua conta de acesso. A imobiliária do convite será vinculada depois que você entrar e aceitar o convite." : bootstrapMode ? "Cadastro de teste autorizado por token de homologação de uso único." : blocked ? `Novas imobiliárias ainda não estão sendo abertas ao público. Ambiente atual: ${releaseLabel}.` : "Você já viu o preço e escolheu o plano. Criar a conta não gera cobrança automática; o pagamento acontece na próxima etapa e somente ele libera o site, o painel e o aplicativo."}</p>
+
+      {!invitationMode && selectedPlan ? <div className="registrationPlanChoice">
+        <div className="registrationPlanHeading"><span>PLANO ESCOLHIDO</span><strong>{selectedPlan.name}</strong><a href="../#planos">Trocar plano</a></div>
+        <div className="registrationCycleSwitch"><button type="button" className={selectedCycle==="monthly"?"active":""} onClick={()=>setSelectedCycle("monthly")}>Mensal</button><button type="button" className={selectedCycle==="annual"?"active":""} onClick={()=>setSelectedCycle("annual")}>Anual · 25% OFF</button></div>
+        {selectedCycle==="monthly" ? <div className="registrationPlanPrice"><b>{selectedPlan.monthly}</b><span>Primeiro pagamento: implantação {selectedPlan.implementation}. A primeira mensalidade vence após 30 dias.</span></div> : <div className="registrationPlanPrice annual"><b>{selectedPlan.annual}</b><span>Pagamento anual de 12 meses com 25% de desconto e implantação grátis.</span></div>}
+      </div> : null}
 
       <label>Seu nome completo<input name="full_name" autoComplete="name" required maxLength={160} disabled={blocked} /></label>
       {!invitationMode ? <>
@@ -203,7 +259,8 @@ export default function RegisterForm() {
       <label>E-mail<input name="email" type="email" autoComplete="email" required maxLength={254} disabled={blocked} /></label>
       <label>Senha<input name="password" type="password" autoComplete="new-password" minLength={8} required disabled={blocked} /></label>
       <label>Confirmar senha<input name="confirm" type="password" autoComplete="new-password" minLength={8} required disabled={blocked} /></label>
-      <button className="button primary full" type="submit" disabled={loading || blocked || (!invitationMode && slugState === "unavailable")}>{loading ? "Criando cadastro..." : blocked?"Cadastros temporariamente fechados":invitationMode ? "Criar conta e continuar" : "Criar cadastro"}</button>
+      <button className="button primary full" type="submit" disabled={loading || blocked || (!invitationMode && slugState === "unavailable")}>{loading ? "Criando cadastro..." : blocked?"Cadastros temporariamente fechados":invitationMode ? "Criar conta e continuar" : "Criar cadastro e ir para pagamento"}</button>
+      {!invitationMode&&!bootstrapMode ? <small className="registrationNoCharge">Sem acesso gratuito ao sistema: após o cadastro, a próxima etapa é o pagamento. A conta só é ativada quando a InfinitePay confirmar a cobrança.</small> : null}
       {status ? <p className="loginStatus">{status}</p> : null}
       <a className="backLink" href={loginHref}>← Já tenho acesso</a>
     </form>
