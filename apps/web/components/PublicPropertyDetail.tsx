@@ -22,6 +22,12 @@ function money(value: number, purpose: string) {
   const formatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
   return purpose === "rent" ? `${formatted}/mês` : formatted;
 }
+function formatCreci(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const clean = raw.replace(/^creci\s*:?[\s-]*/i, "").trim();
+  return clean ? `CRECI ${clean}` : "";
+}
 function BedIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19v-8m18 8v-6a2 2 0 0 0-2-2H9a3 3 0 0 0-3 3v1m-3 0h18M7 11V8a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3" /></svg>; }
 function BathIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h16v2a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-2Zm3 0V6a3 3 0 0 1 6 0v1m-8 13-1 2m15-2 1 2" /></svg>; }
 function CarIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 16-1-3 2-5h12l2 5-1 3H5Zm1-8 1-3h10l1 3M7 16v2m10-2v2M7.5 13h.01m8.99 0h.01" /></svg>; }
@@ -114,11 +120,18 @@ export default function PublicPropertyDetail() {
   const locationSummary=`${property.neighborhood||""}${property.neighborhood?", ":""}${property.city} - ${property.state_code}`;
   const publicAddress=property.address_public&&property.address?property.address:locationSummary;
   const previousPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current-1+imageUrls.length)%imageUrls.length:0), nextPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current+1)%imageUrls.length:0);
-  const hasMap=Number.isFinite(Number(property.latitude))&&Number.isFinite(Number(property.longitude))&&Number(property.latitude)!==0&&Number(property.longitude)!==0;
+  const hasCoordinates=Number.isFinite(Number(property.latitude))&&Number.isFinite(Number(property.longitude))&&Number(property.latitude)!==0&&Number(property.longitude)!==0;
+  const locationIsPublic=property.address_public===true;
   const lat=Number(property.latitude||0), lon=Number(property.longitude||0), delta=0.008;
-  const mapUrl=hasMap?`https://www.openstreetmap.org/export/embed.html?bbox=${lon-delta}%2C${lat-delta}%2C${lon+delta}%2C${lat+delta}&layer=mapnik&marker=${lat}%2C${lon}`:"";
+  const mapSearch=[property.address,property.neighborhood,property.city,property.state_code,"Brasil"].filter(Boolean).join(", ");
+  const mapUrl=locationIsPublic
+    ? (hasCoordinates
+      ? `https://www.openstreetmap.org/export/embed.html?bbox=${lon-delta}%2C${lat-delta}%2C${lon+delta}%2C${lat+delta}&layer=mapnik&marker=${lat}%2C${lon}`
+      : property.address ? `https://www.google.com/maps?q=${encodeURIComponent(mapSearch)}&output=embed` : "")
+    : "";
+  const brokerCreci=formatCreci(property.broker_creci);
 
-  return <main><PublicHeader nested /><section className="container propertyDetail modernPropertyDetail">
+  return <main><PublicHeader nested propertyDetail /><section className="container propertyDetail modernPropertyDetail">
     <a className="backLink" href="../#imoveis">← Voltar aos imóveis</a>
     <div className="gallery dynamicGallery detailGallery"><div className="galleryMain galleryButton" style={{backgroundImage:`url(${currentImage})`}}><button className="galleryNav galleryPrev" onClick={previousPhoto} aria-label="Foto anterior">‹</button><button className="galleryNav galleryNext" onClick={nextPhoto} aria-label="Próxima foto">›</button><span className="galleryCounter">{imageUrls.length?`${activePhoto+1}/${imageUrls.length}`:"Sem fotos"}</span>{imageUrls.length>1?<button className="viewAllPhotos" onClick={()=>setActivePhoto(0)}>Ver todas as {imageUrls.length} fotos</button>:null}</div><div className="gallerySide">{imageUrls.slice(0,4).map((image,index)=><button key={image} className={`galleryThumb galleryButton ${activePhoto===index?"activeThumb":""}`} style={{backgroundImage:`url(${image})`}} onClick={()=>setActivePhoto(index)} aria-label={`Ver foto ${index+1}`} />)}</div></div>
     <button className="detailShareButton" onClick={()=>void shareProperty()}>↗ Compartilhar</button>{shareMessage?<span className="shareFeedback">{shareMessage}</span>:null}
@@ -126,7 +139,7 @@ export default function PublicPropertyDetail() {
     <div className="detailFactsIcon"><span><BedIcon /><strong>{property.bedrooms||0}</strong><small>Quartos</small></span><span><BathIcon /><strong>{property.bathrooms||0}</strong><small>Banheiros</small></span><span><CarIcon /><strong>{property.parking_spaces||0}</strong><small>Vagas</small></span><span><AreaIcon /><strong>{area?Number(area).toLocaleString("pt-BR"):"—"}</strong><small>m²</small></span></div>
     {features.length?<section className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature)=><span key={feature}>✓ {feature}</span>)}</div></section>:null}
     <section className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description||"Entre em contato para receber mais informações sobre este imóvel."}</p></section>
-    {hasMap?<section className="detailSection propertyMapSection"><h2>Localização</h2><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" /></div>{property.address_public&&property.address?<div className="publicAddressCard"><strong>Endereço completo</strong><span>{publicAddress}</span></div>:<small>Localização aproximada. O endereço completo é informado pelo corretor.</small>}</section>:null}
-    <div className="detailGrid"><section><div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required maxLength={160}/></label><label>Telefone<input name="phone" maxLength={40} required/></label></div><label>E-mail<input name="email" type="email" maxLength={254}/></label><label>Mensagem<textarea name="message" rows={4} maxLength={4000} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`}/></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage?<div className="formMessage">{leadMessage}</div>:null}</form></div></section><aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name||site.agency_name}</h3><p>{property.broker_creci||site.company_creci||"CRECI a informar"}</p>{property.broker_area_of_operation?<p>Atuação: {property.broker_area_of_operation}</p>:null}<p>Informe a referência <strong>{property.code}</strong> no atendimento.</p>{whatsappUrl?<a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a>:<p>WhatsApp ainda não configurado.</p>}</aside></div>
+    {locationIsPublic&&mapUrl?<section className="detailSection propertyMapSection"><h2>Localização</h2><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>{property.address?<div className="publicAddressCard"><strong>Endereço</strong><span>{publicAddress}</span></div>:null}</section>:null}
+    <div className="detailGrid"><section><div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required maxLength={160}/></label><label>Telefone<input name="phone" maxLength={40} required/></label></div><label>E-mail<input name="email" type="email" maxLength={254}/></label><label>Mensagem<textarea name="message" rows={4} maxLength={4000} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`}/></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage?<div className="formMessage">{leadMessage}</div>:null}</form></div></section><aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name||"Corretor responsável"}</h3><p className="brokerCreci">{brokerCreci||"CRECI do corretor não informado"}</p>{property.broker_area_of_operation?<p>Atuação: {property.broker_area_of_operation}</p>:null}<p>Informe a referência <strong>{property.code}</strong> no atendimento.</p>{whatsappUrl?<a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a>:<p>WhatsApp ainda não configurado.</p>}</aside></div>
   </section></main>;
 }
