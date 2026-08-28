@@ -8,8 +8,28 @@ function setLink(link: HTMLAnchorElement | null | undefined, href: string, label
   if (label && link.textContent !== label) link.textContent = label;
 }
 
+function rewritePricingLinks() {
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]"));
+  links.forEach((link) => {
+    const raw = link.getAttribute("href") || "";
+    const normalized = raw.trim();
+    if (
+      normalized === "#planos" ||
+      normalized === "/#planos" ||
+      normalized === "./#planos" ||
+      normalized === "https://imoveis.lenoy.com.br/#planos" ||
+      normalized === "https://www.imoveis.lenoy.com.br/#planos"
+    ) {
+      setLink(link, "/planos/");
+    }
+  });
+}
+
 function rewriteDemoLinks() {
   if (typeof window === "undefined") return;
+
+  rewritePricingLinks();
+
   if (window.location.pathname !== "/" && window.location.pathname !== "") return;
 
   const panelNav = document.querySelector<HTMLAnchorElement>('.platformNav nav a[href="#painel-demo"], .platformNav nav a[href="/demonstracao/painel/"]');
@@ -17,6 +37,9 @@ function rewriteDemoLinks() {
 
   const appNav = document.querySelector<HTMLAnchorElement>('.platformNav nav a[href="#app-demo"], .platformNav nav a[href="/demonstracao/aplicativo/"]');
   setLink(appNav, "/demonstracao/aplicativo/");
+
+  const plansNav = Array.from(document.querySelectorAll<HTMLAnchorElement>(".platformNav nav a")).find((link) => (link.textContent || "").trim().toLowerCase() === "planos");
+  setLink(plansNav, "/planos/");
 
   const createTop = document.querySelector<HTMLAnchorElement>(".platformActions .button.primary");
   setLink(createTop, "/cadastro/", "Criar imobiliária");
