@@ -1,87 +1,130 @@
-/* Administração comercial da plataforma LENOY */
-.platformCommercialPage{background:#f4f6f8!important;min-height:100vh}
-.platformCommercialShell{max-width:1440px!important;padding-top:30px!important;padding-bottom:56px!important}
-.platformCommercialPage .commercialHeading{margin-bottom:22px!important}
-.platformCommercialPage .commercialHeading h1{margin-bottom:8px!important}
-.platformCommercialPage .commercialHeading p{max-width:860px!important}
+/* LENOY — Administração comercial responsiva */
+.platformCommercialPage{background:#f3f5f7!important;min-height:100vh}
+.platformCommercialPage .platformCommercialShell{box-sizing:border-box!important;width:90vw!important;max-width:none!important;margin:0 auto!important;padding:22px 0 52px!important}
+.platformCommercialPage .commercialAdminContent{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+.platformCommercialPage .adminPanel{box-sizing:border-box!important;width:100%!important;max-width:none!important;scroll-margin-top:86px}
 
-.commercialSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 18px}
-.commercialSummary article,.commercialPaymentMetrics article{background:#fff;border:1px solid #e1e6ea;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(16,36,58,.05);min-width:0}
-.commercialSummary article.attention,.commercialPaymentMetrics article.attention{border-color:#e9c878;background:#fffaf0}
-.commercialSummary article.danger,.commercialPaymentMetrics article.danger{border-color:#e6aaa3;background:#fff7f6}
-.commercialSummary span,.commercialPaymentMetrics span{display:block;color:#687582;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.045em}
-.commercialSummary strong,.commercialPaymentMetrics strong{display:block;margin-top:8px;color:#0b1b30;font-size:27px;line-height:1.05;letter-spacing:-.03em;overflow-wrap:anywhere}
-.commercialSummary small,.commercialPaymentMetrics small{display:block;margin-top:7px;color:#87929c;font-size:11px;line-height:1.35}
+/* Cabeçalho: somente identidade + menu sanduíche */
+.platformCommercialPage .commercialTopbar{position:sticky!important;top:0!important;z-index:100!important;background:#0b2946!important;border-bottom:1px solid rgba(255,255,255,.1)!important}
+.platformCommercialPage .commercialAdminNav{box-sizing:border-box!important;width:90vw!important;max-width:none!important;min-height:68px!important;margin:0 auto!important;padding:8px 0!important;display:grid!important;grid-template-columns:auto 1fr auto!important;align-items:center!important;gap:14px!important}
+.platformCommercialPage .commercialAdminNav .brand{display:flex!important;align-items:center!important}
+.platformCommercialPage .commercialHeaderTitle{min-width:0;display:grid;gap:2px;color:#fff}
+.platformCommercialPage .commercialHeaderTitle strong{font-size:13px;line-height:1.15}
+.platformCommercialPage .commercialHeaderTitle span{font-size:10px;color:#b8c7d5}
+.commercialMenuRoot{position:relative;justify-self:end}
+.commercialMenuButton{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:40px!important;padding:0 13px!important;border:1px solid rgba(255,255,255,.23)!important;border-radius:11px!important;background:#fff!important;color:#0b2946!important;font:inherit!important;font-size:12px!important;font-weight:850!important;cursor:pointer!important}
+.commercialHamburger{display:grid;gap:3px;width:17px}.commercialHamburger i{display:block;width:17px;height:2px;border-radius:4px;background:currentColor}
+.commercialMenuPanel{position:fixed;z-index:250;top:76px;right:5vw;width:min(1100px,90vw);padding:14px;border:1px solid #dce3e8;border-radius:18px;background:#f8fafb;box-shadow:0 24px 65px rgba(7,23,43,.26)}
+.commercialMenuGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.commercialMenuCard{box-sizing:border-box;min-width:0;min-height:104px;padding:14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:5px;border:1px solid #dce3e8;border-radius:14px;background:#fff;color:#10263d;text-decoration:none!important;box-shadow:0 5px 16px rgba(12,34,55,.04)}
+.commercialMenuCard:hover{border-color:#d6af58;box-shadow:0 8px 24px rgba(12,34,55,.09)}
+.commercialMenuIcon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;margin-bottom:3px;border-radius:9px;background:#eef3f7;color:#14314f;font-size:13px;font-weight:900}
+.commercialMenuCard strong{font-size:12px;line-height:1.2}.commercialMenuCard small{color:#75828e;font-size:10px;line-height:1.25}
 
-.commercialQuickNav{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:78px;z-index:30;margin:0 0 18px;padding:10px;background:rgba(244,246,248,.94);border:1px solid #e1e6ea;border-radius:15px;backdrop-filter:blur(10px)}
-.commercialQuickNav a{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border-radius:10px;background:#fff;border:1px solid #dce3e8;color:#17283c;font-size:12px;font-weight:800;text-decoration:none}
-.commercialQuickNav a:hover{background:#13253b;color:#fff;border-color:#13253b}
+/* Resumo compacto */
+.commercialSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:0 0 18px}
+.commercialSummary article,.commercialPaymentMetrics article{box-sizing:border-box;min-width:0;background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:15px;box-shadow:0 6px 20px rgba(16,36,58,.045)}
+.commercialSummary article.attention,.commercialPaymentMetrics article.attention{border-color:#e6c16d;background:#fffaf0}
+.commercialSummary article.danger,.commercialPaymentMetrics article.danger{border-color:#e2aaa4;background:#fff7f6}
+.commercialSummary span,.commercialPaymentMetrics span{display:block;color:#697682;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
+.commercialSummary strong,.commercialPaymentMetrics strong{display:block;margin-top:6px;color:#0b1b30;font-size:23px;line-height:1.05;letter-spacing:-.03em;overflow-wrap:anywhere}
+.commercialSummary small,.commercialPaymentMetrics small{display:block;margin-top:5px;color:#87929c;font-size:10px;line-height:1.3}
 
-.platformCommercialPage .adminPanel{scroll-margin-top:145px}
-.platformCommercialPage .adminPanelHeader h2,.platformCommercialPage .adminPanelHeader h3{color:#0b1b30}
-.platformCommercialPage .adminPanelHeader p{max-width:900px;color:#6e7b87}
+/* Clientes em cards largos */
+.platformCommercialPage .commercialClientsPanel{margin:0 0 16px!important;padding:20px!important;border-radius:18px!important}
+.platformCommercialPage .commercialClientsPanel .adminPanelHeader{margin-bottom:14px!important}
+.platformCommercialPage .commercialClientsPanel .adminPanelHeader h2{font-size:21px!important}
+.platformCommercialPage .commercialClientsPanel .adminPanelHeader p{font-size:12px!important;margin-top:5px!important}
+.commercialClientGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%}
+.commercialClientCard{box-sizing:border-box;min-width:0;width:100%;padding:16px;border:1px solid #dfe5e9;border-radius:16px;background:#fff;box-shadow:0 7px 22px rgba(14,34,53,.045)}
+.commercialClientCard.isEditing{grid-column:1/-1;border-color:#c8a04f;box-shadow:0 12px 34px rgba(14,34,53,.09)}
+.commercialClientHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #edf0f2}
+.commercialClientHeader>div{display:grid;gap:3px;min-width:0}.commercialClientHeader strong{font-size:15px;color:#0c2137;overflow-wrap:anywhere}.commercialClientHeader span:not(.commercialStatus){font-size:11px;color:#5e6d7a;overflow-wrap:anywhere}.commercialClientHeader small{font-size:9px;color:#8a949d;overflow-wrap:anywhere}
+.commercialClientFacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.commercialClientFacts>span{min-width:0;padding:9px;border-radius:10px;background:#f6f8f9}
+.commercialClientFacts small{display:block;color:#7a8792;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.025em}.commercialClientFacts b{display:block;margin-top:3px;color:#21374b;font-size:10px;line-height:1.25;overflow-wrap:anywhere}
+.commercialEditClientButton{width:100%;min-height:38px;border:1px solid #d7dfe5;border-radius:10px;background:#f7f9fa;color:#183149;font-size:11px;font-weight:850;cursor:pointer}.commercialEditClientButton:hover{background:#102a45;color:#fff;border-color:#102a45}
 
-.commercialPaymentMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
-.commercialPaymentMetrics strong{font-size:23px}
+/* Edição do cliente */
+.commercialClientEditor{margin-top:14px;padding-top:15px;border-top:1px solid #e6ebee}
+.commercialEditorGrid{display:grid;gap:11px;margin-bottom:11px}.commercialEditorGrid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.commercialEditorGrid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.commercialClientEditor label,.planEditorChooser label{display:grid;gap:5px;min-width:0;color:#596978;font-size:10px;font-weight:800}
+.commercialClientEditor input,.commercialClientEditor select,.planEditorChooser select{box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:40px!important;padding:8px 10px!important;border:1px solid #d7dfe5!important;border-radius:9px!important;background:#fff!important;color:#152b40!important;font-size:12px!important}
+.commercialDiscountInline{display:grid;grid-template-columns:1.2fr .6fr .6fr;gap:11px;align-items:end;margin:13px 0;padding:12px;border:1px solid #ead9b5;border-radius:12px;background:#fffaf0}.commercialDiscountInline>div{align-self:center}.commercialDiscountInline>div strong{display:block;font-size:12px;color:#352b17}.commercialDiscountInline>div small{display:block;margin-top:3px;color:#88734b;font-size:9px;line-height:1.35}
+.commercialBillingSnapshot{margin:12px 0;padding:12px;border:1px solid #e1e6ea;border-radius:12px;background:#f8fafb}.commercialBillingSnapshot>strong{display:block;margin-bottom:9px;color:#243a4e;font-size:11px}.commercialBillingSnapshot>small{color:#7a8792;font-size:10px}.commercialBillingSnapshotGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.commercialBillingSnapshotGrid span{min-width:0}.commercialBillingSnapshotGrid small{display:block;color:#87919a;font-size:8px;text-transform:uppercase;font-weight:800}.commercialBillingSnapshotGrid b{display:block;margin-top:3px;color:#243a4e;font-size:10px;overflow-wrap:anywhere}
+.commercialEditorActions{display:flex;justify-content:flex-end;margin-top:10px}
 
-.commercialStatus{display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:4px 9px;border-radius:999px;background:#eef2f5;color:#485867;font-size:10px;font-weight:850;white-space:nowrap}
+/* Status */
+.commercialStatus{display:inline-flex;align-items:center;justify-content:center;min-height:25px;padding:3px 8px;border-radius:999px;background:#eef2f5;color:#485867;font-size:9px;font-weight:850;white-space:nowrap}
 .commercialStatus.agency-active,.commercialStatus.paid,.commercialStatus.waived,.commercialStatus.payment-paid{background:#e9f7ef;color:#1d6a42}
 .commercialStatus.agency-pending_payment,.commercialStatus.pending,.commercialStatus.payment-pending{background:#fff3d7;color:#89651b}
 .commercialStatus.agency-past_due,.commercialStatus.agency-suspended,.commercialStatus.payment-failed{background:#fde9e6;color:#9b382d}
 .commercialStatus.agency-cancelled{background:#eceff2;color:#65717b}
 
-.platformCommercialPage .commercialTableWrap{overflow-x:auto;border:1px solid #e2e7eb;border-radius:14px;background:#fff}
-.platformCommercialPage .commercialTable{min-width:1050px;margin:0}
-.platformCommercialPage .commercialTable th{background:#f7f9fa;color:#5b6976;font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-.platformCommercialPage .commercialTable td{vertical-align:middle;color:#253647;font-size:12px}
-.platformCommercialPage .commercialTable td strong{color:#0b1b30}
-.platformCommercialPage .commercialTable .tableSub{display:block;margin-top:3px;color:#87929c;font-size:10px}
-.platformCommercialPage .commercialTable tbody tr:hover{background:#fafcfd}
+/* Ferramentas minimizadas */
+.commercialToolsGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;width:100%}
+.platformCommercialPage .commercialToolCard{margin:0!important;padding:0!important;overflow:hidden!important;border:1px solid #dfe5e9!important;border-radius:15px!important;background:#fff!important;box-shadow:0 6px 20px rgba(14,34,53,.045)!important}
+.platformCommercialPage .commercialToolCard[open]{grid-column:1/-1}
+.commercialToolSummary{box-sizing:border-box;min-height:112px;padding:15px!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:5px!important;list-style:none!important;cursor:pointer!important;position:relative!important}
+.commercialToolSummary::-webkit-details-marker{display:none}.commercialToolSummary:after{content:'+';position:absolute;right:14px;top:14px;display:flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:8px;background:#edf2f5;color:#24415b;font-size:18px;font-weight:700}.commercialToolCard[open]>.commercialToolSummary:after{content:'−'}
+.commercialToolSummary>span{padding-right:30px;color:#a07a31;font-size:8px;font-weight:900;letter-spacing:.09em}.commercialToolSummary>strong{padding-right:30px;color:#10273e;font-size:14px;line-height:1.2}.commercialToolSummary>small{color:#82909b;font-size:9px}
+.commercialToolBody{padding:0 18px 18px!important;border-top:1px solid #edf0f2}.commercialToolBody>.propertyForm,.commercialToolBody>.compactPlanForm{padding-top:18px!important}
+.platformCommercialPage .commercialToolBody .propertyForm{width:100%!important;max-width:none!important}
+.platformCommercialPage .commercialToolBody .formGrid{gap:10px!important}
+.platformCommercialPage .commercialToolBody label{font-size:10px!important}
+.platformCommercialPage .commercialToolBody input,.platformCommercialPage .commercialToolBody select{box-sizing:border-box!important;max-width:100%!important;font-size:12px!important}
+.compactDiscountEditor{margin-top:16px!important;padding-top:15px!important;border-top:1px solid #e5eaed!important}.compactDiscountEditor h3{font-size:15px!important;margin:0 0 12px!important}
 
-.platformCommercialPage .platformDiscountEditor{margin-top:24px;padding-top:22px;border-top:1px solid #e1e6ea}
-.platformCommercialPage .discountLiveSummary{border-radius:14px!important}
-.platformCommercialPage .formActions{flex-wrap:wrap}
+/* Editor de planos: sem lista de cards/homologação */
+.planEditorChooser{display:grid;grid-template-columns:minmax(240px,1fr) auto;gap:12px;align-items:end;padding-top:18px;margin-bottom:12px}.planEditorChooser>span{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 12px;border-radius:9px;background:#eef4f0;color:#306548;font-size:10px;font-weight:850}
+.compactPlanForm{width:100%!important;max-width:none!important;margin:0!important}
+.compactFeaturePicker{margin:14px 0!important;padding:13px!important;border:1px solid #dce3e7!important;border-radius:12px!important}.compactFeaturePicker legend{padding:0 6px!important;color:#42576a!important;font-size:11px!important;font-weight:850!important}
+.commercialFeatureGrid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px 12px!important;width:100%!important}
+.platformCommercialPage .compactFeaturePicker .featureOption{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;min-width:0!important;margin:0!important;padding:7px 8px!important;border:1px solid #edf0f2!important;border-radius:9px!important;background:#fafbfc!important;color:#33495d!important;font-size:11px!important;font-weight:700!important;line-height:1.25!important;cursor:pointer!important}
+.platformCommercialPage .compactFeaturePicker .featureOption input[type="checkbox"],.platformCommercialPage .compactActiveCheck input[type="checkbox"]{appearance:auto!important;-webkit-appearance:checkbox!important;box-sizing:border-box!important;display:block!important;flex:0 0 18px!important;width:18px!important;min-width:18px!important;max-width:18px!important;height:18px!important;min-height:18px!important;max-height:18px!important;margin:0!important;padding:0!important;border:initial!important;border-radius:3px!important;box-shadow:none!important;transform:none!important}
+.platformCommercialPage .compactFeaturePicker .featureOption span{display:block!important;min-width:0!important;font-size:11px!important;line-height:1.25!important;text-align:left!important}
+.compactActiveCheck{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;width:max-content!important;max-width:100%!important;margin:12px 0!important;color:#33495d!important;font-size:11px!important;font-weight:800!important}
 
-.platformTechnicalPage .adminHeading:after{content:"Área reservada para manutenção técnica. O trabalho comercial diário fica em Administração comercial.";display:block;margin-top:14px;padding:12px 14px;border:1px solid #dde5eb;border-radius:12px;background:#f7f9fb;color:#65727e;font-size:12px}
+/* Histórico financeiro aberto */
+.commercialPaymentMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+.platformCommercialPage .commercialTableWrap{overflow-x:auto;border:1px solid #e2e7eb;border-radius:12px;background:#fff}
+.platformCommercialPage .commercialTable{min-width:980px;margin:0}.platformCommercialPage .commercialTable th{background:#f7f9fa;color:#5b6976;font-size:9px;text-transform:uppercase;white-space:nowrap}.platformCommercialPage .commercialTable td{vertical-align:middle;color:#253647;font-size:11px}.platformCommercialPage .commercialTable .tableSub{display:block;margin-top:3px;color:#87929c;font-size:9px}
+
+.platformTechnicalPage .adminHeading:after{content:'Área reservada para manutenção técnica. O trabalho comercial diário fica em Administração comercial.';display:block;margin-top:14px;padding:12px 14px;border:1px solid #dde5eb;border-radius:12px;background:#f7f9fb;color:#65727e;font-size:12px}
 
 @media(max-width:1180px){
-  .commercialSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .commercialPaymentMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .commercialSummary{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .commercialClientFacts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .commercialFeatureGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
-
 @media(max-width:900px){
-  .platformCommercialShell{padding-left:12px!important;padding-right:12px!important}
-  .platformCommercialPage .adminTopbar .adminNav{gap:10px}
-  .platformCommercialPage .adminNavActions>span{display:none}
-  .platformCommercialPage .adminNavActions .button{padding-left:10px!important;padding-right:10px!important;font-size:10px!important}
-  .commercialQuickNav{top:66px;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}
-  .commercialQuickNav a{flex:0 0 auto}
+  .platformCommercialPage .platformCommercialShell,.platformCommercialPage .commercialAdminNav{width:90vw!important}
+  .commercialSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .commercialClientGrid{grid-template-columns:1fr}
+  .commercialClientCard.isEditing{grid-column:auto}
+  .commercialEditorGrid.three{grid-template-columns:1fr 1fr}
+  .commercialDiscountInline{grid-template-columns:1fr 1fr}.commercialDiscountInline>div{grid-column:1/-1}
+  .commercialBillingSnapshotGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .commercialFeatureGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .commercialPaymentMetrics{grid-template-columns:1fr 1fr}
 }
-
 @media(max-width:700px){
-  .commercialSummary,.commercialPaymentMetrics{grid-template-columns:1fr 1fr;gap:9px}
-  .commercialSummary article,.commercialPaymentMetrics article{padding:14px;border-radius:13px}
-  .commercialSummary strong,.commercialPaymentMetrics strong{font-size:21px}
-  .commercialSummary span,.commercialPaymentMetrics span{font-size:9px}
-  .commercialSummary small,.commercialPaymentMetrics small{font-size:10px}
-
-  .platformCommercialPage .commercialTableWrap{overflow:visible;border:0;background:transparent}
-  .platformCommercialPage .commercialTable{display:block;min-width:0;width:100%}
-  .platformCommercialPage .commercialTable thead{display:none}
-  .platformCommercialPage .commercialTable tbody{display:grid;gap:12px}
-  .platformCommercialPage .commercialTable tr{display:block;background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:10px 13px;box-shadow:0 6px 18px rgba(15,34,52,.04)}
-  .platformCommercialPage .commercialTable td{display:grid;grid-template-columns:minmax(110px,40%) minmax(0,1fr);gap:10px;align-items:start;width:100%!important;padding:8px 0!important;border:0!important;border-bottom:1px solid #eef1f3!important;text-align:right!important;overflow-wrap:anywhere}
-  .platformCommercialPage .commercialTable td:last-child{border-bottom:0!important}
-  .platformCommercialPage .commercialTable td:before{content:attr(data-label);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.035em;color:#798590;text-align:left}
-  .platformCommercialPage .commercialTable td>*,.platformCommercialPage .commercialTable td strong{justify-self:end;text-align:right}
-  .platformCommercialPage .commercialTable .tableSub{text-align:right}
-  .platformCommercialPage .commercialTable tr td[colspan]{display:block;text-align:center!important}
-  .platformCommercialPage .commercialTable tr td[colspan]:before{content:none}
+  .platformCommercialPage .commercialAdminNav{min-height:62px!important;gap:9px!important}.platformCommercialPage .commercialAdminNav .brand img{width:61px!important}.platformCommercialPage .commercialHeaderTitle strong{font-size:11px}.platformCommercialPage .commercialHeaderTitle span{display:none}
+  .commercialMenuButton{min-height:38px!important;padding:0 11px!important}.commercialMenuButton>span:last-child{display:none}.commercialMenuPanel{top:68px;padding:10px;border-radius:15px}.commercialMenuGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.commercialMenuCard{min-height:90px;padding:11px}.commercialMenuCard strong{font-size:11px}.commercialMenuCard small{font-size:9px}
+  .platformCommercialPage .platformCommercialShell{padding-top:14px!important;padding-bottom:34px!important}
+  .commercialSummary{gap:7px;margin-bottom:12px}.commercialSummary article{padding:11px;border-radius:11px}.commercialSummary span{font-size:8px}.commercialSummary strong{font-size:18px}.commercialSummary small{font-size:8px}
+  .platformCommercialPage .commercialClientsPanel{padding:13px!important;border-radius:14px!important}.platformCommercialPage .commercialClientsPanel .adminPanelHeader{display:flex!important;align-items:flex-start!important;gap:8px!important}.platformCommercialPage .commercialClientsPanel .adminPanelHeader h2{font-size:17px!important}.platformCommercialPage .commercialClientsPanel .adminPanelHeader p{font-size:10px!important}.platformCommercialPage .commercialClientsPanel .adminPanelHeader>span{font-size:8px!important;white-space:nowrap!important}
+  .commercialClientGrid{gap:10px}.commercialClientCard{padding:12px;border-radius:13px}.commercialClientHeader strong{font-size:13px}.commercialClientFacts{grid-template-columns:1fr 1fr;gap:6px}.commercialClientFacts>span{padding:7px}.commercialClientFacts small{font-size:7px}.commercialClientFacts b{font-size:9px}
+  .commercialEditorGrid.two,.commercialEditorGrid.three{grid-template-columns:1fr 1fr;gap:8px}.commercialClientEditor input,.commercialClientEditor select{min-height:38px!important;font-size:11px!important}.commercialDiscountInline{gap:8px;padding:10px}.commercialBillingSnapshotGrid{grid-template-columns:1fr 1fr;gap:8px}
+  .commercialToolsGrid{grid-template-columns:1fr 1fr;gap:8px}.commercialToolSummary{min-height:102px;padding:11px!important}.commercialToolSummary:after{right:9px;top:9px;width:22px;height:22px}.commercialToolSummary>span{font-size:7px}.commercialToolSummary>strong{font-size:11px;padding-right:24px}.commercialToolSummary>small{font-size:8px}.commercialToolBody{padding:0 11px 13px!important}
+  .planEditorChooser{grid-template-columns:1fr;padding-top:13px}.planEditorChooser>span{display:none}.platformCommercialPage .commercialToolBody .formGrid,.platformCommercialPage .commercialToolBody .formGrid.three{grid-template-columns:1fr 1fr!important}.commercialFeatureGrid{grid-template-columns:1fr 1fr!important;gap:6px!important}.platformCommercialPage .compactFeaturePicker .featureOption{padding:7px!important;font-size:10px!important}.platformCommercialPage .compactFeaturePicker .featureOption span{font-size:10px!important}
+  .platformCommercialPage .commercialTableWrap{overflow:visible;border:0;background:transparent}.platformCommercialPage .commercialTable{display:block;min-width:0;width:100%}.platformCommercialPage .commercialTable thead{display:none}.platformCommercialPage .commercialTable tbody{display:grid;gap:9px}.platformCommercialPage .commercialTable tr{display:block;background:#fff;border:1px solid #dfe5e9;border-radius:12px;padding:8px 11px}.platformCommercialPage .commercialTable td{display:grid;grid-template-columns:minmax(92px,38%) minmax(0,1fr);gap:8px;align-items:start;width:100%!important;padding:7px 0!important;border:0!important;border-bottom:1px solid #eef1f3!important;text-align:right!important;overflow-wrap:anywhere}.platformCommercialPage .commercialTable td:last-child{border-bottom:0!important}.platformCommercialPage .commercialTable td:before{content:attr(data-label);font-size:8px;font-weight:850;text-transform:uppercase;color:#798590;text-align:left}.platformCommercialPage .commercialTable td>*{justify-self:end;text-align:right}.platformCommercialPage .commercialTable tr td[colspan]{display:block;text-align:center!important}.platformCommercialPage .commercialTable tr td[colspan]:before{content:none}
 }
-
 @media(max-width:480px){
-  .commercialSummary,.commercialPaymentMetrics{grid-template-columns:1fr}
-  .platformCommercialPage .adminNavActions .button.secondary{display:none}
-  .platformCommercialPage .adminNavActions .button.primary{display:inline-flex!important}
-  .platformCommercialPage .commercialTable td{grid-template-columns:105px minmax(0,1fr)}
+  .platformCommercialPage .platformCommercialShell,.platformCommercialPage .commercialAdminNav{width:90vw!important}
+  .platformCommercialPage .commercialHeaderTitle{display:none}.commercialAdminNav{grid-template-columns:auto 1fr!important}.commercialMenuRoot{grid-column:2;justify-self:end}
+  .commercialSummary{grid-template-columns:1fr 1fr}.commercialSummary strong{font-size:16px}
+  .commercialEditorGrid.two,.commercialEditorGrid.three{grid-template-columns:1fr}.commercialDiscountInline{grid-template-columns:1fr}.commercialDiscountInline>div{grid-column:auto}.commercialBillingSnapshotGrid{grid-template-columns:1fr 1fr}
+  .commercialToolsGrid{grid-template-columns:1fr 1fr}.commercialToolSummary{min-height:96px;padding:10px!important}.commercialToolSummary>strong{font-size:10px;line-height:1.25}
+  .platformCommercialPage .commercialToolBody .formGrid,.platformCommercialPage .commercialToolBody .formGrid.three{grid-template-columns:1fr!important}.commercialFeatureGrid{grid-template-columns:1fr!important}.commercialPaymentMetrics{grid-template-columns:1fr 1fr}.commercialPaymentMetrics strong{font-size:17px}
 }
