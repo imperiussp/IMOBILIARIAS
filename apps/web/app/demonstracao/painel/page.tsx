@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { DemoClientPanel } from "../../../components/DemoClientShowcase";
-import "../../demo-panel-readable-20260828.css";
+import { DemoPanelReplica } from "../../../components/DemoProductReplica";
+import "../../demo-product-replica-20260828.css";
 
 export const metadata: Metadata = {
   title: "Painel modelo do corretor | LENOY IMOBILIÁRIAS",
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function DemoPanelPage() {
-  return <DemoClientPanel />;
+  return <DemoPanelReplica />;
 }
