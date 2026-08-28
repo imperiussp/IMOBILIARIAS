@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 
 const commercialPlans = [
-  { code: "inicial", name: "Inicial", monthly: "39,90", annual: "359,10", implementation: "99,00", featured: false, items: ["Até 100 imóveis", "1 usuário", "Site + CRM + aplicativo"] },
-  { code: "profissional", name: "Profissional", monthly: "59,90", annual: "539,10", implementation: "149,00", featured: true, items: ["Até 500 imóveis", "Até 3 usuários", "Gestão comercial ampliada"] },
-  { code: "imobiliaria", name: "Imobiliária", monthly: "79,90", annual: "719,10", implementation: "199,00", featured: false, items: ["Até 1.500 imóveis", "Até 7 usuários", "IA de oportunidades + documentos"] },
-  { code: "premium", name: "Premium", monthly: "110,00", annual: "990,00", implementation: "249,00", featured: false, items: ["Até 5.000 imóveis", "Até 15 usuários", "Domínio próprio + automações"] },
+  { code: "inicial", name: "Start", monthly: "39,90", annual: "359,10", implementation: "99,00", featured: false, items: ["Até 30 imóveis", "1 usuário", "2 acessos simultâneos", "1 e-mail profissional", "5 fotos por imóvel", "Site exclusivo", "Catálogo de imóveis", "CRM com funil de vendas", "Leads via site e portais", "WhatsApp flutuante no site", "Site otimizado para SEO"] },
+  { code: "profissional", name: "Pro", monthly: "59,90", annual: "539,10", implementation: "99,00", featured: true, items: ["Até 400 imóveis", "Até 3 usuários", "6 acessos simultâneos", "3 e-mails profissionais", "50 fotos por imóvel", "Tudo do Start", "Gestão completa", "Aplicativo do corretor", "CRM imobiliário completo", "Controle de chaves", "Controle de propostas", "Vistorias", "Agenda e visitas", "IA para descrições"] },
+  { code: "imobiliaria", name: "Business", monthly: "79,90", annual: "719,10", implementation: "100,00", featured: false, items: ["Até 1.000 imóveis", "Até 5 usuários", "10 acessos simultâneos", "5 e-mails profissionais", "50 fotos por imóvel", "Tudo do Pro", "IA de oportunidades", "Central de documentos", "Gestão de vendas", "Gestão de clientes", "Permissões por usuário", "Relatórios estratégicos", "Reserva avançada de leads"] },
+  { code: "premium", name: "Prime", monthly: "110,00", annual: "990,00", implementation: "Grátis", featured: false, items: ["Até 3.000 imóveis", "Até 10 usuários", "20 acessos simultâneos", "10 e-mails profissionais", "50 fotos por imóvel", "Tudo do Business", "Domínio próprio", "Gestão multi-equipe", "Maior capacidade de IA", "Prioridade operacional", "Recursos avançados de automação"] },
 ];
 
 export default function PublicPricingEnhancer() {
@@ -56,8 +56,8 @@ export default function PublicPricingEnhancer() {
         <div class="commercialBillingBox monthly">
           <small>MENSAL</small>
           <b>R$ ${plan.monthly}/mês</b>
-          <span>Implantação: <strong>R$ ${plan.implementation}</strong> · pagamento único</span>
-          <em>O primeiro pagamento é somente a implantação. A primeira mensalidade vence após os primeiros 30 dias.</em>
+          <span>${plan.implementation === "Grátis" ? "<strong>Implantação grátis</strong>" : `Implantação: <strong>R$ ${plan.implementation}</strong> · pagamento único`}</span>
+          <em>${plan.implementation === "Grátis" ? "Sem taxa de implantação. A primeira cobrança é a mensalidade." : "O primeiro pagamento é somente a implantação. A primeira mensalidade vence após os primeiros 30 dias."}</em>
         </div>
         <div class="commercialBillingBox annual">
           <small>ANUAL · 25% OFF</small>
@@ -81,8 +81,8 @@ export default function PublicPricingEnhancer() {
     rows.forEach((row) => {
       const cells = row.querySelectorAll<HTMLTableCellElement>("td");
       const label = cells[0]?.textContent?.trim().toLowerCase();
-      if (label === "imóveis") ["100", "500", "1.500", "5.000"].forEach((value, i) => { if (cells[i + 1]) cells[i + 1].textContent = value; });
-      if (label === "usuários") ["1", "3", "7", "15"].forEach((value, i) => { if (cells[i + 1]) cells[i + 1].textContent = value; });
+      if (label === "imóveis") ["30", "400", "1.000", "3.000"].forEach((value, i) => { if (cells[i + 1]) cells[i + 1].textContent = value; });
+      if (label === "usuários") ["1", "3", "5", "10"].forEach((value, i) => { if (cells[i + 1]) cells[i + 1].textContent = value; });
     });
 
     const footerCreate = Array.from(document.querySelectorAll<HTMLAnchorElement>(".platformFooter a")).find((link) => link.getAttribute("href")?.includes("cadastro"));
