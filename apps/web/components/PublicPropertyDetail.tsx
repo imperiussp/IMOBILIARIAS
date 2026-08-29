@@ -41,6 +41,7 @@ export default function PublicPropertyDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activePhoto, setActivePhoto] = useState(0);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [leadMessage, setLeadMessage] = useState("");
   const [shareMessage, setShareMessage] = useState("");
 
@@ -63,7 +64,7 @@ export default function PublicPropertyDetail() {
       if (propertyResult.error || !row || row.agency_id !== tenant.agency_id) { setError("Este imóvel não está disponível neste site."); setLoading(false); return; }
       setProperty(row as CatalogRow);
       if (Array.isArray(photoResult.data)) {
-        const rows = photoResult.data as Photo[];
+        const rows = (photoResult.data as Photo[]).slice().sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.position - b.position);
         const urls = (await getPropertyPhotoUrls(rows.map((photo) => photo.storage_path))).filter(Boolean);
         if (active) setImageUrls(urls);
       }
@@ -79,6 +80,18 @@ export default function PublicPropertyDetail() {
     })();
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setGalleryOpen(false);
+      if (event.key === "ArrowLeft") setActivePhoto((current) => imageUrls.length ? (current - 1 + imageUrls.length) % imageUrls.length : 0);
+      if (event.key === "ArrowRight") setActivePhoto((current) => imageUrls.length ? (current + 1) % imageUrls.length : 0);
+    };
+    document.body.classList.add("propertyGalleryOpen");
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.classList.remove("propertyGalleryOpen"); window.removeEventListener("keydown", onKey); };
+  }, [galleryOpen, imageUrls.length]);
 
   useEffect(() => {
     if (!property) return;
@@ -115,31 +128,44 @@ export default function PublicPropertyDetail() {
   if (loading) return <main className="container propertyDetail"><div className="emptyState"><strong>Carregando imóvel...</strong></div></main>;
   if (error || !property) return <main className="container propertyDetail"><a className="backLink" href="../">← Voltar ao catálogo</a><div className="emptyState"><strong>{error||"Imóvel não encontrado."}</strong></div></main>;
 
-  const fallbackImage="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80", currentImage=imageUrls[activePhoto]||fallbackImage;
+  const fallbackImage="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80";
+  const currentImage=imageUrls[activePhoto]||fallbackImage;
   const area=property.built_area_m2||property.land_area_m2;
   const locationSummary=`${property.neighborhood||""}${property.neighborhood?", ":""}${property.city} - ${property.state_code}`;
   const publicAddress=property.address_public&&property.address?property.address:locationSummary;
-  const previousPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current-1+imageUrls.length)%imageUrls.length:0), nextPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current+1)%imageUrls.length:0);
+  const previousPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current-1+imageUrls.length)%imageUrls.length:0);
+  const nextPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current+1)%imageUrls.length:0);
+  const railIndexes=imageUrls.map((_, index)=>index).filter((index)=>index!==activePhoto).slice(0,3);
   const hasCoordinates=Number.isFinite(Number(property.latitude))&&Number.isFinite(Number(property.longitude))&&Number(property.latitude)!==0&&Number(property.longitude)!==0;
   const locationIsPublic=property.address_public===true;
-  const lat=Number(property.latitude||0), lon=Number(property.longitude||0), delta=0.008;
+  const lat=Number(property.latitude||0), lon=Number(property.longitude||0);
   const mapSearch=[property.address,property.neighborhood,property.city,property.state_code,"Brasil"].filter(Boolean).join(", ");
-  const mapUrl=locationIsPublic
-    ? (hasCoordinates
-      ? `https://www.openstreetmap.org/export/embed.html?bbox=${lon-delta}%2C${lat-delta}%2C${lon+delta}%2C${lat+delta}&layer=mapnik&marker=${lat}%2C${lon}`
-      : property.address ? `https://www.google.com/maps?q=${encodeURIComponent(mapSearch)}&output=embed` : "")
-    : "";
+  const mapQuery=hasCoordinates?`${lat},${lon}`:mapSearch;
+  const mapUrl=locationIsPublic&&mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&hl=pt-BR&output=embed`:"";
+  const mapExternalUrl=locationIsPublic&&mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:"";
   const brokerCreci=formatCreci(property.broker_creci);
 
   return <main><PublicHeader nested propertyDetail /><section className="container propertyDetail modernPropertyDetail">
     <a className="backLink" href="../#imoveis">← Voltar aos imóveis</a>
-    <div className="gallery dynamicGallery detailGallery"><div className="galleryMain galleryButton" style={{backgroundImage:`url(${currentImage})`}}><button className="galleryNav galleryPrev" onClick={previousPhoto} aria-label="Foto anterior">‹</button><button className="galleryNav galleryNext" onClick={nextPhoto} aria-label="Próxima foto">›</button><span className="galleryCounter">{imageUrls.length?`${activePhoto+1}/${imageUrls.length}`:"Sem fotos"}</span>{imageUrls.length>1?<button className="viewAllPhotos" onClick={()=>setActivePhoto(0)}>Ver todas as {imageUrls.length} fotos</button>:null}</div><div className="gallerySide">{imageUrls.slice(0,4).map((image,index)=><button key={image} className={`galleryThumb galleryButton ${activePhoto===index?"activeThumb":""}`} style={{backgroundImage:`url(${image})`}} onClick={()=>setActivePhoto(index)} aria-label={`Ver foto ${index+1}`} />)}</div></div>
+
+    <div className={`signatureGallery ${railIndexes.length ? "hasRail" : "singlePhoto"}`}>
+      <div className="signatureGalleryMain">
+        <img src={currentImage} alt={`${property.title} — foto ${activePhoto+1}`} />
+        <button className="signatureGalleryOpenArea" type="button" onClick={()=>setGalleryOpen(true)} aria-label="Abrir galeria completa" />
+        {imageUrls.length>1?<><button className="galleryNav galleryPrev" type="button" onClick={previousPhoto} aria-label="Foto anterior">‹</button><button className="galleryNav galleryNext" type="button" onClick={nextPhoto} aria-label="Próxima foto">›</button></>:null}
+        <div className="signatureGalleryMeta"><span>{imageUrls.length?`${activePhoto+1} de ${imageUrls.length}`:"Foto principal"}</span>{imageUrls.length>1?<button type="button" onClick={()=>setGalleryOpen(true)}>▦ Ver galeria completa</button>:null}</div>
+      </div>
+      {railIndexes.length?<div className="signatureGalleryRail">{railIndexes.map((index,railPosition)=><button type="button" key={`${imageUrls[index]}-${index}`} className="signatureGalleryThumb" onClick={()=>setActivePhoto(index)} aria-label={`Ver foto ${index+1}`}><img src={imageUrls[index]} alt="" />{railPosition===railIndexes.length-1&&imageUrls.length>4?<span>+{imageUrls.length-4}<small>fotos</small></span>:null}</button>)}</div>:null}
+    </div>
+
+    {galleryOpen?<div className="propertyLightbox" role="dialog" aria-modal="true" aria-label="Galeria de fotos do imóvel"><button className="propertyLightboxBackdrop" type="button" aria-label="Fechar galeria" onClick={()=>setGalleryOpen(false)} /><div className="propertyLightboxPanel"><div className="propertyLightboxTop"><div><strong>{property.title}</strong><span>Foto {activePhoto+1} de {Math.max(imageUrls.length,1)}</span></div><button type="button" className="propertyLightboxClose" onClick={()=>setGalleryOpen(false)} aria-label="Fechar">×</button></div><div className="propertyLightboxStage"><button type="button" className="propertyLightboxArrow previous" onClick={previousPhoto} aria-label="Foto anterior">‹</button><img src={currentImage} alt={`${property.title} — foto ${activePhoto+1}`} /><button type="button" className="propertyLightboxArrow next" onClick={nextPhoto} aria-label="Próxima foto">›</button></div>{imageUrls.length>1?<div className="propertyLightboxStrip">{imageUrls.map((image,index)=><button type="button" key={`${image}-${index}`} className={activePhoto===index?"active":""} onClick={()=>setActivePhoto(index)} aria-label={`Abrir foto ${index+1}`}><img src={image} alt="" /></button>)}</div>:null}</div></div>:null}
+
     <button className="detailShareButton" onClick={()=>void shareProperty()}>↗ Compartilhar</button>{shareMessage?<span className="shareFeedback">{shareMessage}</span>:null}
     <div className="detailIdentity"><div className="detailBadges"><span className="detailPurposeBadge">{property.purpose==="rent"?"Locação":"Venda"}</span>{property.marketing_label?<span className="detailMarketingBadge">{property.marketing_label}</span>:null}</div><span className="propertyCode">Ref. {property.code}</span><h1>{property.title}</h1><p className="location">📍 {locationSummary}</p><strong className="detailPrice">{money(Number(property.price),property.purpose)}</strong></div>
     <div className="detailFactsIcon"><span><BedIcon /><strong>{property.bedrooms||0}</strong><small>Quartos</small></span><span><BathIcon /><strong>{property.bathrooms||0}</strong><small>Banheiros</small></span><span><CarIcon /><strong>{property.parking_spaces||0}</strong><small>Vagas</small></span><span><AreaIcon /><strong>{area?Number(area).toLocaleString("pt-BR"):"—"}</strong><small>m²</small></span></div>
     {features.length?<section className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature)=><span key={feature}>✓ {feature}</span>)}</div></section>:null}
     <section className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description||"Entre em contato para receber mais informações sobre este imóvel."}</p></section>
-    {locationIsPublic&&mapUrl?<section className="detailSection propertyMapSection"><h2>Localização</h2><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>{property.address?<div className="publicAddressCard"><strong>Endereço</strong><span>{publicAddress}</span></div>:null}</section>:null}
+    {locationIsPublic&&mapUrl?<section className="detailSection propertyMapSection"><div className="propertyMapHeading"><div><span className="eyebrow">LOCALIZAÇÃO</span><h2>Onde fica este imóvel</h2></div>{mapExternalUrl?<a href={mapExternalUrl} target="_blank" rel="noreferrer">Abrir no Google Maps ↗</a>:null}</div><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div><div className="propertyMapPinInfo"><span className="propertyMapPinDot">●</span><div><strong>Localização marcada no mapa</strong><span>{publicAddress}</span></div></div></section>:null}
     <div className="detailGrid"><section><div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required maxLength={160}/></label><label>Telefone<input name="phone" maxLength={40} required/></label></div><label>E-mail<input name="email" type="email" maxLength={254}/></label><label>Mensagem<textarea name="message" rows={4} maxLength={4000} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`}/></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage?<div className="formMessage">{leadMessage}</div>:null}</form></div></section><aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name||"Corretor responsável"}</h3><p className="brokerCreci">{brokerCreci||"CRECI do corretor não informado"}</p>{property.broker_area_of_operation?<p>Atuação: {property.broker_area_of_operation}</p>:null}<p>Informe a referência <strong>{property.code}</strong> no atendimento.</p>{whatsappUrl?<a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a>:<p>WhatsApp ainda não configurado.</p>}</aside></div>
   </section></main>;
 }
