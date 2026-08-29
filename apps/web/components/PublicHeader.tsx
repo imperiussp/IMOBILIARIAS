@@ -32,7 +32,7 @@ export default function PublicHeader({ nested = false, propertyDetail = false }:
   return <header className={headerClass}><div className="container nav">
     <a className="brand" href={`${prefix}#inicio`}>
       {logoUrl ? <img className="brandLogo" src={logoUrl} alt={agencyName} /> : <span className="brandMark">{agencyName.slice(0,1).toUpperCase()}</span>}
-      <span className="publicBrandText"><strong>{agencyName}</strong>{creci ? <small>{creci}</small> : null}</span>
+      <span className="publicBrandText"><strong>{agencyName}</strong>{propertyDetail ? <small>{creci || "CRECI não informado"}</small> : creci ? <small>{creci}</small> : null}</span>
     </a>
     <nav className="navLinks"><a href={`${prefix}#imoveis`}>Imóveis</a><a href={`${prefix}#anuncie`}>Anuncie seu imóvel</a><a href={`${prefix}#contato`}>Contato</a></nav>
     <div className="navActions">{whatsapp ? <a className="button primary small" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">WhatsApp</a> : <a className="button primary small" href={`${prefix}#contato`}>Contato</a>}</div>
