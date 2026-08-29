@@ -7,6 +7,7 @@ import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 const TEST_USERNAME = "teste";
 const TEST_AUTH_EMAIL = "teste@demo.imoveis.lenoy.com.br";
+const TEST_PASSWORD = "teste";
 
 function safeRedirectTarget() {
   if (typeof window === "undefined") return "";
@@ -22,6 +23,7 @@ function safeRedirectTarget() {
 export default function LoginForm() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const demoAccess = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "1";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,14 +94,14 @@ export default function LoginForm() {
   return (
     <form className="loginCard" onSubmit={handleSubmit}>
       <span className="eyebrow">ACESSO RESTRITO</span>
-      <h1>Entrar no painel</h1>
-      <p>{redirect ? "Entre para continuar o convite ou a ação que trouxe você até aqui." : "Use sua conta da imobiliária. A plataforma identifica automaticamente seus vínculos e permissões."}</p>
+      <h1>{demoAccess ? "Testar a plataforma" : "Entrar no painel"}</h1>
+      <p>{demoAccess ? "As credenciais de demonstração já estão preenchidas. Clique em Entrar no modo teste para acessar o ambiente completo." : redirect ? "Entre para continuar o convite ou a ação que trouxe você até aqui." : "Use sua conta da imobiliária. A plataforma identifica automaticamente seus vínculos e permissões."}</p>
       <div className="loginTestAccessNotice">
         <strong>Acesso de demonstração:</strong> usuário <b>teste</b> e senha <b>teste</b>. Você pode usar painel, site e aplicativo. O ambiente é reiniciado automaticamente a cada 2 horas e tudo o que for cadastrado ou alterado é apagado. Os recursos de IA ficam visíveis, porém desativados.
       </div>
-      <label>E-mail ou usuário<input name="email" type="text" autoComplete="username" placeholder="voce@imobiliaria.com.br ou teste" required /></label>
-      <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></label>
-      <button className="button primary full" type="submit" disabled={loading}>{loading ? "Aguarde..." : "Entrar"}</button>
+      <label>E-mail ou usuário<input name="email" type="text" autoComplete="username" placeholder="voce@imobiliaria.com.br ou teste" defaultValue={demoAccess ? TEST_USERNAME : ""} required /></label>
+      <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" defaultValue={demoAccess ? TEST_PASSWORD : ""} required /></label>
+      <button className="button primary full" type="submit" disabled={loading}>{loading ? "Aguarde..." : demoAccess ? "Entrar no modo teste" : "Entrar"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
       <div className="loginLinks"><a href="../recuperar-senha/">Esqueci minha senha</a><a href={signupHref}>Criar conta</a></div>
       <a className="backLink" href="../">← Voltar ao site</a>
