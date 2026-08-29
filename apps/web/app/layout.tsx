@@ -23,6 +23,7 @@ import TenantHeroBackgroundMount from "../components/TenantHeroBackgroundMount";
 import PublicPricingEnhancer from "../components/PublicPricingEnhancer";
 import DemoLinkHardFix from "../components/DemoLinkHardFix";
 import DemoLocationPrivacyEnhancer from "../components/DemoLocationPrivacyEnhancer";
+import TestClientModeMount from "../components/TestClientModeMount";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -82,6 +83,7 @@ import "./demo-tour-20260828.css";
 import "./demo-client-product-20260828.css";
 import "./demo-purchase-cta-20260828.css";
 import "./demo-app-menu-fix-20260828.css";
+import "./test-client-mode-20260829.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.br";
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
@@ -152,7 +154,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /><PublicPricingEnhancer /><DemoLinkHardFix /><DemoLocationPrivacyEnhancer /></body>
+      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /><PublicPricingEnhancer /><DemoLinkHardFix /><DemoLocationPrivacyEnhancer /><TestClientModeMount /></body>
     </html>
   );
 }
