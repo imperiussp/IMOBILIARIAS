@@ -5,6 +5,9 @@ import { getAvailableAgencies, setPreferredAgencyId } from "../lib/currentAgency
 import { isImobiliariasBackend } from "../lib/projectGuard";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
+const TEST_USERNAME = "teste";
+const TEST_AUTH_EMAIL = "teste@demo.imoveis.lenoy.com.br";
+
 function safeRedirectTarget() {
   if (typeof window === "undefined") return "";
   const value = new URLSearchParams(window.location.search).get("redirect") || "";
@@ -23,11 +26,12 @@ export default function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const email = String(data.get("email") || "").trim();
+    const loginId = String(data.get("email") || "").trim();
+    const email = loginId.toLowerCase() === TEST_USERNAME ? TEST_AUTH_EMAIL : loginId;
     const password = String(data.get("password") || "");
 
-    if (!email || !password) {
-      setStatus("Informe e-mail e senha.");
+    if (!loginId || !password) {
+      setStatus("Informe usuário/e-mail e senha.");
       return;
     }
 
@@ -90,7 +94,10 @@ export default function LoginForm() {
       <span className="eyebrow">ACESSO RESTRITO</span>
       <h1>Entrar no painel</h1>
       <p>{redirect ? "Entre para continuar o convite ou a ação que trouxe você até aqui." : "Use sua conta da imobiliária. A plataforma identifica automaticamente seus vínculos e permissões."}</p>
-      <label>E-mail<input name="email" type="email" autoComplete="email" placeholder="voce@imobiliaria.com.br" required /></label>
+      <div className="loginTestAccessNotice">
+        <strong>Acesso de demonstração:</strong> usuário <b>teste</b> e senha <b>teste</b>. Você pode usar painel, site e aplicativo. O ambiente é reiniciado automaticamente a cada 2 horas e tudo o que for cadastrado ou alterado é apagado. Os recursos de IA ficam visíveis, porém desativados.
+      </div>
+      <label>E-mail ou usuário<input name="email" type="text" autoComplete="username" placeholder="voce@imobiliaria.com.br ou teste" required /></label>
       <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required /></label>
       <button className="button primary full" type="submit" disabled={loading}>{loading ? "Aguarde..." : "Entrar"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
