@@ -12,8 +12,8 @@ type CatalogRow = {
   segment?: "residential" | "commercial"; status: string; price: number; bedrooms: number | null; suites: number | null;
   bathrooms: number | null; parking_spaces: number | null; built_area_m2: number | null; land_area_m2: number | null;
   city: string; state_code: string; neighborhood: string | null; property_type: string | null; broker_name: string | null;
-  broker_whatsapp: string | null; broker_creci: string | null; broker_area_of_operation?: string | null; address: string | null; address_public: boolean;
-  marketing_label?: string | null; latitude?: number | null; longitude?: number | null;
+  broker_whatsapp: string | null; broker_creci: string | null; broker_area_of_operation?: string | null; broker_photo_url?: string | null;
+  address: string | null; address_public: boolean; marketing_label?: string | null; latitude?: number | null; longitude?: number | null;
 };
 type Photo = { id: string; storage_path: string; thumbnail_path?: string | null; position: number; is_cover: boolean; alt_text: string | null };
 type FeatureLink = { property_features: { name: string } | { name: string }[] | null };
@@ -112,7 +112,14 @@ export default function PublicPropertyDetail() {
   async function shareProperty() {
     if (!property) return;
     const data = { title:`${property.title} · ${property.code}`, text:`Veja este imóvel: ${property.title} (${property.code}).`, url:window.location.href };
-    try { if (navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(window.location.href); setShareMessage("Link copiado."); setTimeout(()=>setShareMessage(""),2500); } } catch { /* cancelado */ }
+    try {
+      if (navigator.share) await navigator.share(data);
+      else {
+        await navigator.clipboard.writeText(window.location.href);
+        setShareMessage("Link copiado.");
+        setTimeout(()=>setShareMessage(""),2500);
+      }
+    } catch { /* compartilhamento cancelado */ }
   }
 
   async function sendLead(event: FormEvent<HTMLFormElement>) {
@@ -142,8 +149,9 @@ export default function PublicPropertyDetail() {
   const mapSearch=[property.address,property.neighborhood,property.city,property.state_code,"Brasil"].filter(Boolean).join(", ");
   const mapQuery=hasCoordinates?`${lat},${lon}`:mapSearch;
   const mapUrl=locationIsPublic&&mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&hl=pt-BR&output=embed`:"";
-  const mapExternalUrl=locationIsPublic&&mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:"";
+  const mapDirectionsUrl=locationIsPublic&&mapQuery?`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`:"";
   const brokerCreci=formatCreci(property.broker_creci);
+  const brokerInitial=(property.broker_name||site.agency_name||"I").trim().slice(0,1).toUpperCase();
 
   return <main><PublicHeader nested propertyDetail /><section className="container propertyDetail modernPropertyDetail">
     <a className="backLink" href="../#imoveis">← Voltar aos imóveis</a>
@@ -160,12 +168,39 @@ export default function PublicPropertyDetail() {
 
     {galleryOpen?<div className="propertyLightbox" role="dialog" aria-modal="true" aria-label="Galeria de fotos do imóvel"><button className="propertyLightboxBackdrop" type="button" aria-label="Fechar galeria" onClick={()=>setGalleryOpen(false)} /><div className="propertyLightboxPanel"><div className="propertyLightboxTop"><div><strong>{property.title}</strong><span>Foto {activePhoto+1} de {Math.max(imageUrls.length,1)}</span></div><button type="button" className="propertyLightboxClose" onClick={()=>setGalleryOpen(false)} aria-label="Fechar">×</button></div><div className="propertyLightboxStage"><button type="button" className="propertyLightboxArrow previous" onClick={previousPhoto} aria-label="Foto anterior">‹</button><img src={currentImage} alt={`${property.title} — foto ${activePhoto+1}`} /><button type="button" className="propertyLightboxArrow next" onClick={nextPhoto} aria-label="Próxima foto">›</button></div>{imageUrls.length>1?<div className="propertyLightboxStrip">{imageUrls.map((image,index)=><button type="button" key={`${image}-${index}`} className={activePhoto===index?"active":""} onClick={()=>setActivePhoto(index)} aria-label={`Abrir foto ${index+1}`}><img src={image} alt="" /></button>)}</div>:null}</div></div>:null}
 
-    <button className="detailShareButton" onClick={()=>void shareProperty()}>↗ Compartilhar</button>{shareMessage?<span className="shareFeedback">{shareMessage}</span>:null}
-    <div className="detailIdentity"><div className="detailBadges"><span className="detailPurposeBadge">{property.purpose==="rent"?"Locação":"Venda"}</span>{property.marketing_label?<span className="detailMarketingBadge">{property.marketing_label}</span>:null}</div><span className="propertyCode">Ref. {property.code}</span><h1>{property.title}</h1><p className="location">📍 {locationSummary}</p><strong className="detailPrice">{money(Number(property.price),property.purpose)}</strong></div>
+    <div className="detailIdentity">
+      <div className="detailBadges"><span className="detailPurposeBadge">{property.purpose==="rent"?"Locação":"Venda"}</span>{property.marketing_label?<span className="detailMarketingBadge">{property.marketing_label}</span>:null}</div>
+      <span className="propertyCode">Ref. {property.code}</span>
+      <h1>{property.title}</h1>
+      <div className="detailShareRow"><button className="detailShareButton detailShareButtonHighlight" onClick={()=>void shareProperty()}>↗ Compartilhar imóvel</button>{shareMessage?<span className="shareFeedback">{shareMessage}</span>:null}</div>
+      <p className="location">📍 {locationSummary}</p>
+      <strong className="detailPrice">{money(Number(property.price),property.purpose)}</strong>
+    </div>
+
     <div className="detailFactsIcon"><span><BedIcon /><strong>{property.bedrooms||0}</strong><small>Quartos</small></span><span><BathIcon /><strong>{property.bathrooms||0}</strong><small>Banheiros</small></span><span><CarIcon /><strong>{property.parking_spaces||0}</strong><small>Vagas</small></span><span><AreaIcon /><strong>{area?Number(area).toLocaleString("pt-BR"):"—"}</strong><small>m²</small></span></div>
     {features.length?<section className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature)=><span key={feature}>✓ {feature}</span>)}</div></section>:null}
     <section className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description||"Entre em contato para receber mais informações sobre este imóvel."}</p></section>
-    {locationIsPublic&&mapUrl?<section className="detailSection propertyMapSection"><div className="propertyMapHeading"><div><span className="eyebrow">LOCALIZAÇÃO</span><h2>Onde fica este imóvel</h2></div>{mapExternalUrl?<a href={mapExternalUrl} target="_blank" rel="noreferrer">Abrir no Google Maps ↗</a>:null}</div><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div><div className="propertyMapPinInfo"><span className="propertyMapPinDot">●</span><div><strong>Localização marcada no mapa</strong><span>{publicAddress}</span></div></div></section>:null}
-    <div className="detailGrid"><section><div className="detailSection"><h2>Tenho interesse</h2><form className="leadForm" onSubmit={sendLead}><div className="formGrid"><label>Nome<input name="name" required maxLength={160}/></label><label>Telefone<input name="phone" maxLength={40} required/></label></div><label>E-mail<input name="email" type="email" maxLength={254}/></label><label>Mensagem<textarea name="message" rows={4} maxLength={4000} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`}/></label><button className="button primary" type="submit">Enviar contato</button>{leadMessage?<div className="formMessage">{leadMessage}</div>:null}</form></div></section><aside className="brokerCard"><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name||"Corretor responsável"}</h3><p className="brokerCreci">{brokerCreci||"CRECI do corretor não informado"}</p>{property.broker_area_of_operation?<p>Atuação: {property.broker_area_of_operation}</p>:null}<p>Informe a referência <strong>{property.code}</strong> no atendimento.</p>{whatsappUrl?<a className="button whatsapp full" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a>:<p>WhatsApp ainda não configurado.</p>}</aside></div>
+
+    <div className={`propertyContactMapGrid ${locationIsPublic&&mapUrl?"hasMap":"noMap"}`}>
+      {locationIsPublic&&mapUrl?<section className="detailSection propertyMapSection propertyMapColumn"><div className="propertyMapHeading"><div><span className="eyebrow">LOCALIZAÇÃO</span><h2>Onde fica este imóvel</h2></div>{mapDirectionsUrl?<a href={mapDirectionsUrl} target="_blank" rel="noreferrer">Como chegar ↗</a>:null}</div><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div><div className="propertyMapPinInfo"><span className="propertyMapPinDot">●</span><div><strong>Localização marcada</strong><span>{publicAddress}</span></div></div></section>:null}
+
+      <aside className="propertyContactCard">
+        <div className="propertyBrokerHeader">
+          {property.broker_photo_url?<img className="propertyBrokerPhoto" src={property.broker_photo_url} alt={property.broker_name||"Corretor responsável"}/>:<span className="propertyBrokerPhoto propertyBrokerPhotoFallback">{brokerInitial}</span>}
+          <div><span className="eyebrow">CORRETOR RESPONSÁVEL</span><h3>{property.broker_name||"Atendimento da imobiliária"}</h3><p>{brokerCreci||"CRECI do corretor não informado"}</p>{property.broker_area_of_operation?<small>{property.broker_area_of_operation}</small>:null}</div>
+        </div>
+        <div className="propertyContactDivider" />
+        <h2>Tenho interesse</h2>
+        <p className="propertyContactIntro">Envie seus dados sobre o imóvel <strong>{property.code}</strong> e a equipe entrará em contato.</p>
+        <form className="leadForm" onSubmit={sendLead}>
+          <div className="formGrid"><label>Nome<input name="name" required maxLength={160}/></label><label>Telefone<input name="phone" maxLength={40} required/></label></div>
+          <label>E-mail<input name="email" type="email" maxLength={254}/></label>
+          <label>Mensagem<textarea name="message" rows={4} maxLength={4000} defaultValue={`Olá, tenho interesse no imóvel ${property.code}.`}/></label>
+          <button className="button primary full" type="submit">Enviar contato</button>
+          {leadMessage?<div className="formMessage">{leadMessage}</div>:null}
+        </form>
+        {whatsappUrl?<a className="button whatsapp full propertyWhatsappButton" href={whatsappUrl} target="_blank" rel="noreferrer">Conversar no WhatsApp</a>:null}
+      </aside>
+    </div>
   </section></main>;
 }
