@@ -23,38 +23,13 @@ function rewritePricingLinks() {
   });
 }
 
-function ensureLiveTestAccess() {
+function ensureTopTestButton() {
   if (typeof window === "undefined") return;
   if (window.location.pathname !== "/" && window.location.pathname !== "") return;
 
-  const landing = document.querySelector<HTMLElement>(".platformLanding");
-  const hero = document.querySelector<HTMLElement>(".platformLanding .platformHero");
-  if (!landing || !hero) return;
-
-  if (!document.getElementById("platform-live-test-access")) {
-    const banner = document.createElement("section");
-    banner.id = "platform-live-test-access";
-    banner.className = "platformLiveTestAccess";
-    banner.setAttribute("aria-label", "Acesso de demonstração da plataforma");
-    banner.innerHTML = `
-      <div class="container platformLiveTestAccessInner">
-        <div class="platformLiveTestAccessCopy">
-          <span>TESTE A PLATAFORMA COMPLETA</span>
-          <h2>Acesse agora como cliente teste.</h2>
-          <p>Use de verdade o <strong>painel</strong>, o <strong>site</strong> e o <strong>aplicativo</strong>, com os recursos Premium liberados. A IA permanece visível, porém desativada. Tudo o que for cadastrado ou alterado é apagado automaticamente a cada 2 horas.</p>
-          <div class="platformLiveTestCredentials" aria-label="Credenciais de demonstração">
-            <b>Usuário: <strong>teste</strong></b>
-            <b>Senha: <strong>teste</strong></b>
-          </div>
-        </div>
-        <div class="platformLiveTestActions">
-          <a class="button primary platformLiveTestPrimary" href="/login/?demo=1">ENTRAR E TESTAR AGORA</a>
-          <a class="button secondary platformLiveTestSecondary" href="https://teste.imoveis.lenoy.com.br/">VER SITE DE TESTE</a>
-          <small>Sem cadastro e sem pagamento para testar.</small>
-        </div>
-      </div>`;
-    hero.insertAdjacentElement("beforebegin", banner);
-  }
+  // O card grande de acesso teste foi removido de propósito. Na home fica
+  // somente o botão discreto "Testar agora" no cabeçalho.
+  document.getElementById("platform-live-test-access")?.remove();
 
   const topActions = document.querySelector<HTMLElement>(".platformActions");
   if (topActions && !topActions.querySelector(".platformTopTestButton")) {
@@ -83,7 +58,7 @@ function rewriteDemoLinks() {
   const heroButtons = document.querySelectorAll<HTMLAnchorElement>(".platformHeroActions .button");
   setLink(heroButtons[0], "/planos/", "Ver planos e contratar");
   setLink(heroButtons[1], "/demonstracao/", "Ver demonstração");
-  ensureLiveTestAccess();
+  ensureTopTestButton();
 }
 
 export default function DemoLinkHardFix() {
