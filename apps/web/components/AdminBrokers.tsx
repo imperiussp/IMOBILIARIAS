@@ -13,6 +13,7 @@ type Broker = {
   creci: string | null;
   photo_url: string | null;
   area_of_operation: string | null;
+  address: string | null;
   active: boolean;
 };
 
@@ -32,7 +33,7 @@ export default function AdminBrokers() {
     if (!supabaseBrowser) return;
     const resolvedAgencyId = targetAgencyId || agencyId;
     if (!resolvedAgencyId) return;
-    const result = await supabaseBrowser.from("brokers").select("id,name,phone,whatsapp,email,creci,photo_url,area_of_operation,active").eq("agency_id", resolvedAgencyId).order("name");
+    const result = await supabaseBrowser.from("brokers").select("id,name,phone,whatsapp,email,creci,photo_url,area_of_operation,address,active").eq("agency_id", resolvedAgencyId).order("name");
     if (result.error) setMessage(result.error.message);
     else setBrokers((result.data || []) as Broker[]);
   }
@@ -97,13 +98,14 @@ export default function AdminBrokers() {
         whatsapp: String(form.get("whatsapp") || "").replace(/\D/g, "") || null,
         email: String(form.get("email") || "").trim() || null,
         creci: String(form.get("creci") || "").trim() || null,
+        address: String(form.get("address") || "").trim() || null,
         photo_url: photoUrl,
         area_of_operation: String(form.get("area_of_operation") || "").trim() || null,
         active: true,
       });
       if (result.error) throw result.error;
       formElement.reset();
-      setMessage("Corretor cadastrado com foto.");
+      setMessage("Corretor cadastrado com foto e dados de contato.");
       await load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível cadastrar o corretor.");
@@ -137,6 +139,7 @@ export default function AdminBrokers() {
         whatsapp: editing.whatsapp?.replace(/\D/g, "") || null,
         email: editing.email?.trim() || null,
         creci: editing.creci?.trim() || null,
+        address: editing.address?.trim() || null,
         photo_url: photoUrl,
         area_of_operation: editing.area_of_operation?.trim() || null,
       };
@@ -155,22 +158,23 @@ export default function AdminBrokers() {
 
   return (
     <div className="adminPanel" id="corretores">
-      <div className="adminPanelHeader"><div><span className="eyebrow">EQUIPE</span><h2>Corretores</h2><p>Cadastre responsáveis, área de atuação e canais de atendimento{agencyName ? ` de ${agencyName}` : ""}. A foto é obrigatória e acompanha o corretor nas telas de equipe e permissões.</p></div><span>{isSupabaseConfigured ? `${brokers.length} cadastrado(s)` : "Modo demonstração"}</span></div>
+      <div className="adminPanelHeader"><div><span className="eyebrow">EQUIPE</span><h2>Corretores</h2><p>Cadastre e edite o perfil completo de cada corretor: foto, nome, CRECI, endereço, telefone, WhatsApp, e-mail e área de atuação{agencyName ? ` de ${agencyName}` : ""}.</p></div><span>{isSupabaseConfigured ? `${brokers.length} cadastrado(s)` : "Modo demonstração"}</span></div>
       {!isSupabaseConfigured && <div className="formNotice">Configure o Supabase exclusivo do IMOBILIARIAS para cadastrar e gerenciar corretores.</div>}
       <form className="brokerForm expandedBrokerForm" onSubmit={submit}>
         <input name="name" placeholder="Nome do corretor" required />
+        <input name="creci" placeholder="CRECI" />
         <input name="phone" placeholder="Telefone" inputMode="tel" />
         <input name="whatsapp" placeholder="WhatsApp com DDD" inputMode="tel" />
-        <input name="creci" placeholder="CRECI" />
         <input name="email" placeholder="E-mail" type="email" />
+        <input name="address" placeholder="Endereço do corretor" />
         <input name="area_of_operation" placeholder="Área de atuação" />
         <label className="brokerPhotoField"><span>Foto do corretor</span><input name="photo_file" type="file" accept="image/jpeg,image/png,image/webp" required /></label>
         <button className="button primary" type="submit" disabled={saving || (isSupabaseConfigured && !agencyId)}>{saving ? "Salvando..." : "+ Adicionar corretor"}</button>
       </form>
       {message && <div className="formMessage">{message}</div>}
-      {brokers.length > 0 && <div className="brokerList">{brokers.map((broker) => <article key={broker.id} className="brokerRow brokerDetailedRow"><div className="brokerIdentity">{broker.photo_url ? <img src={broker.photo_url} alt={broker.name} className="brokerAvatar" /> : <div className="brokerAvatar brokerAvatarFallback">{broker.name.slice(0,1).toUpperCase()}</div>}<div><strong>{broker.name}</strong><span>{broker.creci || "CRECI não informado"}{broker.area_of_operation ? ` · ${broker.area_of_operation}` : ""}</span><span>{broker.whatsapp || broker.phone || "Contato não informado"}{broker.email ? ` · ${broker.email}` : ""}</span></div></div><div className="brokerActions"><button className="miniButton" type="button" onClick={() => { setEditing({ ...broker }); setEditPhotoFile(null); }}>Editar</button><button className={`miniButton ${broker.active ? "" : "muted"}`} type="button" onClick={() => void toggle(broker)}>{broker.active ? "Ativo" : "Inativo"}</button></div></article>)}</div>}
+      {brokers.length > 0 && <div className="brokerList">{brokers.map((broker) => <article key={broker.id} className="brokerRow brokerDetailedRow"><div className="brokerIdentity">{broker.photo_url ? <img src={broker.photo_url} alt={broker.name} className="brokerAvatar" /> : <div className="brokerAvatar brokerAvatarFallback">{broker.name.slice(0,1).toUpperCase()}</div>}<div><strong>{broker.name}</strong><span>{broker.creci || "CRECI não informado"}{broker.area_of_operation ? ` · ${broker.area_of_operation}` : ""}</span><span>{broker.whatsapp || broker.phone || "Contato não informado"}{broker.email ? ` · ${broker.email}` : ""}</span>{broker.address ? <span>{broker.address}</span> : null}</div></div><div className="brokerActions"><button className="miniButton" type="button" onClick={() => { setEditing({ ...broker }); setEditPhotoFile(null); }}>Editar cadastro</button><button className={`miniButton ${broker.active ? "" : "muted"}`} type="button" onClick={() => void toggle(broker)}>{broker.active ? "Ativo" : "Inativo"}</button></div></article>)}</div>}
 
-      {editing ? <div className="inlineEditor"><div className="adminPanelHeader"><div><span className="eyebrow">EDITAR CORRETOR</span><h3>{editing.name}</h3></div><button className="miniButton" onClick={() => { setEditing(null); setEditPhotoFile(null); }}>Fechar</button></div><div className="propertyForm">{editing.photo_url ? <div className="brokerEditPhoto"><img src={editing.photo_url} alt={editing.name} className="brokerAvatar" /><span>Foto atual</span></div> : null}<div className="formGrid"><label>Nome<input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></label><label>CRECI<input value={editing.creci || ""} onChange={(e) => setEditing({ ...editing, creci: e.target.value })} /></label></div><div className="formGrid"><label>Telefone<input value={editing.phone || ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></label><label>WhatsApp<input value={editing.whatsapp || ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} /></label></div><div className="formGrid"><label>E-mail<input type="email" value={editing.email || ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></label><label>Área de atuação<input value={editing.area_of_operation || ""} onChange={(e) => setEditing({ ...editing, area_of_operation: e.target.value })} /></label></div><label>Trocar foto<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setEditPhotoFile(e.target.files?.[0] || null)} /></label><div className="formActions"><button className="button primary" onClick={() => void saveEdit()} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</button></div></div></div> : null}
+      {editing ? <div className="inlineEditor brokerProfileEditor"><div className="adminPanelHeader"><div><span className="eyebrow">EDITAR CADASTRO DO CORRETOR</span><h3>{editing.name}</h3><p>Altere os dados profissionais e de contato que identificam este corretor.</p></div><button className="miniButton" onClick={() => { setEditing(null); setEditPhotoFile(null); }}>Fechar</button></div><div className="propertyForm">{editing.photo_url ? <div className="brokerEditPhoto"><img src={editing.photo_url} alt={editing.name} className="brokerAvatar" /><span>Foto atual</span></div> : null}<div className="formGrid"><label>Nome<input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></label><label>CRECI<input value={editing.creci || ""} onChange={(e) => setEditing({ ...editing, creci: e.target.value })} /></label></div><div className="formGrid"><label>Telefone<input value={editing.phone || ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></label><label>WhatsApp<input value={editing.whatsapp || ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} /></label></div><div className="formGrid"><label>E-mail<input type="email" value={editing.email || ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></label><label>Área de atuação<input value={editing.area_of_operation || ""} onChange={(e) => setEditing({ ...editing, area_of_operation: e.target.value })} /></label></div><label>Endereço<input value={editing.address || ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} placeholder="Rua, número, bairro, cidade/UF" /></label><label>Trocar foto<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setEditPhotoFile(e.target.files?.[0] || null)} /></label><div className="formActions"><button className="button primary" onClick={() => void saveEdit()} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</button></div></div></div> : null}
     </div>
   );
 }
