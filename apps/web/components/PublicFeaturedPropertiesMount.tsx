@@ -63,11 +63,17 @@ export default function PublicFeaturedPropertiesMount() {
       if (!tenant || !hostName || !active) return;
       const { data, error } = await supabaseBrowser.rpc("public_catalog_for_host", { p_hostname: hostName });
       if (error || !Array.isArray(data) || !active) return;
-      const featured = data.filter((item: any) => item.featured === true).slice(0, 6);
-      const paths = featured.map((item: any) => item.cover_thumbnail_path || item.cover_path || null);
+
+      const normalizedHost = hostName.toLowerCase().split(":")[0];
+      const isTestCatalog = normalizedHost === "teste.imoveis.lenoy.com.br" || normalizedHost.startsWith("teste.");
+      const selected = isTestCatalog
+        ? [...data].sort((a: any, b: any) => String(a.code || "").localeCompare(String(b.code || ""), "pt-BR")).slice(0, 9)
+        : data.filter((item: any) => item.featured === true).slice(0, 6);
+
+      const paths = selected.map((item: any) => item.cover_thumbnail_path || item.cover_path || null);
       const photos = await getPropertyPhotoUrls(paths);
       if (!active) return;
-      setRows(featured.map((item: any, index: number) => ({
+      setRows(selected.map((item: any, index: number) => ({
         id: String(item.id),
         code: String(item.code || ""),
         title: String(item.title || "Imóvel em destaque"),
