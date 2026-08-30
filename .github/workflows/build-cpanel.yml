@@ -15,17 +15,18 @@ concurrency:
   group: cpanel-package
   cancel-in-progress: true
 
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  CPANEL_EXPORT: "1"
+  NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br"
+  NEXT_PUBLIC_ALLOW_INDEXING: "true"
+  NEXT_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-      CPANEL_EXPORT: "1"
-      NEXT_PUBLIC_SITE_URL: "https://imoveis.lenoy.com.br"
-      NEXT_PUBLIC_ALLOW_INDEXING: "true"
-      NEXT_PUBLIC_SUPABASE_URL: "https://rvjsonspplqelktzwusu.supabase.co"
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -69,49 +70,29 @@ jobs:
           EOF
             printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
 
-            # Proteção real da home de vendas:
-            # a imagem aprovada precisa estar EMBUTIDA no index e nenhum CSS pode
-            # voltar a substituí-la por um arquivo externo do cPanel.
-            if ! grep -q "data:image/webp;base64," apps/web/out/index.html; then
-              echo "Background embutido do hero não encontrado no index.html." >&2
+            # Home de vendas: o hero deve usar diretamente a imagem hospedada no LENOY.
+            # Não aceitar novamente Base64/WebP de 8 KB embutido no HTML.
+            HERO_URL="https://lenoy.com.br/wp-content/uploads/2026/08/banner-imobi.jpg?v=20260830-hd-direct"
+            if ! grep -Fq "$HERO_URL" apps/web/out/index.html; then
+              echo "URL direta do hero não encontrada no index.html." >&2
               exit 41
             fi
+            if grep -q "data:image/webp;base64," apps/web/out/index.html; then
+              echo "Regressão detectada: hero voltou a ser embutido em Base64." >&2
+              exit 45
+            fi
 
-            # Valida os bytes exatos da arte aprovada. Se o Base64 estiver truncado,
-            # corrompido ou apontar para outra imagem, a publicação é interrompida.
-            python - <<'PY'
-          import base64
-          import hashlib
-          import re
-          from pathlib import Path
-          import sys
-
-          html = Path("apps/web/out/index.html").read_text(encoding="utf-8")
-          match = re.search(r"data:image/webp;base64,([A-Za-z0-9+/=]+)", html)
-          if not match:
-              print("Base64 do hero não encontrado no index.html.", file=sys.stderr)
-              sys.exit(45)
-
-          try:
-              payload = base64.b64decode(match.group(1), validate=True)
-          except Exception as exc:
-              print(f"Base64 do hero inválido: {exc}", file=sys.stderr)
-              sys.exit(46)
-
-          expected_sha = "6663bf7c151f708fc657805fd54b34d32fab57871ddaf2d6be31e6690c8ba29e"
-          actual_sha = hashlib.sha256(payload).hexdigest()
-          if actual_sha != expected_sha:
-              print(f"Hero embutido incorreto. SHA atual: {actual_sha}", file=sys.stderr)
-              sys.exit(47)
-
-          if len(payload) != 8020 or payload[:4] != b"RIFF" or payload[8:12] != b"WEBP":
-              print("Estrutura WEBP do hero inválida.", file=sys.stderr)
-              sys.exit(48)
-          PY
-
-            if grep -Rqs "platform-hero-home-final.webp" apps/web/out/_next/static/css; then
-              echo "Regressão detectada: CSS voltou a apontar o hero para arquivo externo." >&2
-              exit 42
+            # Confirma que a imagem remota existe e não é um placeholder minúsculo.
+            if curl -fL --retry 3 --connect-timeout 10 --max-time 45 "$HERO_URL" -o /tmp/lenoy-hero.jpg; then
+              HERO_BYTES="$(wc -c < /tmp/lenoy-hero.jpg | tr -d ' ')"
+              echo "Hero remoto: ${HERO_BYTES} bytes"
+              if [ "$HERO_BYTES" -lt 100000 ]; then
+                echo "Hero remoto pequeno demais para a home (${HERO_BYTES} bytes)." >&2
+                exit 46
+              fi
+            else
+              echo "Não foi possível validar a imagem remota do hero." >&2
+              exit 47
             fi
 
             HERO_CSS="$(grep -rl "background-size:auto 100%" apps/web/out/_next/static/css | head -n 1)"
@@ -127,8 +108,7 @@ jobs:
 
             (cd apps/web/out && zip -qr ../../../cpanel-build/imobiliarias-cpanel.zip .)
 
-            # Patch leve: index com a imagem embutida + o CSS atual que só controla
-            # enquadramento. Não depende mais de arquivo WEBP solto no servidor.
+            # Patch leve: index gerado oficialmente + CSS de enquadramento.
             rm -rf cpanel-build/background-responsive
             rm -f cpanel-build/imobiliarias-background-responsive.zip
             mkdir -p cpanel-build/background-responsive/_next/static/css
