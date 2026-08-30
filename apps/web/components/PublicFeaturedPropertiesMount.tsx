@@ -29,6 +29,10 @@ function money(value: number, purpose: string) {
   return purpose === "rent" ? `${formatted}/mês` : formatted;
 }
 
+function isPublicImageUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value);
+}
+
 export default function PublicFeaturedPropertiesMount() {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [rows, setRows] = useState<FeaturedProperty[]>([]);
@@ -73,23 +77,26 @@ export default function PublicFeaturedPropertiesMount() {
       const paths = selected.map((item: any) => item.cover_thumbnail_path || item.cover_path || null);
       const photos = await getPropertyPhotoUrls(paths);
       if (!active) return;
-      setRows(selected.map((item: any, index: number) => ({
-        id: String(item.id),
-        code: String(item.code || ""),
-        title: String(item.title || "Imóvel em destaque"),
-        city: String(item.city || ""),
-        state: String(item.state_code || ""),
-        neighborhood: String(item.neighborhood || "Localização não informada"),
-        propertyType: String(item.property_type || "Imóvel"),
-        purpose: String(item.purpose || "sale"),
-        price: Number(item.price || 0),
-        bedrooms: Number(item.bedrooms || 0),
-        bathrooms: Number(item.bathrooms || 0),
-        parking: Number(item.parking_spaces || 0),
-        area: Number(item.built_area_m2 || item.land_area_m2 || 0),
-        image: photos[index] || "",
-        label: String(item.marketing_label || "Destaque"),
-      })));
+      setRows(selected.map((item: any, index: number) => {
+        const directCover = isPublicImageUrl(paths[index]) ? paths[index] : "";
+        return {
+          id: String(item.id),
+          code: String(item.code || ""),
+          title: String(item.title || "Imóvel em destaque"),
+          city: String(item.city || ""),
+          state: String(item.state_code || ""),
+          neighborhood: String(item.neighborhood || "Localização não informada"),
+          propertyType: String(item.property_type || "Imóvel"),
+          purpose: String(item.purpose || "sale"),
+          price: Number(item.price || 0),
+          bedrooms: Number(item.bedrooms || 0),
+          bathrooms: Number(item.bathrooms || 0),
+          parking: Number(item.parking_spaces || 0),
+          area: Number(item.built_area_m2 || item.land_area_m2 || 0),
+          image: photos[index] || directCover,
+          label: String(item.marketing_label || "Destaque"),
+        };
+      }));
     })();
 
     return () => { active = false; observer?.disconnect(); };
@@ -106,6 +113,7 @@ export default function PublicFeaturedPropertiesMount() {
       <div className="propertyGrid publicFeaturedGrid">
         {rows.map((property) => <article className="propertyCard modernPropertyCard featuredPropertyCard" key={property.id}>
           <div className="propertyImage" style={property.image ? { backgroundImage: `url(${property.image})` } : undefined}>
+            {property.image ? <img src={property.image} alt="" aria-hidden="true" loading="lazy" decoding="async" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : null}
             <a className="imageLink" href={`imovel/?id=${encodeURIComponent(property.id)}`} aria-label={`Abrir ${property.title}`} />
             <div className="propertyBadges"><span className="badge featuredBadge">Destaque</span>{property.label && property.label.toLocaleLowerCase("pt-BR") !== "destaque" ? <span className="badge marketingBadge">{property.label}</span> : null}</div>
           </div>
