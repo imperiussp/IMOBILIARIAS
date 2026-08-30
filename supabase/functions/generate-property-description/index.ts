@@ -3,16 +3,99 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const aiUrl = Deno.env.get("AI_API_URL") || "";
-const aiKey = Deno.env.get("AI_API_KEY") || "";
-const aiModel = Deno.env.get("AI_MODEL") || "";
+
+const groqKey = Deno.env.get("GROQ_API_KEY") || "";
+const groqModel = Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-20b";
+const geminiKey = Deno.env.get("GEMINI_API_KEY") || "";
+const geminiModel = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash-lite";
+
+const legacyAiUrl = Deno.env.get("AI_API_URL") || "";
+const legacyAiKey = Deno.env.get("AI_API_KEY") || "";
+const legacyAiModel = Deno.env.get("AI_MODEL") || "";
+
+type Message = { role: "system" | "user"; content: string };
+type Provider = { name: string; url: string; key: string; model: string };
+type Generated = { content: string; provider: string; model: string };
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
 }
 
 function text(value: unknown, max = 600) {
   return String(value ?? "").trim().slice(0, max);
+}
+
+function configuredProviders(): Provider[] {
+  const providers: Provider[] = [];
+  if (groqKey) providers.push({
+    name: "groq",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    key: groqKey,
+    model: groqModel,
+  });
+  if (geminiKey) providers.push({
+    name: "gemini",
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    key: geminiKey,
+    model: geminiModel,
+  });
+  if (legacyAiUrl && legacyAiKey && legacyAiModel) providers.push({
+    name: "legacy",
+    url: legacyAiUrl,
+    key: legacyAiKey,
+    model: legacyAiModel,
+  });
+  return providers;
+}
+
+async function generateWithFallback(messages: Message[], temperature: number, maxTokens: number): Promise<Generated> {
+  const providers = configuredProviders();
+  if (!providers.length) throw new Error("ai_providers_not_configured");
+
+  const errors: string[] = [];
+  for (const provider of providers) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 18000);
+    try {
+      const response = await fetch(provider.url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${provider.key}`,
+        },
+        body: JSON.stringify({
+          model: provider.model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+        }),
+        signal: controller.signal,
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        const detail = String(body?.error?.message || body?.message || `HTTP ${response.status}`).slice(0, 180);
+        errors.push(`${provider.name}:${detail}`);
+        continue;
+      }
+      const content = String(body?.choices?.[0]?.message?.content || "").trim();
+      if (!content) {
+        errors.push(`${provider.name}:empty_response`);
+        continue;
+      }
+      return { content, provider: provider.name, model: provider.model };
+    } catch (error) {
+      const detail = error instanceof DOMException && error.name === "AbortError"
+        ? "timeout"
+        : error instanceof Error ? error.message : String(error);
+      errors.push(`${provider.name}:${detail.slice(0, 180)}`);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw new Error(`ai_providers_unavailable:${errors.join("|").slice(0, 500)}`);
 }
 
 Deno.serve(async (request) => {
@@ -29,10 +112,16 @@ Deno.serve(async (request) => {
   const { data: userData, error: userError } = await userClient.auth.getUser();
   if (userError || !userData.user) return json({ error: "unauthorized" }, 401);
 
-  const release = await admin.from("platform_release_controls").select("environment_mode,maintenance_mode,ai_generation_enabled").eq("id",1).maybeSingle();
+  const release = await admin
+    .from("platform_release_controls")
+    .select("environment_mode,maintenance_mode,ai_generation_enabled")
+    .eq("id", 1)
+    .maybeSingle();
   if (release.error) return json({ error: "release_controls_unavailable" }, 503);
   if (release.data?.maintenance_mode) return json({ error: "platform_maintenance_mode" }, 423);
-  if (release.data?.ai_generation_enabled !== true) return json({ error: "ai_generation_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
+  if (release.data?.ai_generation_enabled !== true) {
+    return json({ error: "ai_generation_disabled", environment_mode: release.data?.environment_mode || "unknown" }, 423);
+  }
 
   let payload: Record<string, unknown>;
   try { payload = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
@@ -65,17 +154,22 @@ Deno.serve(async (request) => {
     .maybeSingle();
   if (membership.error || !membership.data) return json({ error: "agency_access_denied" }, 403);
 
+  const testAccount = await admin
+    .from("test_client_accounts")
+    .select("agency_id")
+    .eq("agency_id", agencyId)
+    .eq("enabled", true)
+    .maybeSingle();
+  if (testAccount.data) return json({ error: "test_environment_ai_disabled" }, 403);
+
   const reservation = await userClient.rpc("reserve_ai_description_usage", {
     p_agency_id: agencyId,
     p_metadata: { source: "admin", tone, title: title || null },
   });
-  if (reservation.error || !reservation.data) return json({ error: reservation.error?.message || "ai_quota_unavailable" }, 429);
-  const usageEventId = String(reservation.data);
-
-  if (!aiUrl || !aiKey || !aiModel) {
-    await userClient.rpc("cancel_ai_description_usage", { p_event_id: usageEventId });
-    return json({ error: "AI provider ainda não configurado no servidor." }, 503);
+  if (reservation.error || !reservation.data) {
+    return json({ error: reservation.error?.message || "ai_quota_unavailable" }, 429);
   }
+  const usageEventId = String(reservation.data);
 
   const facts = [
     title && `Título: ${title}`,
@@ -96,26 +190,21 @@ Deno.serve(async (request) => {
   const prompt = `Crie uma descrição de imóvel em tom ${tone}. Use de 2 a 4 parágrafos curtos e, quando fizer sentido, finalize com uma chamada para contato.\n\nDados confirmados:\n${facts}`;
 
   try {
-    const aiResponse = await fetch(aiUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${aiKey}` },
-      body: JSON.stringify({
-        model: aiModel,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.55,
-        max_tokens: 700,
-      }),
+    const generated = await generateWithFallback([
+      { role: "system", content: system },
+      { role: "user", content: prompt },
+    ], 0.55, 700);
+
+    return json({
+      description: generated.content,
+      usage_event_id: usageEventId,
+      provider: generated.provider,
+      model: generated.model,
     });
-    const aiBody = await aiResponse.json().catch(() => null);
-    if (!aiResponse.ok) throw new Error(aiBody?.error?.message || `AI HTTP ${aiResponse.status}`);
-    const description = String(aiBody?.choices?.[0]?.message?.content || "").trim();
-    if (!description) throw new Error("O provedor não retornou uma descrição.");
-    return json({ description, usage_event_id: usageEventId });
   } catch (error) {
     await userClient.rpc("cancel_ai_description_usage", { p_event_id: usageEventId });
-    return json({ error: error instanceof Error ? error.message : String(error) }, 502);
+    const code = error instanceof Error ? error.message : String(error);
+    if (code === "ai_providers_not_configured") return json({ error: "AI provider ainda não configurado no servidor." }, 503);
+    return json({ error: "Os provedores de IA estão temporariamente indisponíveis." }, 502);
   }
 });
