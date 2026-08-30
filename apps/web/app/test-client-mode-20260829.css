@@ -51,36 +51,6 @@
   color: #b27a10;
 }
 
-/* No site público de demonstração os imóveis aparecem em uma única grade.
-   Mantém os grupos e limites originais intactos para todas as imobiliárias reais. */
-html.lenoyTestClientMode .categoryResultSections {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 28px !important;
-  align-items: stretch !important;
-}
-
-html.lenoyTestClientMode .categoryResultGroup,
-html.lenoyTestClientMode .categoryResultGroup > .propertyGrid {
-  display: contents !important;
-}
-
-html.lenoyTestClientMode .categoryResultHeading {
-  display: none !important;
-}
-
-html.lenoyTestClientMode .categoryResultSections .propertyCard {
-  width: 100% !important;
-  min-width: 0 !important;
-  height: 100% !important;
-}
-
-@media (max-width: 1000px) {
-  html.lenoyTestClientMode .categoryResultSections {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
 @media (max-width: 620px) {
   .lenoyTestClientNotice {
     align-items: flex-start;
@@ -95,10 +65,5 @@ html.lenoyTestClientMode .categoryResultSections .propertyCard {
 
   .lenoyTestClientNotice strong {
     font-size: 10.5px;
-  }
-
-  html.lenoyTestClientMode .categoryResultSections {
-    grid-template-columns: 1fr !important;
-    gap: 18px !important;
   }
 }
