@@ -111,8 +111,8 @@ const saasHeroServerCss = `
 }
 @media (min-width:1100px){
   html body .platformLanding.platformLanding.platformLanding .platformHero.platformHero.platformHero{
-    background-position:right center !important;
-    background-size:auto 100% !important;
+    background-position:center center !important;
+    background-size:cover !important;
   }
 }`;
 
