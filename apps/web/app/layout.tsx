@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import AdminUiEnhancer from "../components/AdminUiEnhancer";
 import AdminMobileMenu from "../components/AdminMobileMenu";
 import AdminCatalogTypeFilter from "../components/AdminCatalogTypeFilter";
@@ -87,9 +89,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://imoveis.lenoy.com.b
 const lenoyLogo = "https://lenoy.com.br/wp-content/uploads/2026/08/hh.png";
 const allowIndexing = ["true", "1", "yes", "on"].includes(String(process.env.NEXT_PUBLIC_ALLOW_INDEXING || "").toLowerCase());
 
-// Home SaaS: usa diretamente a imagem hospedada, sem converter/embutir em Base64.
-// O parâmetro de versão evita que navegador/CDN reutilize a cópia antiga em cache.
-const saasHeroBackground = "https://lenoy.com.br/wp-content/uploads/2026/08/banner-imobi.jpg?v=20260830-direct";
+const heroAssetCandidates = [
+  join(process.cwd(), "public", "platform-hero-home-final.webp"),
+  join(process.cwd(), "apps", "web", "public", "platform-hero-home-final.webp"),
+];
+const heroAssetPath = heroAssetCandidates.find((candidate) => existsSync(candidate));
+if (!heroAssetPath) {
+  throw new Error("Imagem protegida da home de vendas não encontrada: platform-hero-home-final.webp");
+}
+const saasHeroBackground = `data:image/webp;base64,${readFileSync(heroAssetPath).toString("base64")}`;
 
 const saasHeroServerCss = `
 :root{
