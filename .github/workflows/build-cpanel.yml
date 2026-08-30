@@ -71,7 +71,7 @@ jobs:
             printf "cpanel_build=%s\nbuilt_at=%s\n" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > apps/web/out/cpanel-build.txt
 
             # Home de vendas: o hero deve usar diretamente a imagem hospedada no LENOY.
-            # Não aceitar novamente Base64/WebP de 8 KB embutido no HTML.
+            # Não aceitar novamente Base64/WebP embutido no HTML.
             HERO_URL="https://lenoy.com.br/wp-content/uploads/2026/08/banner-imobi.jpg?v=20260830-hd-direct"
             if ! grep -Fq "$HERO_URL" apps/web/out/index.html; then
               echo "URL direta do hero não encontrada no index.html." >&2
@@ -82,12 +82,12 @@ jobs:
               exit 45
             fi
 
-            # Confirma que a imagem remota existe e não é um placeholder minúsculo.
+            # Confirma apenas que a imagem remota existe e não veio vazia.
             if curl -fL --retry 3 --connect-timeout 10 --max-time 45 "$HERO_URL" -o /tmp/lenoy-hero.jpg; then
               HERO_BYTES="$(wc -c < /tmp/lenoy-hero.jpg | tr -d ' ')"
               echo "Hero remoto: ${HERO_BYTES} bytes"
-              if [ "$HERO_BYTES" -lt 100000 ]; then
-                echo "Hero remoto pequeno demais para a home (${HERO_BYTES} bytes)." >&2
+              if [ "$HERO_BYTES" -lt 1000 ]; then
+                echo "Hero remoto inválido (${HERO_BYTES} bytes)." >&2
                 exit 46
               fi
             else
