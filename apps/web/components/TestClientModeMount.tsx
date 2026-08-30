@@ -12,6 +12,18 @@ type TestStatus = {
 
 const TEST_HOST = "teste.imoveis.lenoy.com.br";
 
+const DEMO_COVERS: Record<string, string> = {
+  DEMO001: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=82",
+  DEMO002: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1400&q=82",
+  DEMO003: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=82",
+  DEMO004: "https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1400&q=82",
+  DEMO005: "https://images.unsplash.com/photo-1500076656116-558758c991c1?auto=format&fit=crop&w=1400&q=82",
+  DEMO006: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=82",
+  DEMO007: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=82",
+  DEMO008: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=82",
+  DEMO009: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1400&q=82",
+};
+
 function markAiControlsDisabled() {
   if (typeof document === "undefined") return;
   const path = window.location.pathname.toLowerCase();
@@ -32,6 +44,76 @@ function markAiControlsDisabled() {
   }
 }
 
+function applyDemoCardImages() {
+  if (typeof document === "undefined") return;
+  const path = window.location.pathname.toLowerCase();
+  if (path.startsWith("/admin") || path.startsWith("/app") || path.startsWith("/login")) return;
+
+  document.querySelectorAll<HTMLElement>("article.propertyCard").forEach((card) => {
+    const codeText = card.querySelector<HTMLElement>(".propertyCode")?.textContent || "";
+    const match = codeText.match(/DEMO00[1-9]/i);
+    if (!match) return;
+    const url = DEMO_COVERS[match[0].toUpperCase()];
+    if (!url) return;
+
+    const imageBox = card.querySelector<HTMLElement>(".propertyImage");
+    if (!imageBox) return;
+    imageBox.style.setProperty("background-image", `url(\"${url}\")`, "important");
+    imageBox.style.setProperty("background-size", "cover", "important");
+    imageBox.style.setProperty("background-position", "center", "important");
+
+    let image = imageBox.querySelector<HTMLImageElement>("img.lenoyDemoCover");
+    if (!image) {
+      image = document.createElement("img");
+      image.className = "lenoyDemoCover";
+      image.alt = "";
+      image.setAttribute("aria-hidden", "true");
+      image.loading = "eager";
+      image.decoding = "async";
+      image.style.position = "absolute";
+      image.style.inset = "0";
+      image.style.width = "100%";
+      image.style.height = "100%";
+      image.style.objectFit = "cover";
+      image.style.display = "block";
+      image.style.pointerEvents = "none";
+      imageBox.prepend(image);
+    }
+    if (image.src !== url) image.src = url;
+  });
+}
+
+function applyUnifiedDemoGrid() {
+  if (typeof document === "undefined") return;
+  const path = window.location.pathname.toLowerCase();
+  if (path.startsWith("/admin") || path.startsWith("/app") || path.startsWith("/login")) return;
+
+  const sections = document.querySelector<HTMLElement>(".categoryResultSections");
+  if (!sections) return;
+  const columns = window.innerWidth <= 700 ? "1fr" : window.innerWidth <= 1000 ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))";
+
+  sections.style.setProperty("display", "grid", "important");
+  sections.style.setProperty("grid-template-columns", columns, "important");
+  sections.style.setProperty("gap", "20px", "important");
+  sections.style.setProperty("align-items", "stretch", "important");
+  sections.style.setProperty("width", "100%", "important");
+
+  sections.querySelectorAll<HTMLElement>(".categoryResultGroup").forEach((group) => group.style.setProperty("display", "contents", "important"));
+  sections.querySelectorAll<HTMLElement>(".categoryResultHeading").forEach((heading) => heading.style.setProperty("display", "none", "important"));
+  sections.querySelectorAll<HTMLElement>(".categoryResultGroup > .propertyGrid").forEach((grid) => grid.style.setProperty("display", "contents", "important"));
+  sections.querySelectorAll<HTMLElement>(".showMoreCategory").forEach((button) => button.style.setProperty("display", "none", "important"));
+  sections.querySelectorAll<HTMLElement>("article.propertyCard").forEach((card) => {
+    card.style.setProperty("width", "100%", "important");
+    card.style.setProperty("min-width", "0", "important");
+    card.style.setProperty("height", "100%", "important");
+  });
+}
+
+function applyPublicDemoFixes() {
+  applyDemoCardImages();
+  applyUnifiedDemoGrid();
+}
+
 export default function TestClientModeMount() {
   const [active, setActive] = useState(false);
   const [resetMinutes, setResetMinutes] = useState(120);
@@ -39,9 +121,15 @@ export default function TestClientModeMount() {
   useEffect(() => {
     let disposed = false;
     let observer: MutationObserver | null = null;
+    let publicTestHost = false;
+
+    const refresh = () => {
+      if (publicTestHost) applyPublicDemoFixes();
+      markAiControlsDisabled();
+    };
 
     void (async () => {
-      const publicTestHost = window.location.hostname.toLowerCase() === TEST_HOST;
+      publicTestHost = window.location.hostname.toLowerCase() === TEST_HOST;
       let authenticatedTest = false;
       let status: TestStatus | null = null;
 
@@ -62,16 +150,16 @@ export default function TestClientModeMount() {
       setResetMinutes(Number(status?.reset_minutes || 120));
       document.documentElement.classList.add("lenoyTestClientMode");
 
-      if (authenticatedTest) {
-        markAiControlsDisabled();
-        observer = new MutationObserver(() => markAiControlsDisabled());
-        observer.observe(document.body, { subtree: true, childList: true });
-      }
+      refresh();
+      observer = new MutationObserver(refresh);
+      observer.observe(document.body, { subtree: true, childList: true });
+      window.addEventListener("resize", refresh);
     })();
 
     return () => {
       disposed = true;
       observer?.disconnect();
+      window.removeEventListener("resize", refresh);
       document.documentElement.classList.remove("lenoyTestClientMode");
     };
   }, []);
