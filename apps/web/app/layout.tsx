@@ -22,6 +22,7 @@ import PublicPricingEnhancer from "../components/PublicPricingEnhancer";
 import DemoLinkHardFix from "../components/DemoLinkHardFix";
 import DemoLocationPrivacyEnhancer from "../components/DemoLocationPrivacyEnhancer";
 import TestClientModeMount from "../components/TestClientModeMount";
+import GlobalSiteFooter from "../components/GlobalSiteFooter";
 import "./globals.css";
 import "./property.css";
 import "./admin.css";
@@ -146,7 +147,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /><PublicPricingEnhancer /><DemoLinkHardFix /><DemoLocationPrivacyEnhancer /><TestClientModeMount /></body>
+      <body><style dangerouslySetInnerHTML={{ __html: saasHeroServerCss }} />{children}<GlobalSiteFooter /><AdminUiEnhancer /><AdminMobileMenu /><AdminCatalogTypeFilter /><AdminSidebarActiveTracker /><UserDeviceAccessGuard /><WebNotificationBellMount /><AdminThemeBridge /><AdminHighlightsPanelMount /><PublicFeaturedPropertiesMount /><AdminContactsPanelMount /><OwnerPropertyReviewMount /><OwnerPropertyReviewEnhancer /><AdminCatalogPhotosMount /><PreserveCurrentFixesMount /><AppPropertyCatalogEnhancer /><AdminDirectPropertyInterests /><AppInterestedWhatsAppEnhancer /><AdminHeroBackgroundEditorMount /><TenantHeroBackgroundMount /><PublicPricingEnhancer /><DemoLinkHardFix /><DemoLocationPrivacyEnhancer /><TestClientModeMount /></body>
     </html>
   );
 }
