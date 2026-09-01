@@ -13,7 +13,7 @@ type CatalogRow = {
   bathrooms: number | null; parking_spaces: number | null; built_area_m2: number | null; land_area_m2: number | null;
   city: string; state_code: string; neighborhood: string | null; property_type: string | null; broker_name: string | null;
   broker_whatsapp: string | null; broker_creci: string | null; broker_area_of_operation?: string | null; broker_photo_url?: string | null;
-  address: string | null; address_public: boolean; marketing_label?: string | null; latitude?: number | null; longitude?: number | null;
+  address: string | null; address_public: boolean; map_public?: boolean; marketing_label?: string | null; latitude?: number | null; longitude?: number | null;
 };
 type Photo = { id: string; storage_path: string; thumbnail_path?: string | null; position: number; is_cover: boolean; alt_text: string | null };
 type FeatureLink = { property_features: { name: string } | { name: string }[] | null };
@@ -144,12 +144,12 @@ export default function PublicPropertyDetail() {
   const nextPhoto=()=>setActivePhoto((current)=>imageUrls.length?(current+1)%imageUrls.length:0);
   const railIndexes=imageUrls.map((_, index)=>index).filter((index)=>index!==activePhoto).slice(0,3);
   const hasCoordinates=Number.isFinite(Number(property.latitude))&&Number.isFinite(Number(property.longitude))&&Number(property.latitude)!==0&&Number(property.longitude)!==0;
-  const locationIsPublic=property.address_public===true;
+  const mapIsPublic=property.map_public!==false;
   const lat=Number(property.latitude||0), lon=Number(property.longitude||0);
-  const mapSearch=[property.address,property.neighborhood,property.city,property.state_code,"Brasil"].filter(Boolean).join(", ");
-  const mapQuery=hasCoordinates?`${lat},${lon}`:mapSearch;
-  const mapUrl=locationIsPublic&&mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&hl=pt-BR&output=embed`:"";
-  const mapDirectionsUrl=locationIsPublic&&mapQuery?`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`:"";
+  const mapSearch=[property.address_public?property.address:null,property.neighborhood,property.city,property.state_code,"Brasil"].filter(Boolean).join(", ");
+  const mapQuery=hasCoordinates&&property.address_public?`${lat},${lon}`:mapSearch;
+  const mapUrl=mapIsPublic&&mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&hl=pt-BR&output=embed`:"";
+  const mapDirectionsUrl=mapIsPublic&&mapQuery?`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`:"";
   const brokerCreci=formatCreci(property.broker_creci);
   const brokerInitial=(property.broker_name||site.agency_name||"I").trim().slice(0,1).toUpperCase();
 
@@ -181,8 +181,8 @@ export default function PublicPropertyDetail() {
     {features.length?<section className="detailSection"><h2>Características</h2><div className="featureList">{features.map((feature)=><span key={feature}>✓ {feature}</span>)}</div></section>:null}
     <section className="detailSection"><h2>Sobre o imóvel</h2><p>{property.description||"Entre em contato para receber mais informações sobre este imóvel."}</p></section>
 
-    <div className={`propertyContactMapGrid ${locationIsPublic&&mapUrl?"hasMap":"noMap"}`}>
-      {locationIsPublic&&mapUrl?<section className="detailSection propertyMapSection propertyMapColumn"><div className="propertyMapHeading"><div><span className="eyebrow">LOCALIZAÇÃO</span><h2>Onde fica este imóvel</h2></div>{mapDirectionsUrl?<a href={mapDirectionsUrl} target="_blank" rel="noreferrer">Como chegar ↗</a>:null}</div><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div><div className="propertyMapPinInfo"><span className="propertyMapPinDot">●</span><div><strong>Localização marcada</strong><span>{publicAddress}</span></div></div></section>:null}
+    <div className={`propertyContactMapGrid ${mapIsPublic&&mapUrl?"hasMap":"noMap"}`}>
+      {mapIsPublic&&mapUrl?<section className="detailSection propertyMapSection propertyMapColumn"><div className="propertyMapHeading"><div><span className="eyebrow">LOCALIZAÇÃO</span><h2>Onde fica este imóvel</h2></div>{mapDirectionsUrl?<a href={mapDirectionsUrl} target="_blank" rel="noreferrer">Como chegar ↗</a>:null}</div><div className="propertyMapFrame"><iframe title="Mapa do imóvel" src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div><div className="propertyMapPinInfo"><span className="propertyMapPinDot">●</span><div><strong>Localização marcada</strong><span>{publicAddress}</span></div></div></section>:null}
 
       <aside className="propertyContactCard">
         <div className="propertyBrokerHeader">
