@@ -2,169 +2,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const handle = (Deno.env.get("INFINITEPAY_HANDLE") || "").replace(/^\$/, "").trim();
+const handle = (Deno.env.get("INFINITEPAY_HANDLE") || "robsonmasselli").replace(/^\$/, "").trim();
 const siteUrl = (Deno.env.get("PLATFORM_SITE_URL") || "https://imoveis.lenoy.com.br").replace(/\/$/, "");
-const webhookSecret = Deno.env.get("INFINITEPAY_WEBHOOK_SECRET") || "";
-const cors = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
-  "access-control-allow-methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json; charset=utf-8" } });
-}
-function numberValue(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-function validEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254;
-}
-function randomToken(bytes = 32) {
-  const data = crypto.getRandomValues(new Uint8Array(bytes));
-  let raw = "";
-  for (const byte of data) raw += String.fromCharCode(byte);
-  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-async function sha256(value: string) {
-  const buffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(buffer)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
-  if (!supabaseUrl || !serviceRoleKey) return json({ error: "supabase_not_configured" }, 500);
-
-  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-  const allowed = await admin.rpc("platform_runtime_action_allowed", { p_action: "billing" });
-  if (allowed.error) return json({ error: "release_controls_unavailable" }, 503);
-  if (allowed.data !== true) return json({ error: "billing_blocked_by_release_control" }, 423);
-  if (!handle || !webhookSecret) return json({ error: "infinitepay_not_configured" }, 503);
-
-  let payload: Record<string, unknown>;
-  try { payload = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
-
-  const email = String(payload.email || "").trim().toLowerCase();
-  const planCode = String(payload.plan_code || "").trim().toLowerCase();
-  const billingCycle = payload.billing_cycle === "annual" ? "annual" : "monthly";
-  if (!validEmail(email)) return json({ error: "valid_email_required" }, 400);
-  if (!planCode) return json({ error: "plan_required" }, 400);
-
-  const { data: plan, error: planError } = await admin.from("subscription_plans")
-    .select("id,code,name,monthly_price,annual_price,implementation_fee,features,active")
-    .eq("code", planCode)
-    .eq("active", true)
-    .maybeSingle();
-  if (planError || !plan) return json({ error: "plan_not_found" }, 404);
-  if (String(plan.features?.internal_only || "false").toLowerCase() === "true") return json({ error: "internal_plan_not_for_sale" }, 403);
-
-  const implementationFee = Math.round(numberValue(plan.implementation_fee) * 100) / 100;
-  const implementationWaived = billingCycle === "annual" || implementationFee <= 0;
-  const chargeType = billingCycle === "annual" || implementationWaived ? "subscription" : "implementation";
-  const rawAmount = billingCycle === "annual"
-    ? plan.annual_price
-    : implementationWaived
-      ? plan.monthly_price
-      : plan.implementation_fee;
-  const baseAmount = Math.round(numberValue(rawAmount) * 100) / 100;
-  if (baseAmount <= 0) return json({ error: "plan_price_not_configured" }, 409);
-
-  const statusToken = randomToken();
-  const statusTokenHash = await sha256(statusToken);
-  const intentId = crypto.randomUUID();
-  const checkoutId = crypto.randomUUID();
-  const orderNsu = checkoutId;
-  const redirectParams = new URLSearchParams({ pedido: intentId, token: statusToken });
-  const redirectUrl = `${siteUrl}/pagamento/retorno/?${redirectParams.toString()}`;
-  const webhookUrl = `${supabaseUrl}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(webhookSecret)}`;
-  const description = billingCycle === "annual"
-    ? `LENOY IMOBILIÁRIAS — ${plan.name} (anual)`
-    : implementationWaived
-      ? `LENOY IMOBILIÁRIAS — ${plan.name} (mensal)`
-      : `LENOY IMOBILIÁRIAS — Implantação · ${plan.name}`;
-  const checkoutPayload = {
-    handle,
-    redirect_url: redirectUrl,
-    webhook_url: webhookUrl,
-    order_nsu: orderNsu,
-    items: [{ quantity: 1, price: Math.round(baseAmount * 100), description }],
-    customer: { name: "Cliente LENOY", email },
-  };
-
-  const intentInsert = await admin.from("prepaid_purchase_intents").insert({
-    id: intentId,
-    email,
-    plan_id: plan.id,
-    billing_cycle: billingCycle,
-    charge_type: chargeType,
-    base_amount: baseAmount,
-    amount: baseAmount,
-    currency: "BRL",
-    status: "created",
-    public_status_token_hash: statusTokenHash,
-  });
-  if (intentInsert.error) return json({ error: intentInsert.error.message }, 500);
-
-  const checkoutInsert = await admin.from("billing_checkout_sessions").insert({
-    id: checkoutId,
-    agency_id: null,
-    purchase_intent_id: intentId,
-    plan_id: plan.id,
-    provider: "infinitepay",
-    status: "created",
-    amount: baseAmount,
-    base_amount: baseAmount,
-    discount_percent: 0,
-    discount_id: null,
-    charge_type: chargeType,
-    implementation_waived: implementationWaived,
-    currency: "BRL",
-    billing_cycle: billingCycle,
-    order_nsu: orderNsu,
-    created_by: null,
-    provider_payload: { request: checkoutPayload, pricing: { base_amount: baseAmount, final_amount: baseAmount, charge_type: chargeType, implementation_waived: implementationWaived } },
-  });
-  if (checkoutInsert.error) {
-    await admin.from("prepaid_purchase_intents").update({ status: "failed", updated_at: new Date().toISOString() }).eq("id", intentId);
-    return json({ error: checkoutInsert.error.message }, 500);
-  }
-  await admin.from("prepaid_purchase_intents").update({ checkout_id: checkoutId, updated_at: new Date().toISOString() }).eq("id", intentId);
-
-  try {
-    const response = await fetch("https://api.checkout.infinitepay.io/links", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(checkoutPayload),
-    });
-    const body = await response.json().catch(() => null);
-    const checkoutUrl = String(body?.url || "").trim();
-    if (!response.ok || !checkoutUrl) throw new Error(body?.message || body?.error || `InfinitePay HTTP ${response.status}`);
-
-    await admin.from("billing_checkout_sessions").update({
-      status: "pending",
-      checkout_url: checkoutUrl,
-      provider_session_id: body?.slug ? String(body.slug) : null,
-      provider_payload: { request: checkoutPayload, response: body, pricing: { base_amount: baseAmount, final_amount: baseAmount, charge_type: chargeType, implementation_waived: implementationWaived } },
-      updated_at: new Date().toISOString(),
-    }).eq("id", checkoutId);
-    await admin.from("prepaid_purchase_intents").update({ status: "pending_payment", updated_at: new Date().toISOString() }).eq("id", intentId);
-
-    return json({
-      checkout_url: checkoutUrl,
-      purchase_id: intentId,
-      status_token: statusToken,
-      plan: { code: plan.code, name: plan.name },
-      billing_cycle: billingCycle,
-      charge_type: chargeType,
-      implementation_waived: implementationWaived,
-      amount: baseAmount,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    await admin.from("billing_checkout_sessions").update({ status: "failed", provider_payload: { request: checkoutPayload, error: message }, updated_at: new Date().toISOString() }).eq("id", checkoutId);
-    await admin.from("prepaid_purchase_intents").update({ status: "failed", invite_error: message, updated_at: new Date().toISOString() }).eq("id", intentId);
-    return json({ error: message }, 502);
-  }
+const configuredWebhookSecret = (Deno.env.get("INFINITEPAY_WEBHOOK_SECRET") || "").trim();
+const cors = {"access-control-allow-origin":"*","access-control-allow-headers":"authorization, x-client-info, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"};
+function json(body:unknown,status=200){return new Response(JSON.stringify(body),{status,headers:{...cors,"content-type":"application/json; charset=utf-8"}})}
+function numberValue(value:unknown){const parsed=Number(value);return Number.isFinite(parsed)?parsed:0}
+function money(value:number){return Math.round(value*100)/100}
+function validEmail(value:string){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)&&value.length<=254}
+function randomToken(bytes=32){const data=crypto.getRandomValues(new Uint8Array(bytes));let raw="";for(const byte of data)raw+=String.fromCharCode(byte);return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}
+async function sha256(value:string){const buffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));return Array.from(new Uint8Array(buffer)).map(byte=>byte.toString(16).padStart(2,"0")).join("")}
+async function webhookSecret(){if(configuredWebhookSecret)return configuredWebhookSecret;if(!serviceRoleKey)return "";return sha256(`lenoy-infinitepay-webhook:${serviceRoleKey}`)}
+function discountFor(base:number,coupon:any){const reduction=coupon.discount_type==="percent"?base*numberValue(coupon.discount_value)/100:numberValue(coupon.discount_value);const finalAmount=money(base-reduction);if(finalAmount<=0)return{error:"coupon_zeros_charge"};if(finalAmount>=base)return{error:"coupon_no_discount"};return{finalAmount,savings:money(base-finalAmount),discountPercent:money(((base-finalAmount)/base)*100)}}
+Deno.serve(async(request)=>{
+ if(request.method==="OPTIONS")return new Response("ok",{headers:cors});if(request.method!=="POST")return json({error:"method_not_allowed"},405);if(!supabaseUrl||!serviceRoleKey)return json({error:"supabase_not_configured"},500);
+ const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{persistSession:false}});let payload:Record<string,unknown>;try{payload=await request.json()}catch{return json({error:"invalid_json"},400)}
+ const email=String(payload.email||"").trim().toLowerCase(),planCode=String(payload.plan_code||"").trim().toLowerCase(),billingCycle=payload.billing_cycle==="annual"?"annual":"monthly",couponCode=String(payload.coupon_code||"").trim().toUpperCase(),previewOnly=payload.preview_only===true;
+ if(!planCode)return json({error:"plan_required"},400);if(!previewOnly&&!validEmail(email))return json({error:"valid_email_required"},400);
+ const{data:plan,error:planError}=await admin.from("subscription_plans").select("id,code,name,monthly_price,annual_price,implementation_fee,features,active").eq("code",planCode).eq("active",true).maybeSingle();if(planError||!plan)return json({error:"plan_not_found"},404);if(String(plan.features?.internal_only||"false").toLowerCase()==="true")return json({error:"internal_plan_not_for_sale"},403);
+ const implementationFee=money(numberValue(plan.implementation_fee)),implementationWaived=billingCycle==="annual"||implementationFee<=0,chargeType=billingCycle==="annual"||implementationWaived?"subscription":"implementation",rawAmount=billingCycle==="annual"?plan.annual_price:implementationWaived?plan.monthly_price:plan.implementation_fee,baseAmount=money(numberValue(rawAmount));if(baseAmount<=0)return json({error:"plan_price_not_configured"},409);
+ let coupon:any=null,deferredCoupon=false,amount=baseAmount,savings=0,discountPercent=0;
+ if(couponCode){const found=await admin.from("platform_coupons").select("id,code,discount_type,discount_value,target,plan_codes,active").eq("code",couponCode).eq("active",true).maybeSingle();if(found.error||!found.data)return json({error:"coupon_invalid"},404);coupon=found.data;if(!Array.isArray(coupon.plan_codes)||!coupon.plan_codes.includes(plan.code))return json({error:"coupon_not_for_plan"},409);if(coupon.target==="implementation"&&chargeType!=="implementation")return json({error:"coupon_not_for_charge"},409);deferredCoupon=coupon.target==="subscription"&&chargeType==="implementation";const couponBase=deferredCoupon?money(numberValue(billingCycle==="annual"?plan.annual_price:plan.monthly_price)):baseAmount;const calc:any=discountFor(couponBase,coupon);if(calc.error)return json({error:calc.error},409);if(previewOnly)return json({ok:true,coupon:{code:coupon.code,target:coupon.target,discount_type:coupon.discount_type,discount_value:coupon.discount_value},plan:{code:plan.code,name:plan.name},deferred:deferredCoupon,charge_type:deferredCoupon?"subscription":chargeType,base_amount:couponBase,final_amount:calc.finalAmount,savings:calc.savings});if(!deferredCoupon){amount=calc.finalAmount;savings=calc.savings;discountPercent=calc.discountPercent}}else if(previewOnly)return json({error:"coupon_required"},400);
+ const allowed=await admin.rpc("platform_runtime_action_allowed",{p_action:"billing"});if(allowed.error)return json({error:"release_controls_unavailable"},503);if(allowed.data!==true)return json({error:"billing_blocked_by_release_control"},423);const secret=await webhookSecret();if(!handle||!secret)return json({error:"infinitepay_not_configured"},503);
+ const statusToken=randomToken(),statusTokenHash=await sha256(statusToken),intentId=crypto.randomUUID(),checkoutId=crypto.randomUUID(),orderNsu=checkoutId,redirectParams=new URLSearchParams({pedido:intentId,token:statusToken}),redirectUrl=`${siteUrl}/pagamento/retorno/?${redirectParams.toString()}`,webhookUrl=`${supabaseUrl}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(secret)}`,description=billingCycle==="annual"?`LENOY IMOBILIÁRIAS — ${plan.name} (anual)`:implementationWaived?`LENOY IMOBILIÁRIAS — ${plan.name} (mensal)`:`LENOY IMOBILIÁRIAS — Implantação · ${plan.name}`,checkoutPayload={handle,redirect_url:redirectUrl,webhook_url:webhookUrl,order_nsu:orderNsu,items:[{quantity:1,price:Math.round(amount*100),description}],customer:{name:"Cliente LENOY",email}},couponSnapshot=coupon?{code:coupon.code,target:coupon.target,discount_type:coupon.discount_type,discount_value:coupon.discount_value,deferred:deferredCoupon}:null;
+ const intentInsert=await admin.from("prepaid_purchase_intents").insert({id:intentId,email,plan_id:plan.id,billing_cycle:billingCycle,charge_type:chargeType,base_amount:baseAmount,amount,currency:"BRL",status:"created",public_status_token_hash:statusTokenHash,coupon_id:coupon?.id||null});if(intentInsert.error)return json({error:intentInsert.error.message},500);
+ const checkoutInsert=await admin.from("billing_checkout_sessions").insert({id:checkoutId,agency_id:null,purchase_intent_id:intentId,plan_id:plan.id,provider:"infinitepay",status:"created",amount,base_amount:baseAmount,discount_percent:discountPercent,discount_id:null,platform_coupon_id:coupon?.id||null,charge_type:chargeType,implementation_waived:implementationWaived,currency:"BRL",billing_cycle:billingCycle,order_nsu:orderNsu,created_by:null,provider_payload:{request:checkoutPayload,pricing:{base_amount:baseAmount,final_amount:amount,savings,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived,coupon:couponSnapshot}}});if(checkoutInsert.error){await admin.from("prepaid_purchase_intents").update({status:"failed",updated_at:new Date().toISOString()}).eq("id",intentId);return json({error:checkoutInsert.error.message},500)}await admin.from("prepaid_purchase_intents").update({checkout_id:checkoutId,updated_at:new Date().toISOString()}).eq("id",intentId);
+ try{const response=await fetch("https://api.checkout.infinitepay.io/links",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(checkoutPayload)}),body=await response.json().catch(()=>null),checkoutUrl=String(body?.url||"").trim();if(!response.ok||!checkoutUrl)throw new Error(body?.message||body?.error||`InfinitePay HTTP ${response.status}`);await admin.from("billing_checkout_sessions").update({status:"pending",checkout_url:checkoutUrl,provider_session_id:body?.slug?String(body.slug):null,provider_payload:{request:checkoutPayload,response:body,pricing:{base_amount:baseAmount,final_amount:amount,savings,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived,coupon:couponSnapshot}},updated_at:new Date().toISOString()}).eq("id",checkoutId);await admin.from("prepaid_purchase_intents").update({status:"pending_payment",updated_at:new Date().toISOString()}).eq("id",intentId);return json({checkout_url:checkoutUrl,purchase_id:intentId,status_token:statusToken,plan:{code:plan.code,name:plan.name},billing_cycle:billingCycle,charge_type:chargeType,implementation_waived:implementationWaived,base_amount:baseAmount,amount,savings,coupon:couponSnapshot})}catch(error){const message=error instanceof Error?error.message:String(error);await admin.from("billing_checkout_sessions").update({status:"failed",provider_payload:{request:checkoutPayload,error:message,pricing:{base_amount:baseAmount,final_amount:amount,savings,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived,coupon:couponSnapshot}},updated_at:new Date().toISOString()}).eq("id",checkoutId);await admin.from("prepaid_purchase_intents").update({status:"failed",invite_error:message,updated_at:new Date().toISOString()}).eq("id",intentId);return json({error:message},502)}
 });
