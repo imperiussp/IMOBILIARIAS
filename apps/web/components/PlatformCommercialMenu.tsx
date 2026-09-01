@@ -7,6 +7,7 @@ const items = [
   { href: "#clientes-comerciais", icon: "👥", title: "Clientes", text: "Cadastros e acesso" },
   { href: "#assinaturas-plataforma", icon: "◫", title: "Assinaturas", text: "Planos e descontos" },
   { href: "#planos-plataforma", icon: "R$", title: "Planos", text: "Preços e recursos" },
+  { href: "./cupons/", icon: "%", title: "Cupons", text: "Descontos por plano e cobrança" },
   { href: "#cobranca-plataforma", icon: "✓", title: "Pagamentos", text: "Histórico financeiro" },
   { href: "./tecnico/", icon: "⚙", title: "Área técnica", text: "Manutenção e segurança" },
   { href: "../admin/", icon: "⌂", title: "Painel imobiliária", text: "Abrir painel operacional" },
