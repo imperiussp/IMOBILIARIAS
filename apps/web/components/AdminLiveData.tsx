@@ -9,7 +9,7 @@ import AdminPropertyPhotos from "./AdminPropertyPhotos";
 type LiveProperty = {
   id: string; code: string; title: string; purpose: "sale" | "rent"; segment?: "residential" | "commercial"; zone?: "urban" | "rural"; publication_state?: "draft" | "published";
   status: "available" | "reserved" | "rented" | "sold" | "inactive"; price: number; bedrooms?: number | null; suites?: number | null; bathrooms?: number | null; parking_spaces?: number | null;
-  built_area_m2?: number | null; land_area_m2?: number | null; featured?: boolean; description?: string | null; address?: string | null; address_public?: boolean; created_at?: string;
+  built_area_m2?: number | null; land_area_m2?: number | null; featured?: boolean; description?: string | null; address?: string | null; address_public?: boolean; map_public?: boolean; created_at?: string;
   broker_id?: string | null; city_id: string; neighborhood_id?: string | null; property_type_id?: string | null;
   cities?: { name?: string; state_code?: string } | null; neighborhoods?: { name?: string } | null; property_types?: { name?: string } | null; brokers?: { name?: string } | null;
 };
@@ -61,7 +61,7 @@ export default function AdminLiveData() {
     setAgencySlug(currentAgency.agencySlug);
 
     const [propertyResult, leadResult, cityResult, typeResult, brokerResult] = await Promise.all([
-      supabaseBrowser.from("properties").select("id,code,title,purpose,segment,zone,publication_state,status,price,bedrooms,suites,bathrooms,parking_spaces,built_area_m2,land_area_m2,featured,description,address,address_public,created_at,broker_id,city_id,neighborhood_id,property_type_id,cities(name,state_code),neighborhoods(name),property_types(name),brokers(name)").eq("agency_id", currentAgency.agencyId).order("created_at", { ascending: false }),
+      supabaseBrowser.from("properties").select("id,code,title,purpose,segment,zone,publication_state,status,price,bedrooms,suites,bathrooms,parking_spaces,built_area_m2,land_area_m2,featured,description,address,address_public,map_public,created_at,broker_id,city_id,neighborhood_id,property_type_id,cities(name,state_code),neighborhoods(name),property_types(name),brokers(name)").eq("agency_id", currentAgency.agencyId).order("created_at", { ascending: false }),
       supabaseBrowser.from("leads").select("id,name,phone,email,message,source,status,notes,created_at").eq("agency_id", currentAgency.agencyId).order("created_at", { ascending: false }).limit(60),
       supabaseBrowser.from("cities").select("id,name,state_code").order("name"),
       supabaseBrowser.from("property_types").select("id,name").eq("active", true).order("name"),
@@ -135,7 +135,7 @@ export default function AdminLiveData() {
         publication_state: editing.publication_state || "published", status: editing.status, price: Number(editing.price || 0),
         bedrooms: Number(editing.bedrooms || 0), suites: Number(editing.suites || 0), bathrooms: Number(editing.bathrooms || 0), parking_spaces: Number(editing.parking_spaces || 0),
         built_area_m2: Number(editing.built_area_m2 || 0) || null, land_area_m2: Number(editing.land_area_m2 || 0) || null,
-        featured: Boolean(editing.featured), description: editing.description?.trim() || null, address: editing.address?.trim() || null, address_public: Boolean(editing.address_public),
+        featured: Boolean(editing.featured), description: editing.description?.trim() || null, address: editing.address?.trim() || null, address_public: Boolean(editing.address_public), map_public: editing.map_public !== false,
         broker_id: editing.broker_id || null, city_id: editing.city_id, neighborhood_id: neighborhoodId, property_type_id: editing.property_type_id || null,
         published_at: editing.publication_state === "draft" ? null : new Date().toISOString(),
       };
@@ -197,7 +197,7 @@ export default function AdminLiveData() {
           <div className="formGrid four"><label>Quartos<input type="number" min="0" value={editing.bedrooms || 0} onChange={(e) => setEditing({ ...editing, bedrooms: Number(e.target.value) })} /></label><label>Suítes<input type="number" min="0" value={editing.suites || 0} onChange={(e) => setEditing({ ...editing, suites: Number(e.target.value) })} /></label><label>Banheiros<input type="number" min="0" value={editing.bathrooms || 0} onChange={(e) => setEditing({ ...editing, bathrooms: Number(e.target.value) })} /></label><label>Vagas<input type="number" min="0" value={editing.parking_spaces || 0} onChange={(e) => setEditing({ ...editing, parking_spaces: Number(e.target.value) })} /></label></div>
           <label>Endereço<input value={editing.address || ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} /></label>
           <label>Descrição<textarea rows={5} value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} /></label>
-          <div className="formGrid"><label className="checkLabel"><input type="checkbox" checked={Boolean(editing.featured)} onChange={(e) => setEditing({ ...editing, featured: e.target.checked })} /> Destacar no catálogo</label><label className="checkLabel"><input type="checkbox" checked={Boolean(editing.address_public)} onChange={(e) => setEditing({ ...editing, address_public: e.target.checked })} /> Mostrar endereço completo</label></div>
+          <div className="formGrid three"><label className="checkLabel"><input type="checkbox" checked={Boolean(editing.featured)} onChange={(e) => setEditing({ ...editing, featured: e.target.checked })} /> Destacar no catálogo</label><label className="checkLabel"><input type="checkbox" checked={editing.map_public !== false} onChange={(e) => setEditing({ ...editing, map_public: e.target.checked })} /> Exibir mapa no anúncio</label><label className="checkLabel"><input type="checkbox" checked={Boolean(editing.address_public)} onChange={(e) => setEditing({ ...editing, address_public: e.target.checked })} /> Mostrar endereço completo</label></div>
           <div className="formActions"><button className="button secondary" onClick={() => void archiveProperty(editing)}>Arquivar sem excluir</button><button className="button primary" disabled={savingEdit} onClick={() => void saveEditing()}>{savingEdit ? "Salvando..." : "Salvar alterações"}</button></div>
         </div>
         <AdminPropertyPhotos propertyId={editing.id} propertyTitle={editing.title} />
