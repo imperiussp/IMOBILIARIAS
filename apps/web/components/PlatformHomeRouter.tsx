@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 import { currentHostname, isPlatformRoot, resolveCurrentTenant } from "../lib/tenantResolver";
+import HomeCouponCaptureModal from "./HomeCouponCaptureModal";
 import HomePlansMirror from "./HomePlansMirror";
 import PlatformLanding from "./PlatformLanding";
 import TenantCatalogPaused from "./TenantCatalogPaused";
@@ -60,7 +61,7 @@ export default function PlatformHomeRouter() {
   }, []);
 
   if (mode === "loading") return <main className="platformLoading"><span>LENOY IMOBILIÁRIAS</span></main>;
-  if (mode === "platform") return <><PlatformLanding /><HomePlansMirror /></>;
+  if (mode === "platform") return <><PlatformLanding /><HomePlansMirror /><HomeCouponCaptureModal /></>;
   if (mode === "paused") return <TenantCatalogPaused />;
   if (mode === "unknown") return <TenantUnavailable hostname={hostname} />;
   return <TenantHome />;
