@@ -1,9 +1,9 @@
 # Supabase Backup Status
 
 - Result: **SUCCESS**
-- Commit: `c2243c3975cea88d2c5dbc3404eb7201fb56d929`
-- Run: `35722243243`
-- Checked at UTC: `2026-09-22T11:36:21Z`
+- Commit: `0cb3d7bb6c4c70ab8c8e17ae9f94ac807851b2d1`
+- Run: `35855107328`
+- Checked at UTC: `2026-09-23T11:33:51Z`
 - Data export exit: `0`
 - Storage export exit: `0`
 - Schema copy exit: `0`
