@@ -7,7 +7,7 @@
 > next build --webpack
 
 ▲ Next.js 16.3.0 (webpack)
-✓ Running next.config.mjs took 14ms
+✓ Running next.config.mjs took 17ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 
   Creating an optimized production build ...
