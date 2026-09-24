@@ -25,6 +25,23 @@ function validSlug(value: string) {
   return /^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])?$/.test(value);
 }
 
+function errorText(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) return String((error as { message?: unknown }).message || "");
+  return String(error ?? "unknown_error");
+}
+
+async function findUserIdByEmail(admin: any, email: string) {
+  for (let page = 1; page <= 5; page += 1) {
+    const result = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (result.error) return null;
+    const found = result.data.users.find((user: any) => String(user.email || "").toLowerCase() === email.toLowerCase());
+    if (found) return String(found.id);
+    if (result.data.users.length < 200) break;
+  }
+  return null;
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -84,20 +101,10 @@ Deno.serve(async (request) => {
       if (!plan.data) return json({ error: "plan_not_found" }, 404);
     }
 
-    const invitation = await admin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        full_name: name,
-        onboarding_kind: "platform_admin_created",
-      },
-      redirectTo: "https://imoveis.lenoy.com.br/login/",
-    });
-    if (invitation.error || !invitation.data.user) {
-      const detail = invitation.error?.message || "invite_failed";
-      return json({ error: "owner_invite_failed", detail }, 409);
-    }
-
-    const ownerId = invitation.data.user.id;
+    let ownerId = "";
+    let ownerWasCreated = false;
     let agencyId = "";
+    let stage = "agency";
 
     try {
       const agencyInsert = await admin.from("agencies").insert({
@@ -110,14 +117,7 @@ Deno.serve(async (request) => {
       if (agencyInsert.error || !agencyInsert.data) throw agencyInsert.error || new Error("agency_insert_failed");
       agencyId = agencyInsert.data.id;
 
-      const membership = await admin.from("agency_memberships").insert({
-        agency_id: agencyId,
-        user_id: ownerId,
-        role: "owner",
-        active: true,
-      });
-      if (membership.error) throw membership.error;
-
+      stage = "domain";
       const domain = await admin.from("agency_domains").insert({
         agency_id: agencyId,
         hostname: `${slug}.imoveis.lenoy.com.br`,
@@ -128,6 +128,7 @@ Deno.serve(async (request) => {
       });
       if (domain.error) throw domain.error;
 
+      stage = "billing_profile";
       const profile = await admin.from("agency_billing_profiles").upsert({
         agency_id: agencyId,
         implementation_status: implementationStatus,
@@ -139,6 +140,7 @@ Deno.serve(async (request) => {
       if (profile.error) throw profile.error;
 
       if (planId && subscriptionStatus !== "none") {
+        stage = "subscription";
         const subscription = await admin.from("agency_subscriptions").insert({
           agency_id: agencyId,
           plan_id: planId,
@@ -151,6 +153,46 @@ Deno.serve(async (request) => {
         if (subscription.error) throw subscription.error;
       }
 
+      stage = "owner_invite";
+      const invitation = await admin.auth.admin.inviteUserByEmail(email, {
+        data: {
+          full_name: name,
+          onboarding_kind: "platform_admin_created",
+          agency_id: agencyId,
+        },
+        redirectTo: "https://imoveis.lenoy.com.br/login/",
+      });
+
+      if (!invitation.error && invitation.data.user) {
+        ownerId = invitation.data.user.id;
+        ownerWasCreated = true;
+      } else {
+        const existingUserId = await findUserIdByEmail(admin, email);
+        if (!existingUserId) {
+          throw new Error(`owner_invite_failed: ${invitation.error?.message || "invite_failed"}`);
+        }
+
+        ownerId = existingUserId;
+        const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+        const otp = await publicClient.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: "https://imoveis.lenoy.com.br/login/",
+            shouldCreateUser: false,
+          },
+        });
+        if (otp.error) throw new Error(`owner_access_email_failed: ${otp.error.message}`);
+      }
+
+      stage = "membership";
+      const membership = await admin.from("agency_memberships").insert({
+        agency_id: agencyId,
+        user_id: ownerId,
+        role: "owner",
+        active: true,
+      });
+      if (membership.error) throw membership.error;
+
       return json({
         ok: true,
         agency_id: agencyId,
@@ -159,10 +201,11 @@ Deno.serve(async (request) => {
       });
     } catch (error) {
       if (agencyId) await admin.from("agencies").delete().eq("id", agencyId);
-      await admin.auth.admin.deleteUser(ownerId, false);
+      if (ownerWasCreated && ownerId) await admin.auth.admin.deleteUser(ownerId, false);
       return json({
         error: "create_client_failed",
-        detail: error instanceof Error ? error.message : String(error),
+        stage,
+        detail: errorText(error),
       }, 500);
     }
   }
