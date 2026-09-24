@@ -2,6 +2,8 @@ import PlatformAdminGate from "../../components/PlatformAdminGate";
 import PlatformBillingOverview from "../../components/PlatformBillingOverview";
 import PlatformCommercialDashboard from "../../components/PlatformCommercialDashboard";
 import PlatformCommercialMenu from "../../components/PlatformCommercialMenu";
+import PlatformClientAdminActions from "../../components/PlatformClientAdminActions";
+import PlatformClientDeleteControl from "../../components/PlatformClientDeleteControl";
 import PlatformPlanManager from "../../components/PlatformPlanManager";
 import PlatformSubscriptionManager from "../../components/PlatformSubscriptionManager";
 
@@ -593,6 +595,8 @@ export default function PlatformAdminPage() {
             </section>
 
             <PlatformCommercialDashboard />
+            <PlatformClientAdminActions />
+            <PlatformClientDeleteControl />
             <section className="commercialToolsGrid" aria-label="Ferramentas comerciais">
               <PlatformSubscriptionManager />
               <PlatformPlanManager />
