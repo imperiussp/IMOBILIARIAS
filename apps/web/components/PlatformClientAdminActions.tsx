@@ -34,8 +34,32 @@ function slugify(value: string) {
     .slice(0, 48);
 }
 
-function friendlyError(error: unknown) {
+async function friendlyError(error: unknown) {
   const base = error as { message?: string; context?: Response };
+  if (base?.context) {
+    try {
+      const body = await base.context.clone().json() as { error?: string; detail?: string; stage?: string };
+      const code = String(body?.error || "");
+      const detail = String(body?.detail || "");
+      const stage = String(body?.stage || "");
+      const stageLabel: Record<string, string> = {
+        agency: "cadastro da imobiliária",
+        domain: "endereço do site",
+        billing_profile: "dados de cobrança",
+        subscription: "assinatura",
+        owner_invite: "envio do acesso ao proprietário",
+        membership: "permissão do proprietário",
+      };
+      if (code === "slug_already_used") return "Esse endereço já está sendo usado por outra imobiliária.";
+      if (code === "owner_invite_failed") return `Não foi possível enviar o acesso ao proprietário${detail ? `: ${detail}` : "."}`;
+      if (code === "create_client_failed") {
+        const where = stageLabel[stage] || "criação da imobiliária";
+        return `Falha na etapa de ${where}${detail ? `: ${detail}` : "."}`;
+      }
+      if (detail) return detail;
+      if (code) return code;
+    } catch {}
+  }
   return base?.message || "Não foi possível concluir a operação.";
 }
 
@@ -206,7 +230,7 @@ export default function PlatformClientAdminActions() {
     });
 
     setWorking(false);
-    if (result.error) return setMessage(friendlyError(result.error));
+    if (result.error) return setMessage(await friendlyError(result.error));
     setMessage("Imobiliária criada. O convite de acesso foi enviado ao e-mail do proprietário.");
     window.setTimeout(() => window.location.reload(), 900);
   }
@@ -229,7 +253,7 @@ export default function PlatformClientAdminActions() {
     });
 
     setWorking(false);
-    if (result.error) return setMessage(friendlyError(result.error));
+    if (result.error) return setMessage(await friendlyError(result.error));
     setMessage("Cadastro atualizado.");
     window.setTimeout(() => window.location.reload(), 700);
   }
