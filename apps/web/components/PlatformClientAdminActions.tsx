@@ -1,5 +1,7 @@
 "use client";
 
+// Platform-only administrative lifecycle controls.
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
