@@ -153,51 +153,49 @@ Deno.serve(async (request) => {
         if (subscription.error) throw subscription.error;
       }
 
-      stage = "owner_invite";
-      const invitation = await admin.auth.admin.inviteUserByEmail(email, {
-        data: {
-          full_name: name,
-          onboarding_kind: "platform_admin_created",
-          agency_id: agencyId,
-        },
-        redirectTo: "https://imoveis.lenoy.com.br/login/",
-      });
-
-      if (!invitation.error && invitation.data.user) {
-        ownerId = invitation.data.user.id;
-        ownerWasCreated = true;
-      } else {
-        const existingUserId = await findUserIdByEmail(admin, email);
-        if (!existingUserId) {
-          throw new Error(`owner_invite_failed: ${invitation.error?.message || "invite_failed"}`);
-        }
-
+      stage = "owner_account";
+      const existingUserId = await findUserIdByEmail(admin, email);
+      if (existingUserId) {
         ownerId = existingUserId;
-        const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
-        const otp = await publicClient.auth.signInWithOtp({
+      } else {
+        const created = await admin.auth.admin.createUser({
           email,
-          options: {
-            emailRedirectTo: "https://imoveis.lenoy.com.br/login/",
-            shouldCreateUser: false,
+          email_confirm: true,
+          user_metadata: {
+            full_name: name,
+            onboarding_kind: "platform_admin_created",
+            agency_id: agencyId,
           },
         });
-        if (otp.error) throw new Error(`owner_access_email_failed: ${otp.error.message}`);
+        if (created.error || !created.data.user) {
+          throw new Error(`owner_account_failed: ${created.error?.message || "user_create_failed"}`);
+        }
+        ownerId = created.data.user.id;
+        ownerWasCreated = true;
       }
 
       stage = "membership";
-      const membership = await admin.from("agency_memberships").insert({
+      const membership = await admin.from("agency_memberships").upsert({
         agency_id: agencyId,
         user_id: ownerId,
         role: "owner",
         active: true,
-      });
+      }, { onConflict: "agency_id,user_id" });
       if (membership.error) throw membership.error;
+
+      stage = "owner_access_email";
+      const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+      const recovery = await publicClient.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://imoveis.lenoy.com.br/nova-senha/",
+      });
 
       return json({
         ok: true,
         agency_id: agencyId,
         owner_user_id: ownerId,
-        invite_sent: true,
+        access_email_sent: !recovery.error,
+        warning: recovery.error ? "access_email_failed" : null,
+        email_detail: recovery.error?.message || null,
       });
     } catch (error) {
       if (agencyId) await admin.from("agencies").delete().eq("id", agencyId);
@@ -208,6 +206,76 @@ Deno.serve(async (request) => {
         detail: errorText(error),
       }, 500);
     }
+  }
+
+  if (action === "resend_access") {
+    const agencyId = clean(payload.agency_id);
+    if (!agencyId) return json({ error: "agency_required" }, 400);
+
+    const agencyResult = await admin.from("agencies")
+      .select("id,name,email")
+      .eq("id", agencyId)
+      .maybeSingle();
+    if (agencyResult.error) return json({ error: agencyResult.error.message }, 500);
+    if (!agencyResult.data) return json({ error: "client_not_found" }, 404);
+
+    const email = clean(agencyResult.data.email).toLowerCase();
+    if (!email || !email.includes("@")) return json({ error: "valid_email_required" }, 400);
+
+    const ownerResult = await admin.from("agency_memberships")
+      .select("user_id")
+      .eq("agency_id", agencyId)
+      .eq("role", "owner")
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+    if (ownerResult.error) return json({ error: ownerResult.error.message }, 500);
+
+    let ownerId = ownerResult.data?.user_id ? String(ownerResult.data.user_id) : "";
+    if (!ownerId) {
+      const existingUserId = await findUserIdByEmail(admin, email);
+      if (existingUserId) ownerId = existingUserId;
+      else {
+        const created = await admin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: {
+            full_name: clean(agencyResult.data.name),
+            onboarding_kind: "platform_admin_created",
+            agency_id: agencyId,
+          },
+        });
+        if (created.error || !created.data.user) {
+          return json({ error: "owner_account_failed", detail: created.error?.message || "user_create_failed" }, 500);
+        }
+        ownerId = created.data.user.id;
+      }
+
+      const membership = await admin.from("agency_memberships").upsert({
+        agency_id: agencyId,
+        user_id: ownerId,
+        role: "owner",
+        active: true,
+      }, { onConflict: "agency_id,user_id" });
+      if (membership.error) return json({ error: "membership_failed", detail: membership.error.message }, 500);
+    } else {
+      const confirmed = await admin.auth.admin.updateUserById(ownerId, {
+        email_confirm: true,
+        user_metadata: {
+          onboarding_kind: "platform_admin_created",
+          agency_id: agencyId,
+        },
+      });
+      if (confirmed.error) return json({ error: "owner_account_update_failed", detail: confirmed.error.message }, 500);
+    }
+
+    const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+    const recovery = await publicClient.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://imoveis.lenoy.com.br/nova-senha/",
+    });
+    if (recovery.error) return json({ error: "access_email_failed", detail: recovery.error.message }, 502);
+
+    return json({ ok: true, access_email_sent: true, owner_user_id: ownerId });
   }
 
   if (action === "update_identity") {
