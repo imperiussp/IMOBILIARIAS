@@ -48,6 +48,8 @@ async function friendlyError(error: unknown) {
         billing_profile: "dados de cobrança",
         subscription: "assinatura",
         owner_invite: "envio do acesso ao proprietário",
+        owner_account: "criação da conta do proprietário",
+        owner_access_email: "envio do e-mail de acesso",
         membership: "permissão do proprietário",
       };
       if (code === "slug_already_used") return "Esse endereço já está sendo usado por outra imobiliária.";
@@ -199,6 +201,32 @@ export default function PlatformClientAdminActions() {
           window.location.reload();
         });
         identityButton.insertAdjacentElement("afterend", accessButton);
+
+        const resendButton = document.createElement("button");
+        resendButton.type = "button";
+        resendButton.className = "platformClientResendAccessButton";
+        resendButton.textContent = "Reenviar e-mail de acesso";
+        resendButton.addEventListener("click", async () => {
+          if (!supabaseBrowser) return;
+          const targetEmail = agency.email || "o e-mail cadastrado";
+          const ok = window.confirm(`Reenviar o e-mail para ${targetEmail}?`);
+          if (!ok) return;
+          resendButton.disabled = true;
+          resendButton.textContent = "Enviando...";
+          const result = await supabaseBrowser.functions.invoke("manage-platform-client", {
+            body: { action: "resend_access", agency_id: agency.id },
+          });
+          if (result.error) {
+            window.alert(await friendlyError(result.error));
+            resendButton.disabled = false;
+            resendButton.textContent = "Reenviar e-mail de acesso";
+            return;
+          }
+          window.alert(`E-mail de criação de senha enviado para ${targetEmail}.`);
+          resendButton.disabled = false;
+          resendButton.textContent = "Reenviar e-mail de acesso";
+        });
+        accessButton.insertAdjacentElement("afterend", resendButton);
       });
     };
 
@@ -231,8 +259,13 @@ export default function PlatformClientAdminActions() {
 
     setWorking(false);
     if (result.error) return setMessage(await friendlyError(result.error));
-    setMessage("Imobiliária criada. O convite de acesso foi enviado ao e-mail do proprietário.");
-    window.setTimeout(() => window.location.reload(), 900);
+    if (result.data?.access_email_sent === false) {
+      setMessage(`Imobiliária criada, mas o e-mail de acesso não foi enviado${result.data?.email_detail ? `: ${result.data.email_detail}` : "."} Use “Reenviar e-mail de acesso” no card do cliente.`);
+      window.setTimeout(() => window.location.reload(), 2600);
+      return;
+    }
+    setMessage("Imobiliária criada. O e-mail para criar a senha foi enviado ao proprietário.");
+    window.setTimeout(() => window.location.reload(), 1200);
   }
 
   async function submitEdit(event: FormEvent<HTMLFormElement>) {
@@ -265,12 +298,14 @@ export default function PlatformClientAdminActions() {
           margin-left:auto!important;min-height:42px!important;padding:0 17px!important;border:1px solid #d4a43d!important;border-radius:11px!important;background:#d9aa42!important;color:#11283d!important;font-size:13px!important;font-weight:900!important;cursor:pointer!important;white-space:nowrap!important
         }
         .platformCommercialPage .platformClientIdentityButton,
-        .platformCommercialPage .platformClientAccessButton{
+        .platformCommercialPage .platformClientAccessButton,
+        .platformCommercialPage .platformClientResendAccessButton{
           display:flex!important;align-items:center!important;justify-content:center!important;width:190px!important;min-height:40px!important;margin:8px 0 0 auto!important;padding:0 16px!important;border-radius:11px!important;font-size:12px!important;font-weight:850!important;cursor:pointer!important
         }
         .platformCommercialPage .platformClientIdentityButton{border:1px solid #c9d4dd!important;background:#f7f9fb!important;color:#183149!important}
         .platformCommercialPage .platformClientAccessButton.isBlock{border:1px solid #e5c3a3!important;background:#fff9f1!important;color:#9a5b20!important}
         .platformCommercialPage .platformClientAccessButton.isRelease{border:1px solid #aad7bb!important;background:#f2fbf5!important;color:#247247!important}
+        .platformCommercialPage .platformClientResendAccessButton{border:1px solid #9fc4e1!important;background:#f3f8fc!important;color:#1f5f8e!important}
         .platformClientAdminModal{position:fixed;inset:0;z-index:2147483100;display:grid;place-items:center;padding:20px;background:rgba(5,17,29,.72);backdrop-filter:blur(6px)}
         .platformClientAdminModal__card{width:min(94vw,720px);max-height:92vh;overflow:auto;box-sizing:border-box;padding:28px;border:1px solid #dfe6eb;border-radius:20px;background:#fff;box-shadow:0 28px 80px rgba(6,21,37,.28);color:#14293d}
         .platformClientAdminModal__head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}
@@ -290,7 +325,7 @@ export default function PlatformClientAdminActions() {
         .platformClientAdminModal__message{padding:11px 13px;border-radius:10px;background:#f3f7fa;color:#334b60;font-size:13px;font-weight:700}
         @media(max-width:720px){
           .platformCommercialPage .platformNewAgencyButton{width:100%;margin-left:0!important}
-          .platformCommercialPage .platformClientIdentityButton,.platformCommercialPage .platformClientAccessButton{width:100%!important;margin-left:0!important}
+          .platformCommercialPage .platformClientIdentityButton,.platformCommercialPage .platformClientAccessButton,.platformCommercialPage .platformClientResendAccessButton{width:100%!important;margin-left:0!important}
           .platformClientAdminModal{padding:10px}
           .platformClientAdminModal__card{padding:20px}
           .platformClientAdminModal__grid,.platformClientAdminModal__grid.three{grid-template-columns:1fr}
