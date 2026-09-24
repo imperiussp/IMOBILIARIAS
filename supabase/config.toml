@@ -56,3 +56,15 @@ verify_jwt = true
 
 [functions.generate-buyer-opportunity-message]
 verify_jwt = true
+
+
+# Templates de autenticação em português (referência versionada do projeto).
+# Em projetos hospedados, mantenha estes mesmos conteúdos também em
+# Authentication > Email Templates no Dashboard do Supabase.
+[auth.email.template.recovery]
+subject = "Crie ou altere sua senha | LENOY IMOBILIÁRIAS"
+content_path = "./templates/recovery-pt-br.html"
+
+[auth.email.template.invite]
+subject = "Seu acesso à LENOY IMOBILIÁRIAS"
+content_path = "./templates/invite-pt-br.html"
