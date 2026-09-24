@@ -70,7 +70,7 @@ export default function PlatformClientAdminActions() {
   }
 
   useEffect(() => {
-    if (typeof window === "undefined" || window.location.pathname !== "/plataforma") return;
+    if (typeof window === "undefined" || window.location.pathname.replace(/\/+$/, "") !== "/plataforma") return;
     void load();
   }, []);
 
@@ -120,7 +120,7 @@ export default function PlatformClientAdminActions() {
   }, [agencyName, slugTouched, modal]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || window.location.pathname !== "/plataforma") return;
+    if (typeof window === "undefined" || window.location.pathname.replace(/\/+$/, "") !== "/plataforma") return;
 
     const apply = () => {
       const header = document.querySelector<HTMLElement>(".platformCommercialPage .commercialClientsPanel .adminPanelHeader");
