@@ -15,7 +15,7 @@ export default function PlatformClientDeleteControl() {
   const agencyBySlug = useMemo(() => new Map(agencies.map((agency) => [agency.slug, agency])), [agencies]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || window.location.pathname !== "/plataforma") return;
+    if (typeof window === "undefined" || window.location.pathname.replace(/\/+$/, "") !== "/plataforma") return;
     if (!supabaseBrowser || !isSupabaseConfigured) return;
 
     void (async () => {
@@ -25,7 +25,7 @@ export default function PlatformClientDeleteControl() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || window.location.pathname !== "/plataforma") return;
+    if (typeof window === "undefined" || window.location.pathname.replace(/\/+$/, "") !== "/plataforma") return;
 
     const apply = () => {
       const cards = Array.from(document.querySelectorAll<HTMLElement>(".platformCommercialPage .commercialClientCard"));
