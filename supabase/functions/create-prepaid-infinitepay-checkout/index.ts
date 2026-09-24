@@ -34,33 +34,73 @@ async function findUserIdByEmail(admin:any,email:string){
   }
   return null;
 }
-async function ensureOnboardingInvite(admin:any,intentId:string){
-  const {data:intent,error}=await admin.from("prepaid_purchase_intents").select("id,email,status,invite_sent_at,auth_user_id").eq("id",intentId).maybeSingle();
-  if(error||!intent)return {sent:false,error:"purchase_intent_not_found"};
-  if(intent.invite_sent_at)return {sent:true,user_id:intent.auth_user_id||null};
-  const onboardingToken=randomToken();
-  const onboardingTokenHash=await sha256(onboardingToken);
-  const redirectTo=`${siteUrl}/ativar-imobiliaria/?pedido=${encodeURIComponent(intent.id)}&token=${encodeURIComponent(onboardingToken)}`;
-  const expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();
-  const email=String(intent.email||"").trim().toLowerCase();
-  let userId:string|null=null;
-  let sendError="";
-  const invite=await admin.auth.admin.inviteUserByEmail(email,{data:{onboarding_kind:"prepaid_owner",purchase_intent_id:intent.id},redirectTo});
-  if(!invite.error&&invite.data.user)userId=invite.data.user.id;
-  else if(anonKey){
-    const existingId=await findUserIdByEmail(admin,email);
-    if(existingId){
-      const publicClient=createClient(supabaseUrl,anonKey,{auth:{persistSession:false}});
-      const otp=await publicClient.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo,shouldCreateUser:false}});
-      if(!otp.error)userId=existingId; else sendError=otp.error.message;
-    }else sendError=invite.error?.message||"Não foi possível enviar o convite.";
-  }else sendError=invite.error?.message||"Não foi possível enviar o convite.";
-  if(!userId){
-    await admin.from("prepaid_purchase_intents").update({status:"paid",onboarding_token_hash:onboardingTokenHash,onboarding_expires_at:expiresAt,invite_error:sendError||"Falha ao enviar o e-mail de ativação.",updated_at:new Date().toISOString()}).eq("id",intent.id);
-    return {sent:false,error:sendError||"invite_failed"};
+async function ensureOnboardingInvite(admin: any, intentId: string) {
+  const { data: intent, error } = await admin.from("prepaid_purchase_intents")
+    .select("id,email,status,invite_sent_at,auth_user_id")
+    .eq("id", intentId)
+    .maybeSingle();
+  if (error || !intent) return { sent: false, error: "purchase_intent_not_found" };
+  if (intent.invite_sent_at) return { sent: true, user_id: intent.auth_user_id || null };
+
+  const onboardingToken = randomToken();
+  const onboardingTokenHash = await sha256(onboardingToken);
+  const redirectTo = `${siteUrl}/ativar-imobiliaria/?pedido=${encodeURIComponent(intent.id)}&token=${encodeURIComponent(onboardingToken)}`;
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const email = String(intent.email || "").trim().toLowerCase();
+  let userId: string | null = await findUserIdByEmail(admin, email);
+  let sendError = "";
+
+  if (!userId) {
+    const created = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { onboarding_kind: "prepaid_owner", purchase_intent_id: intent.id },
+    });
+    if (created.error || !created.data.user) {
+      sendError = created.error?.message || "Não foi possível criar o acesso.";
+    } else {
+      userId = created.data.user.id;
+    }
+  } else {
+    const prepared = await admin.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+      user_metadata: { onboarding_kind: "prepaid_owner", purchase_intent_id: intent.id },
+    });
+    if (prepared.error) sendError = prepared.error.message;
   }
-  await admin.from("prepaid_purchase_intents").update({status:"invite_sent",onboarding_token_hash:onboardingTokenHash,onboarding_expires_at:expiresAt,invite_sent_at:new Date().toISOString(),invite_error:null,auth_user_id:userId,updated_at:new Date().toISOString()}).eq("id",intent.id);
-  return {sent:true,user_id:userId};
+
+  if (userId && !sendError) {
+    if (!anonKey) {
+      sendError = "Configuração de envio de e-mail indisponível.";
+    } else {
+      const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+      const recovery = await publicClient.auth.resetPasswordForEmail(email, { redirectTo });
+      if (recovery.error) sendError = recovery.error.message;
+    }
+  }
+
+  if (!userId || sendError) {
+    await admin.from("prepaid_purchase_intents").update({
+      status: "paid",
+      onboarding_token_hash: onboardingTokenHash,
+      onboarding_expires_at: expiresAt,
+      invite_error: sendError || "Falha ao enviar o e-mail de ativação.",
+      auth_user_id: userId,
+      updated_at: new Date().toISOString(),
+    }).eq("id", intent.id);
+    return { sent: false, error: sendError || "invite_failed", user_id: userId };
+  }
+
+  await admin.from("prepaid_purchase_intents").update({
+    status: "invite_sent",
+    onboarding_token_hash: onboardingTokenHash,
+    onboarding_expires_at: expiresAt,
+    invite_sent_at: new Date().toISOString(),
+    invite_error: null,
+    auth_user_id: userId,
+    updated_at: new Date().toISOString(),
+  }).eq("id", intent.id);
+  return { sent: true, user_id: userId };
 }
 
 Deno.serve(async (request) => {
