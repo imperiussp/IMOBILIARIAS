@@ -19,10 +19,13 @@ export default function PasswordRecoveryForm() {
       setLoading(false);
       return setStatus("Conexão bloqueada: o backend configurado não pertence ao IMOBILIARIAS.");
     }
-    const redirectTo = `${window.location.origin}${window.location.pathname.replace(/recuperar-senha\/?$/, "nova-senha/")}`;
-    const { error } = await supabaseBrowser.auth.resetPasswordForEmail(email, { redirectTo });
+    const result = await supabaseBrowser.functions.invoke("auth-mail-bridge", {
+      body: { action: "request_recovery", email },
+    });
     setLoading(false);
-    setStatus(error ? error.message : "Se o e-mail estiver cadastrado, você receberá as instruções para criar uma nova senha.");
+    setStatus(result.error
+      ? "Não foi possível solicitar a recuperação agora. Tente novamente em instantes."
+      : "Se o e-mail estiver cadastrado, você receberá as instruções para criar uma nova senha.");
   }
 
   return <form className="loginCard" onSubmit={submit}>
