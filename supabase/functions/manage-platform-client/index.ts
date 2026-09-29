@@ -4,6 +4,8 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const authMailBridgeUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/auth-mail-bridge` : "";
+const OFFICIAL_DEMO_EMAIL = "teste@demo.imoveis.lenoy.com.br";
+const OFFICIAL_DEMO_SLUG = "teste";
 
 const corsHeaders = {
   "access-control-allow-origin": "*",
@@ -118,6 +120,9 @@ Deno.serve(async (request) => {
     if (!name) return json({ error: "name_required" }, 400);
     if (!email || !email.includes("@")) return json({ error: "valid_email_required" }, 400);
     if (!validSlug(slug)) return json({ error: "valid_slug_required" }, 400);
+    if (email === OFFICIAL_DEMO_EMAIL || slug === OFFICIAL_DEMO_SLUG) {
+      return json({ error: "demo_identity_reserved" }, 409);
+    }
     if (!["monthly", "annual"].includes(billingCycle)) return json({ error: "invalid_billing_cycle" }, 400);
     if (!["pending_payment", "trial", "active", "past_due", "suspended", "cancelled"].includes(agencyStatus)) return json({ error: "invalid_agency_status" }, 400);
     if (!["none", "trial", "active", "past_due", "cancelled", "expired"].includes(subscriptionStatus)) return json({ error: "invalid_subscription_status" }, 400);
@@ -215,6 +220,12 @@ Deno.serve(async (request) => {
         active: true,
       }, { onConflict: "agency_id,user_id" });
       if (membership.error) throw membership.error;
+
+      stage = "real_client_guard";
+      const clearTestByAgency = await admin.from("test_client_accounts").delete().eq("agency_id", agencyId);
+      if (clearTestByAgency.error) throw clearTestByAgency.error;
+      const clearTestByUser = await admin.from("test_client_accounts").delete().eq("user_id", ownerId);
+      if (clearTestByUser.error) throw clearTestByUser.error;
 
       stage = "owner_access_email";
       const accessMail = await sendAuthMailViaWordPress(email, name, "admin_access");
@@ -393,6 +404,9 @@ Deno.serve(async (request) => {
     if (!name) return json({ error: "name_required" }, 400);
     if (!email || !email.includes("@")) return json({ error: "valid_email_required" }, 400);
     if (!validSlug(slug)) return json({ error: "valid_slug_required" }, 400);
+    if (email === OFFICIAL_DEMO_EMAIL || slug === OFFICIAL_DEMO_SLUG) {
+      return json({ error: "demo_identity_reserved" }, 409);
+    }
 
     const agencyResult = await admin.from("agencies").select("id,slug,email").eq("id", agencyId).maybeSingle();
     if (agencyResult.error) return json({ error: agencyResult.error.message }, 500);
@@ -428,6 +442,13 @@ Deno.serve(async (request) => {
       updated_at: new Date().toISOString(),
     }).eq("id", agencyId);
     if (agencyUpdate.error) return json({ error: "agency_update_failed", detail: agencyUpdate.error.message }, 500);
+
+    const clearTestByAgency = await admin.from("test_client_accounts").delete().eq("agency_id", agencyId);
+    if (clearTestByAgency.error) return json({ error: "real_client_guard_failed", detail: clearTestByAgency.error.message }, 500);
+    if (ownerResult.data?.user_id) {
+      const clearTestByUser = await admin.from("test_client_accounts").delete().eq("user_id", ownerResult.data.user_id);
+      if (clearTestByUser.error) return json({ error: "real_client_guard_failed", detail: clearTestByUser.error.message }, 500);
+    }
 
     if (slug !== agencyResult.data.slug) {
       const domainUpdate = await admin.from("agency_domains").update({
