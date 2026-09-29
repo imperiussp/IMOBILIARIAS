@@ -96,10 +96,12 @@ export default function LoginForm() {
       <span className="eyebrow">ACESSO RESTRITO</span>
       <h1>{demoAccess ? "Testar a plataforma" : "Entrar no painel"}</h1>
       <p>{demoAccess ? "As credenciais de demonstração já estão preenchidas. Clique em Entrar no modo teste para acessar o ambiente completo." : redirect ? "Entre para continuar o convite ou a ação que trouxe você até aqui." : "Use sua conta da imobiliária. A plataforma identifica automaticamente seus vínculos e permissões."}</p>
-      <div className="loginTestAccessNotice">
-        <strong>Acesso de demonstração:</strong> usuário <b>teste</b> e senha <b>teste</b>. Você pode usar painel, site e aplicativo. O ambiente é reiniciado automaticamente a cada 2 horas e tudo o que for cadastrado ou alterado é apagado. Os recursos de IA ficam visíveis, porém desativados.
-      </div>
-      <label>E-mail ou usuário<input name="email" type="text" autoComplete="username" placeholder="voce@imobiliaria.com.br ou teste" defaultValue={demoAccess ? TEST_USERNAME : ""} required /></label>
+      {demoAccess ? (
+        <div className="loginTestAccessNotice">
+          <strong>Acesso de demonstração:</strong> usuário <b>teste</b> e senha <b>teste</b>. Você pode usar painel, site e aplicativo. O ambiente é reiniciado automaticamente a cada 2 horas e tudo o que for cadastrado ou alterado é apagado. Os recursos de IA ficam visíveis, porém desativados.
+        </div>
+      ) : null}
+      <label>E-mail ou usuário<input name="email" type="text" autoComplete="username" placeholder={demoAccess ? "teste" : "voce@imobiliaria.com.br"} defaultValue={demoAccess ? TEST_USERNAME : ""} required /></label>
       <label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="••••••••" defaultValue={demoAccess ? TEST_PASSWORD : ""} required /></label>
       <button className="button primary full" type="submit" disabled={loading}>{loading ? "Aguarde..." : demoAccess ? "Entrar no modo teste" : "Entrar"}</button>
       {status ? <p className="loginStatus">{status}</p> : null}
