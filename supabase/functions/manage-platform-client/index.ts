@@ -278,6 +278,72 @@ Deno.serve(async (request) => {
     return json({ ok: true, access_email_sent: true, owner_user_id: ownerId });
   }
 
+  if (action === "set_password") {
+    const agencyId = clean(payload.agency_id);
+    const password = String(payload.password ?? "");
+
+    if (!agencyId) return json({ error: "agency_required" }, 400);
+    if (password.length < 8) return json({ error: "password_too_short" }, 400);
+
+    const agencyResult = await admin.from("agencies")
+      .select("id,name,email")
+      .eq("id", agencyId)
+      .maybeSingle();
+    if (agencyResult.error) return json({ error: agencyResult.error.message }, 500);
+    if (!agencyResult.data) return json({ error: "client_not_found" }, 404);
+
+    const email = clean(agencyResult.data.email).toLowerCase();
+    if (!email || !email.includes("@")) return json({ error: "valid_email_required" }, 400);
+
+    const ownerResult = await admin.from("agency_memberships")
+      .select("user_id")
+      .eq("agency_id", agencyId)
+      .eq("role", "owner")
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+    if (ownerResult.error) return json({ error: ownerResult.error.message }, 500);
+
+    let ownerId = ownerResult.data?.user_id ? String(ownerResult.data.user_id) : "";
+    if (!ownerId) {
+      const existingUserId = await findUserIdByEmail(admin, email);
+      if (existingUserId) ownerId = existingUserId;
+      else {
+        const created = await admin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: {
+            full_name: clean(agencyResult.data.name),
+            onboarding_kind: "platform_admin_created",
+            agency_id: agencyId,
+          },
+        });
+        if (created.error || !created.data.user) {
+          return json({ error: "owner_account_failed", detail: created.error?.message || "user_create_failed" }, 500);
+        }
+        ownerId = created.data.user.id;
+      }
+
+      const membership = await admin.from("agency_memberships").upsert({
+        agency_id: agencyId,
+        user_id: ownerId,
+        role: "owner",
+        active: true,
+      }, { onConflict: "agency_id,user_id" });
+      if (membership.error) return json({ error: "membership_failed", detail: membership.error.message }, 500);
+    }
+
+    const passwordUpdate = await admin.auth.admin.updateUserById(ownerId, {
+      password,
+      email_confirm: true,
+    });
+    if (passwordUpdate.error) {
+      return json({ error: "password_update_failed", detail: passwordUpdate.error.message }, 400);
+    }
+
+    return json({ ok: true, password_updated: true, owner_user_id: ownerId });
+  }
+
   if (action === "update_identity") {
     const agencyId = clean(payload.agency_id);
     const name = clean(payload.name);
