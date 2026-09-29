@@ -57,8 +57,8 @@ async function friendlyError(error: unknown) {
       if (code === "password_too_short") return "A senha precisa ter pelo menos 8 caracteres.";
       if (code === "password_update_failed") return `Não foi possível alterar a senha${detail ? `: ${detail}` : "."}`;
       if (code === "access_email_failed") {
-        if (detail.toLowerCase().includes("not authorized")) {
-          return "O Supabase recusou o envio para este e-mail. Verifique a configuração de SMTP do projeto.";
+        if (detail.toLowerCase().includes("wordpress")) {
+          return `O WordPress não conseguiu enviar o e-mail${detail ? `: ${detail}` : "."}`;
         }
         return `Não foi possível solicitar o envio do e-mail${detail ? `: ${detail}` : "."}`;
       }
@@ -256,7 +256,7 @@ export default function PlatformClientAdminActions() {
             resendButton.textContent = "Testar / reenviar e-mail";
             return;
           }
-          window.alert(`O Supabase aceitou a solicitação de e-mail para ${targetEmail}. Isso confirma o pedido de envio, mas não garante a entrega na caixa de entrada. Confira também spam e lixo eletrônico.`);
+          window.alert(`O WordPress aceitou a mensagem para envio a ${targetEmail}. Isso confirma que o wp_mail() recebeu a mensagem, mas a entrega final ainda depende do servidor de e-mail configurado no WordPress.`);
           resendButton.disabled = false;
           resendButton.textContent = "Testar / reenviar e-mail";
         });
