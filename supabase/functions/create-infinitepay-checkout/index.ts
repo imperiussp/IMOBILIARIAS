@@ -44,16 +44,24 @@ Deno.serve(async (request) => {
   const [{ data: agency }, { data: plan }, { data: profile }] = await Promise.all([
     admin.from("agencies").select("id,name,email,status").eq("id", agencyId).single(),
     admin.from("subscription_plans").select("id,name,code,monthly_price,annual_price,implementation_fee,annual_discount_percent,features,active").eq("id", planId).single(),
-    admin.from("agency_billing_profiles").select("implementation_status,billing_cycle").eq("agency_id", agencyId).maybeSingle(),
+    admin.from("agency_billing_profiles").select("implementation_status,billing_cycle,monthly_price_override,implementation_fee_override").eq("agency_id", agencyId).maybeSingle(),
   ]);
   if (!agency || !plan || !plan.active) return json({ error: "agency_or_plan_not_found" }, 404);
   if (String(plan.features?.internal_only || "false").toLowerCase() === "true") return json({ error: "internal_plan_not_for_sale" }, 403);
 
   const implementationStatus = String(profile?.implementation_status || "pending");
-  const firstMonthlyImplementation = billingCycle === "monthly" && !["paid", "waived"].includes(implementationStatus);
+  const customMonthly = profile?.monthly_price_override == null ? null : numberValue(profile.monthly_price_override);
+  const customImplementation = profile?.implementation_fee_override == null ? null : numberValue(profile.implementation_fee_override);
+  const effectiveImplementationFee = customImplementation ?? numberValue(plan.implementation_fee);
+  const effectiveMonthlyPrice = customMonthly ?? numberValue(plan.monthly_price);
+  const firstMonthlyImplementation = billingCycle === "monthly"
+    && !["paid", "waived"].includes(implementationStatus)
+    && effectiveImplementationFee > 0;
   const chargeType = firstMonthlyImplementation ? "implementation" : "subscription";
-  const implementationWaived = billingCycle === "annual" && implementationStatus !== "paid";
-  let baseAmount = chargeType === "implementation" ? numberValue(plan.implementation_fee) : numberValue(billingCycle === "annual" ? plan.annual_price : plan.monthly_price);
+  const implementationWaived = (billingCycle === "annual" || effectiveImplementationFee <= 0) && implementationStatus !== "paid";
+  let baseAmount = chargeType === "implementation"
+    ? effectiveImplementationFee
+    : numberValue(billingCycle === "annual" ? plan.annual_price : effectiveMonthlyPrice);
   if (!Number.isFinite(baseAmount) || baseAmount <= 0) return json({ error: chargeType === "implementation" ? "implementation_price_not_configured" : "plan_price_not_configured" }, 409);
   baseAmount = Math.round(baseAmount * 100) / 100;
 
@@ -83,7 +91,7 @@ Deno.serve(async (request) => {
       base_amount:baseAmount, discount_percent:discountPercent, discount_id:discountId, charge_type:chargeType,
       implementation_waived:implementationWaived, currency:"BRL", billing_cycle:billingCycle, order_nsu:orderNsu,
       created_by:userData.user.id, completed_at:now,
-      provider_payload:{ pricing:{ base_amount:baseAmount, final_amount:0, discount_percent:discountPercent, charge_type:chargeType, implementation_waived:implementationWaived, full_coupon:true } }
+      provider_payload:{ pricing:{ base_amount:baseAmount, final_amount:0, discount_percent:discountPercent, charge_type:chargeType, implementation_waived:implementationWaived, full_coupon:true, custom_monthly_price:customMonthly, custom_implementation_fee:customImplementation } }
     });
     if (created.error) return json({ error: created.error.message }, 500);
     const activation = await admin.rpc("activate_subscription_from_paid_checkout", { p_checkout_id: sessionId });
@@ -110,7 +118,7 @@ Deno.serve(async (request) => {
   const webhookUrl = `${supabaseUrl}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(secret)}`;
   const description = chargeType === "implementation" ? `LENOY IMOBILIÁRIAS — Implantação · ${plan.name}` : `LENOY IMOBILIÁRIAS — ${plan.name} (${billingCycle === "annual" ? "anual" : "mensal"})`;
   const checkoutPayload = { handle, redirect_url: redirectUrl, webhook_url: webhookUrl, order_nsu: orderNsu, items: [{ quantity: 1, price: amountCents, description }], customer: { name: agency.name, email: userData.user.email || agency.email || undefined } };
-  const created = await admin.from("billing_checkout_sessions").insert({ id:sessionId,agency_id:agencyId,plan_id:planId,provider:"infinitepay",status:"created",amount,base_amount:baseAmount,discount_percent:discountPercent,discount_id:discountId,charge_type:chargeType,implementation_waived:implementationWaived,currency:"BRL",billing_cycle:billingCycle,order_nsu:orderNsu,created_by:userData.user.id,provider_payload:{request:checkoutPayload,pricing:{base_amount:baseAmount,final_amount:amount,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived}} });
+  const created = await admin.from("billing_checkout_sessions").insert({ id:sessionId,agency_id:agencyId,plan_id:planId,provider:"infinitepay",status:"created",amount,base_amount:baseAmount,discount_percent:discountPercent,discount_id:discountId,charge_type:chargeType,implementation_waived:implementationWaived,currency:"BRL",billing_cycle:billingCycle,order_nsu:orderNsu,created_by:userData.user.id,provider_payload:{request:checkoutPayload,pricing:{base_amount:baseAmount,final_amount:amount,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived,custom_monthly_price:customMonthly,custom_implementation_fee:customImplementation}} });
   if (created.error) return json({ error: created.error.message }, 500);
 
   try {
@@ -118,10 +126,10 @@ Deno.serve(async (request) => {
     const body = await response.json().catch(() => null);
     const checkoutUrl = String(body?.url || "").trim();
     if (!response.ok || !checkoutUrl) throw new Error(body?.message || body?.error || `InfinitePay HTTP ${response.status}`);
-    await admin.from("billing_checkout_sessions").update({ status:"pending",checkout_url:checkoutUrl,provider_session_id:body?.slug?String(body.slug):null,provider_payload:{request:checkoutPayload,response:body,pricing:{base_amount:baseAmount,final_amount:amount,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived}},updated_at:new Date().toISOString() }).eq("id",sessionId);
+    await admin.from("billing_checkout_sessions").update({ status:"pending",checkout_url:checkoutUrl,provider_session_id:body?.slug?String(body.slug):null,provider_payload:{request:checkoutPayload,response:body,pricing:{base_amount:baseAmount,final_amount:amount,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived,custom_monthly_price:customMonthly,custom_implementation_fee:customImplementation}},updated_at:new Date().toISOString() }).eq("id",sessionId);
     return json({ checkout_url:checkoutUrl,checkout_id:sessionId,order_nsu:orderNsu,reused:false,charge_type:chargeType,base_amount:baseAmount,amount,discount_percent:discountPercent,implementation_free:implementationWaived });
   } catch (error) {
-    await admin.from("billing_checkout_sessions").update({ status:"failed",provider_payload:{request:checkoutPayload,error:error instanceof Error?error.message:String(error),pricing:{base_amount:baseAmount,final_amount:amount,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived}},updated_at:new Date().toISOString() }).eq("id",sessionId);
+    await admin.from("billing_checkout_sessions").update({ status:"failed",provider_payload:{request:checkoutPayload,error:error instanceof Error?error.message:String(error),pricing:{base_amount:baseAmount,final_amount:amount,discount_percent:discountPercent,charge_type:chargeType,implementation_waived:implementationWaived,custom_monthly_price:customMonthly,custom_implementation_fee:customImplementation}},updated_at:new Date().toISOString() }).eq("id",sessionId);
     return json({ error:error instanceof Error?error.message:String(error) },502);
   }
 });
