@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
 
 type Agency = { id: string; name: string; slug: string; email: string | null; status: string; created_at: string };
-type BillingProfile = { agency_id: string; implementation_status: string; billing_cycle: string | null };
+type BillingProfile = { agency_id: string; implementation_status: string; billing_cycle: string | null; monthly_price_override: number | null; implementation_fee_override: number | null };
 type Subscription = { id: string; agency_id: string; plan_id: string; status: string; starts_at: string; renews_at: string | null; ends_at: string | null; billing_cycle: string | null };
 type Plan = { id: string; name: string; code: string; monthly_price: number | null; annual_price: number | null; implementation_fee: number | null; active: boolean };
 type Checkout = { id: string; agency_id: string; plan_id: string; status: string; amount: number | null; paid_amount: number | null; base_amount: number | null; discount_percent: number | null; billing_cycle: string | null; charge_type: string | null; created_at: string; completed_at: string | null };
@@ -90,6 +90,8 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
   const [subscriptionState, setSubscriptionState] = useState(subscription?.status || "none");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">((subscription?.billing_cycle || profile?.billing_cycle || "monthly") as "monthly" | "annual");
   const [implementation, setImplementation] = useState(profile?.implementation_status || "pending");
+  const [customMonthly, setCustomMonthly] = useState(profile?.monthly_price_override == null ? "" : Number(profile.monthly_price_override).toFixed(2));
+  const [customImplementation, setCustomImplementation] = useState(profile?.implementation_fee_override == null ? "" : Number(profile.implementation_fee_override).toFixed(2));
   const [renewsAt, setRenewsAt] = useState(dateInput(subscription?.renews_at));
   const [endsAt, setEndsAt] = useState(dateInput(subscription?.ends_at));
   const [finalAmount, setFinalAmount] = useState("");
@@ -98,7 +100,11 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
   const [message, setMessage] = useState("");
 
   const selectedPlan = plans.find((plan) => plan.id === planId) || null;
-  const basePrice = selectedPlan ? Number(billingCycle === "annual" ? selectedPlan.annual_price || 0 : selectedPlan.monthly_price || 0) : 0;
+  const planBasePrice = selectedPlan ? Number(billingCycle === "annual" ? selectedPlan.annual_price || 0 : selectedPlan.monthly_price || 0) : 0;
+  const parsedCustomMonthly = customMonthly.trim() === "" ? null : Number(customMonthly.replace(",", "."));
+  const basePrice = billingCycle === "monthly" && parsedCustomMonthly != null && Number.isFinite(parsedCustomMonthly) && parsedCustomMonthly > 0
+    ? parsedCustomMonthly
+    : planBasePrice;
   const matchingDiscount = discount && discount.plan_id === planId && discount.billing_cycle === billingCycle ? discount : null;
 
   useEffect(() => {
@@ -109,9 +115,11 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
     setSubscriptionState(subscription?.status || "none");
     setBillingCycle((subscription?.billing_cycle || profile?.billing_cycle || "monthly") as "monthly" | "annual");
     setImplementation(profile?.implementation_status || "pending");
+    setCustomMonthly(profile?.monthly_price_override == null ? "" : Number(profile.monthly_price_override).toFixed(2));
+    setCustomImplementation(profile?.implementation_fee_override == null ? "" : Number(profile.implementation_fee_override).toFixed(2));
     setRenewsAt(dateInput(subscription?.renews_at));
     setEndsAt(dateInput(subscription?.ends_at));
-  }, [agency.id, agency.name, agency.created_at, agency.status, subscription?.id, profile?.implementation_status, profile?.billing_cycle]);
+  }, [agency.id, agency.name, agency.created_at, agency.status, subscription?.id, profile?.implementation_status, profile?.billing_cycle, profile?.monthly_price_override, profile?.implementation_fee_override]);
 
   useEffect(() => {
     if (!basePrice) { setFinalAmount(""); setDiscountPercent("0.00"); return; }
@@ -142,6 +150,10 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
     if (!supabaseBrowser) return;
     if (!name.trim()) return setMessage("Informe o nome do cliente.");
     if (subscriptionState !== "none" && !planId) return setMessage("Selecione um plano.");
+    const monthlyOverride = customMonthly.trim() === "" ? null : Number(customMonthly.replace(",", "."));
+    const implementationOverride = customImplementation.trim() === "" ? null : Number(customImplementation.replace(",", "."));
+    if (monthlyOverride != null && (!Number.isFinite(monthlyOverride) || monthlyOverride <= 0)) return setMessage("A mensalidade personalizada deve ser maior que zero ou ficar em branco.");
+    if (implementationOverride != null && (!Number.isFinite(implementationOverride) || implementationOverride <= 0)) return setMessage("A implantação personalizada deve ser maior que zero ou ficar em branco.");
     setSaving(true); setMessage("");
     const profileSave = await supabaseBrowser.rpc("platform_update_agency_commercial", {
       p_agency_id: agency.id,
@@ -156,6 +168,13 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
       p_ends_at: toIso(endsAt),
     });
     if (profileSave.error) { setSaving(false); return setMessage(profileSave.error.message); }
+
+    const customBillingSave = await supabaseBrowser.rpc("platform_set_agency_custom_billing", {
+      p_agency_id: agency.id,
+      p_monthly_price: monthlyOverride,
+      p_implementation_fee: implementationOverride,
+    });
+    if (customBillingSave.error) { setSaving(false); return setMessage(`Dados principais salvos, mas os valores personalizados não foram alterados: ${customBillingSave.error.message}`); }
 
     if (planId && basePrice > 0 && subscriptionState !== "none") {
       const final = Number(finalAmount.replace(",", "."));
@@ -188,11 +207,16 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
     <div className="commercialEditorGrid three">
       <label>Assinatura<select value={subscriptionState} onChange={(event) => setSubscriptionState(event.target.value)}><option value="none">Sem assinatura</option><option value="active">Ativa</option><option value="past_due">Pagamento atrasado</option><option value="cancelled">Cancelada</option><option value="expired">Encerrada</option><option value="trial">Conta interna / teste</option></select></label>
       <label>Acesso<select value={agencyAccess} onChange={(event) => setAgencyAccess(event.target.value)}><option value="pending_payment">Aguardando pagamento</option><option value="active">Liberado</option><option value="past_due">Pagamento atrasado</option><option value="suspended">Suspenso</option><option value="cancelled">Cancelado</option><option value="trial">Conta interna / teste</option></select></label>
-      <label>Preço normal<input value={money(basePrice)} readOnly /></label>
+      <label>Preço do plano<input value={money(planBasePrice)} readOnly /></label>
     </div>
     <div className="commercialEditorGrid two">
       <label>Próximo vencimento<input type="date" value={renewsAt} onChange={(event) => setRenewsAt(event.target.value)} /></label>
       <label>Fim do acesso / assinatura<input type="date" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} /></label>
+    </div>
+    <div className="commercialDiscountInline">
+      <div><strong>Valores personalizados deste cliente</strong><small>Deixe em branco para usar o preço normal do plano. Estes valores permanecem nas próximas cobranças deste cliente.</small></div>
+      <label>Mensalidade (R$)<input type="number" min="0.01" step="0.01" placeholder={selectedPlan ? Number(selectedPlan.monthly_price || 0).toFixed(2) : ""} value={customMonthly} onChange={(event) => setCustomMonthly(event.target.value)} /></label>
+      <label>Implantação (R$)<input type="number" min="0.01" step="0.01" placeholder={selectedPlan ? Number(selectedPlan.implementation_fee || 0).toFixed(2) : ""} value={customImplementation} onChange={(event) => setCustomImplementation(event.target.value)} /></label>
     </div>
     <div className="commercialDiscountInline">
       <div><strong>Valor da próxima cobrança</strong><small>Altere o valor ou a porcentagem; um campo recalcula o outro.</small></div>
@@ -230,7 +254,7 @@ export default function PlatformCommercialDashboard() {
     if (!supabaseBrowser || !isSupabaseConfigured) return;
     const [agencyResult, profileResult, subscriptionResult, planResult, checkoutResult, discountResult] = await Promise.all([
       supabaseBrowser.from("agencies").select("id,name,slug,email,status,created_at").order("created_at", { ascending: false }),
-      supabaseBrowser.from("agency_billing_profiles").select("agency_id,implementation_status,billing_cycle"),
+      supabaseBrowser.from("agency_billing_profiles").select("agency_id,implementation_status,billing_cycle,monthly_price_override,implementation_fee_override"),
       supabaseBrowser.from("agency_subscriptions").select("id,agency_id,plan_id,status,starts_at,renews_at,ends_at,billing_cycle").order("starts_at", { ascending: false }),
       supabaseBrowser.from("subscription_plans").select("id,name,code,monthly_price,annual_price,implementation_fee,active").order("display_order"),
       supabaseBrowser.from("billing_checkout_sessions").select("id,agency_id,plan_id,status,amount,paid_amount,base_amount,discount_percent,billing_cycle,charge_type,created_at,completed_at").order("created_at", { ascending: false }).limit(300),
