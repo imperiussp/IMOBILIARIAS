@@ -14,6 +14,9 @@ verify_jwt = false
 [functions.resend-outreach-webhook]
 verify_jwt = false
 
+[functions.auth-mail-bridge]
+verify_jwt = false
+
 [functions.ingest-inbound-email]
 verify_jwt = false
 
