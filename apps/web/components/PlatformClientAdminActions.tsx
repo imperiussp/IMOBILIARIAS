@@ -54,6 +54,14 @@ async function friendlyError(error: unknown) {
       };
       if (code === "slug_already_used") return "Esse endereço já está sendo usado por outra imobiliária.";
       if (code === "owner_invite_failed") return `Não foi possível enviar o acesso ao proprietário${detail ? `: ${detail}` : "."}`;
+      if (code === "password_too_short") return "A senha precisa ter pelo menos 8 caracteres.";
+      if (code === "password_update_failed") return `Não foi possível alterar a senha${detail ? `: ${detail}` : "."}`;
+      if (code === "access_email_failed") {
+        if (detail.toLowerCase().includes("not authorized")) {
+          return "O Supabase recusou o envio para este e-mail. Verifique a configuração de SMTP do projeto.";
+        }
+        return `Não foi possível solicitar o envio do e-mail${detail ? `: ${detail}` : "."}`;
+      }
       if (code === "create_client_failed") {
         const where = stageLabel[stage] || "criação da imobiliária";
         return `Falha na etapa de ${where}${detail ? `: ${detail}` : "."}`;
@@ -82,6 +90,11 @@ export default function PlatformClientAdminActions() {
   const [agencyStatus, setAgencyStatus] = useState("pending_payment");
   const [subscriptionStatus, setSubscriptionStatus] = useState("none");
   const [implementationStatus, setImplementationStatus] = useState("pending");
+  const [passwordAgency, setPasswordAgency] = useState<Agency | null>(null);
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [passwordWorking, setPasswordWorking] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
 
   const agencyBySlug = useMemo(() => new Map(agencies.map((agency) => [agency.slug, agency])), [agencies]);
 
@@ -114,6 +127,20 @@ export default function PlatformClientAdminActions() {
     };
   }, [modal, working]);
 
+  useEffect(() => {
+    if (!passwordAgency) return;
+    const previous = document.body.style.overflow;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !passwordWorking) setPasswordAgency(null);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [passwordAgency, passwordWorking]);
+
   function openCreate() {
     setEditingAgency(null);
     setAgencyName("");
@@ -139,6 +166,13 @@ export default function PlatformClientAdminActions() {
     setWhatsapp(agency.whatsapp || "");
     setMessage("");
     setModal("edit");
+  }
+
+  function openPassword(agency: Agency) {
+    setPasswordAgency(agency);
+    setPassword("");
+    setPasswordConfirm("");
+    setPasswordMessage("");
   }
 
   useEffect(() => {
@@ -205,11 +239,11 @@ export default function PlatformClientAdminActions() {
         const resendButton = document.createElement("button");
         resendButton.type = "button";
         resendButton.className = "platformClientResendAccessButton";
-        resendButton.textContent = "Reenviar e-mail de acesso";
+        resendButton.textContent = "Testar / reenviar e-mail";
         resendButton.addEventListener("click", async () => {
           if (!supabaseBrowser) return;
           const targetEmail = agency.email || "o e-mail cadastrado";
-          const ok = window.confirm(`Reenviar o e-mail para ${targetEmail}?`);
+          const ok = window.confirm(`Solicitar o envio do e-mail de criação/alteração de senha para ${targetEmail}?`);
           if (!ok) return;
           resendButton.disabled = true;
           resendButton.textContent = "Enviando...";
@@ -219,14 +253,21 @@ export default function PlatformClientAdminActions() {
           if (result.error) {
             window.alert(await friendlyError(result.error));
             resendButton.disabled = false;
-            resendButton.textContent = "Reenviar e-mail de acesso";
+            resendButton.textContent = "Testar / reenviar e-mail";
             return;
           }
-          window.alert(`E-mail de criação de senha enviado para ${targetEmail}.`);
+          window.alert(`O Supabase aceitou a solicitação de e-mail para ${targetEmail}. Isso confirma o pedido de envio, mas não garante a entrega na caixa de entrada. Confira também spam e lixo eletrônico.`);
           resendButton.disabled = false;
-          resendButton.textContent = "Reenviar e-mail de acesso";
+          resendButton.textContent = "Testar / reenviar e-mail";
         });
         accessButton.insertAdjacentElement("afterend", resendButton);
+
+        const passwordButton = document.createElement("button");
+        passwordButton.type = "button";
+        passwordButton.className = "platformClientPasswordButton";
+        passwordButton.textContent = "Definir / alterar senha";
+        passwordButton.addEventListener("click", () => openPassword(agency));
+        resendButton.insertAdjacentElement("afterend", passwordButton);
       });
     };
 
@@ -291,6 +332,39 @@ export default function PlatformClientAdminActions() {
     window.setTimeout(() => window.location.reload(), 700);
   }
 
+  async function submitPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabaseBrowser || !passwordAgency) return;
+    if (password.length < 8) {
+      setPasswordMessage("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setPasswordMessage("As duas senhas não conferem.");
+      return;
+    }
+
+    setPasswordWorking(true);
+    setPasswordMessage("");
+    const result = await supabaseBrowser.functions.invoke("manage-platform-client", {
+      body: {
+        action: "set_password",
+        agency_id: passwordAgency.id,
+        password,
+      },
+    });
+    setPasswordWorking(false);
+
+    if (result.error) {
+      setPasswordMessage(await friendlyError(result.error));
+      return;
+    }
+
+    setPassword("");
+    setPasswordConfirm("");
+    setPasswordMessage("Senha definida/alterada com sucesso. O cliente já pode entrar com o e-mail cadastrado e essa nova senha.");
+  }
+
   return (
     <>
       <style>{`
@@ -299,13 +373,15 @@ export default function PlatformClientAdminActions() {
         }
         .platformCommercialPage .platformClientIdentityButton,
         .platformCommercialPage .platformClientAccessButton,
-        .platformCommercialPage .platformClientResendAccessButton{
+        .platformCommercialPage .platformClientResendAccessButton,
+        .platformCommercialPage .platformClientPasswordButton{
           display:flex!important;align-items:center!important;justify-content:center!important;width:190px!important;min-height:40px!important;margin:8px 0 0 auto!important;padding:0 16px!important;border-radius:11px!important;font-size:12px!important;font-weight:850!important;cursor:pointer!important
         }
         .platformCommercialPage .platformClientIdentityButton{border:1px solid #c9d4dd!important;background:#f7f9fb!important;color:#183149!important}
         .platformCommercialPage .platformClientAccessButton.isBlock{border:1px solid #e5c3a3!important;background:#fff9f1!important;color:#9a5b20!important}
         .platformCommercialPage .platformClientAccessButton.isRelease{border:1px solid #aad7bb!important;background:#f2fbf5!important;color:#247247!important}
         .platformCommercialPage .platformClientResendAccessButton{border:1px solid #9fc4e1!important;background:#f3f8fc!important;color:#1f5f8e!important}
+        .platformCommercialPage .platformClientPasswordButton{border:1px solid #c9b8df!important;background:#f8f4fc!important;color:#65448b!important}
         .platformClientAdminModal{position:fixed;inset:0;z-index:2147483100;display:grid;place-items:center;padding:20px;background:rgba(5,17,29,.72);backdrop-filter:blur(6px)}
         .platformClientAdminModal__card{width:min(94vw,720px);max-height:92vh;overflow:auto;box-sizing:border-box;padding:28px;border:1px solid #dfe6eb;border-radius:20px;background:#fff;box-shadow:0 28px 80px rgba(6,21,37,.28);color:#14293d}
         .platformClientAdminModal__head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}
@@ -325,7 +401,7 @@ export default function PlatformClientAdminActions() {
         .platformClientAdminModal__message{padding:11px 13px;border-radius:10px;background:#f3f7fa;color:#334b60;font-size:13px;font-weight:700}
         @media(max-width:720px){
           .platformCommercialPage .platformNewAgencyButton{width:100%;margin-left:0!important}
-          .platformCommercialPage .platformClientIdentityButton,.platformCommercialPage .platformClientAccessButton,.platformCommercialPage .platformClientResendAccessButton{width:100%!important;margin-left:0!important}
+          .platformCommercialPage .platformClientIdentityButton,.platformCommercialPage .platformClientAccessButton,.platformCommercialPage .platformClientResendAccessButton,.platformCommercialPage .platformClientPasswordButton{width:100%!important;margin-left:0!important}
           .platformClientAdminModal{padding:10px}
           .platformClientAdminModal__card{padding:20px}
           .platformClientAdminModal__grid,.platformClientAdminModal__grid.three{grid-template-columns:1fr}
@@ -380,6 +456,37 @@ export default function PlatformClientAdminActions() {
               <div className="platformClientAdminModal__actions">
                 <button className="platformClientAdminModal__cancel" type="button" disabled={working} onClick={() => setModal(null)}>Cancelar</button>
                 <button className="platformClientAdminModal__save" type="submit" disabled={working}>{working ? "Salvando..." : modal === "create" ? "Criar imobiliária e enviar convite" : "Salvar cadastro"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {passwordAgency ? (
+        <div className="platformClientAdminModal" role="dialog" aria-modal="true" aria-label="Definir ou alterar senha do cliente">
+          <div className="platformClientAdminModal__card">
+            <div className="platformClientAdminModal__head">
+              <div>
+                <span className="platformClientAdminModal__eyebrow">ACESSO DO CLIENTE</span>
+                <h3>Definir / alterar senha</h3>
+              </div>
+              <button className="platformClientAdminModal__close" type="button" disabled={passwordWorking} onClick={() => setPasswordAgency(null)}>×</button>
+            </div>
+
+            <form onSubmit={submitPassword}>
+              <div className="platformClientAdminModal__message">
+                <strong>{passwordAgency.name}</strong><br />
+                E-mail de acesso: {passwordAgency.email || "não informado"}
+              </div>
+              <div className="platformClientAdminModal__grid">
+                <label>Nova senha<input required type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+                <label>Confirmar nova senha<input required type="password" autoComplete="new-password" minLength={8} value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} /></label>
+              </div>
+              <div className="platformClientAdminModal__message">A senha será definida diretamente no acesso do proprietário desta imobiliária. Isso permite liberar o login mesmo quando o e-mail de configuração não chega.</div>
+              {passwordMessage ? <div className="platformClientAdminModal__message">{passwordMessage}</div> : null}
+              <div className="platformClientAdminModal__actions">
+                <button className="platformClientAdminModal__cancel" type="button" disabled={passwordWorking} onClick={() => setPasswordAgency(null)}>Fechar</button>
+                <button className="platformClientAdminModal__save" type="submit" disabled={passwordWorking}>{passwordWorking ? "Alterando..." : "Alterar senha"}</button>
               </div>
             </form>
           </div>
