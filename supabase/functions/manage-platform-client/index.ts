@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2.112.4";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const authMailBridgeUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/auth-mail-bridge` : "";
 
 const corsHeaders = {
   "access-control-allow-origin": "*",
@@ -40,6 +41,38 @@ async function findUserIdByEmail(admin: any, email: string) {
     if (result.data.users.length < 200) break;
   }
   return null;
+}
+
+async function sendAuthMailViaWordPress(email: string, name: string, kind: "admin_access" | "paid_onboarding" = "admin_access", redirectTo?: string) {
+  if (!authMailBridgeUrl || !serviceRoleKey) return { ok: false, error: "auth_mail_bridge_not_configured" };
+  try {
+    const response = await fetch(authMailBridgeUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      },
+      body: JSON.stringify({
+        action: "send_access",
+        email,
+        name,
+        kind,
+        redirect_to: redirectTo || "https://imoveis.lenoy.com.br/nova-senha/",
+      }),
+    });
+    const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+    if (!response.ok || body.ok !== true) {
+      return {
+        ok: false,
+        error: clean(body.error) || "auth_mail_bridge_failed",
+        detail: clean(body.detail) || `HTTP ${response.status}`,
+      };
+    }
+    return { ok: true, provider: clean(body.provider) || "wordpress" };
+  } catch (error) {
+    return { ok: false, error: "auth_mail_bridge_failed", detail: errorText(error) };
+  }
 }
 
 Deno.serve(async (request) => {
@@ -184,18 +217,16 @@ Deno.serve(async (request) => {
       if (membership.error) throw membership.error;
 
       stage = "owner_access_email";
-      const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
-      const recovery = await publicClient.auth.resetPasswordForEmail(email, {
-        redirectTo: "https://imoveis.lenoy.com.br/nova-senha/",
-      });
+      const accessMail = await sendAuthMailViaWordPress(email, name, "admin_access");
 
       return json({
         ok: true,
         agency_id: agencyId,
         owner_user_id: ownerId,
-        access_email_sent: !recovery.error,
-        warning: recovery.error ? "access_email_failed" : null,
-        email_detail: recovery.error?.message || null,
+        access_email_sent: accessMail.ok,
+        access_email_provider: accessMail.ok ? "wordpress" : null,
+        warning: accessMail.ok ? null : "access_email_failed",
+        email_detail: accessMail.ok ? null : (accessMail.detail || accessMail.error || "wordpress_mail_failed"),
       });
     } catch (error) {
       if (agencyId) await admin.from("agencies").delete().eq("id", agencyId);
@@ -269,13 +300,20 @@ Deno.serve(async (request) => {
       if (confirmed.error) return json({ error: "owner_account_update_failed", detail: confirmed.error.message }, 500);
     }
 
-    const publicClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
-    const recovery = await publicClient.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://imoveis.lenoy.com.br/nova-senha/",
-    });
-    if (recovery.error) return json({ error: "access_email_failed", detail: recovery.error.message }, 502);
+    const accessMail = await sendAuthMailViaWordPress(email, clean(agencyResult.data.name), "admin_access");
+    if (!accessMail.ok) {
+      return json({
+        error: "access_email_failed",
+        detail: accessMail.detail || accessMail.error || "wordpress_mail_failed",
+      }, 502);
+    }
 
-    return json({ ok: true, access_email_sent: true, owner_user_id: ownerId });
+    return json({
+      ok: true,
+      access_email_sent: true,
+      access_email_provider: "wordpress",
+      owner_user_id: ownerId,
+    });
   }
 
   if (action === "set_password") {
