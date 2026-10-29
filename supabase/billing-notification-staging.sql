@@ -1,4 +1,6 @@
 -- LENOY / Cobrança: migração preparatória, NÃO executar sem auditoria final.
+-- Valor e link devem vir do MESMO checkout ativo, nunca do preço de tabela.
+-- Sem checkout válido, não enviar; a geração de cobrança permanece pendente.
 create table if not exists public.billing_notification_deliveries (
  id uuid primary key default gen_random_uuid(),
  subscription_id uuid not null references public.agency_subscriptions(id) on delete restrict,
@@ -33,12 +35,14 @@ language sql stable security invoker set search_path=public as $$
  select t.subscription_id,
  case when t.due_date=p_local_date+5 then 'before_5d' else 'due_today' end,
  t.due_date,t.billing_email,t.agency_name,t.plan_name,coalesce(t.billing_cycle,'monthly'),
- case when t.billing_cycle='annual' then t.annual_price else coalesce(t.monthly_price_override,t.monthly_price) end,
- (select b.checkout_url from public.billing_checkout_sessions b
-   where b.agency_id=t.agency_id and b.plan_id=t.plan_id and b.status='pending'
-     and b.expires_at>now() and b.checkout_url like 'https://%'
-   order by b.created_at desc limit 1)
+ b.amount,
+ b.checkout_url
  from targets t
+ join lateral (select cs.amount, cs.checkout_url from public.billing_checkout_sessions cs
+   where cs.agency_id=t.agency_id and cs.plan_id=t.plan_id
+     and cs.charge_type='subscription' and cs.status='pending'
+     and cs.expires_at>now() and cs.amount>0 and cs.checkout_url like 'https://%'
+   order by cs.created_at desc limit 1) b on true
  where t.due_date in (p_local_date,p_local_date+5) and t.billing_email like '%@%';
 $$;
 revoke all on function public.billing_due_notification_candidates(date) from public,anon,authenticated;
