@@ -18,8 +18,10 @@ Deno.serve(async (req)=>{
   const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
   const part=(key:string)=>parts.find(p=>p.type===key)?.value||"";
   const today=`${part("year")}-${part("month")}-${part("day")}`;
+  const dryRun=req.headers.get("x-billing-dry-run")==="true";
   const {data:items,error}=await db.rpc("billing_due_notification_candidates",{p_local_date:today});
   if(error) return json({error:error.message},500);
+  if(dryRun) return json({dry_run:true,date:today,candidates:(items||[]).length,types:(items||[]).reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
   let sent=0,skipped=0,failed=0;
   for(const item of items||[]){
     const reserve=await db.from("billing_notification_deliveries").upsert({
