@@ -15,7 +15,7 @@ const esc = (s:string) => s.replace(/[&<>"']/g, x => ({"&":"&amp;","<":"&lt;",">
 
 Deno.serve(async (req)=>{
   if(req.method!=="POST") return json({error:"method_not_allowed"},405);
-  if(!base||!key||!secret||!resendKey||!sender) return json({error:"billing_mail_not_configured"},503);
+  if(!base||!key||!secret) return json({error:"billing_core_not_configured"},503);
   if(req.headers.get("x-billing-notification-secret")!==secret) return json({error:"unauthorized"},401);
   const db=createClient(base,key,{auth:{persistSession:false}});
   const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
@@ -26,6 +26,7 @@ Deno.serve(async (req)=>{
   if(error) return json({error:error.message},500);
   if(dryRun) return json({dry_run:true,date:today,candidates:(items||[]).length,types:(items||[]).reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
   if(!enabled) return json({error:"notifications_disabled",date:today},423);
+  if(!resendKey||!sender) return json({error:"email_provider_not_configured"},503);
   if(mode!=="test" && mode!=="live") return json({error:"invalid_notification_mode"},423);
   if(mode==="test" && testRecipients.length===0) return json({error:"test_recipient_allowlist_required"},423);
   let sent=0,skipped=0,failed=0;
