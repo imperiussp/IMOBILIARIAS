@@ -58,7 +58,7 @@ export default function PublicPropertyDetail() {
       const access = await supabaseBrowser.rpc("billing_public_visibility_for_host", { p_hostname: host });
       if (!active) return;
       const accessRow = Array.isArray(access.data) ? access.data[0] as {visibility?:string} | undefined : undefined;
-      if (!access.error && accessRow && accessRow.visibility !== "full") {
+      if (access.error || (accessRow && accessRow.visibility !== "full")) {
         setError("As informações detalhadas estão temporariamente indisponíveis neste site.");
         setLoading(false);
         return;
