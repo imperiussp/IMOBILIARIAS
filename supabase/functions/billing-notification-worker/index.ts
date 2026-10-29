@@ -4,6 +4,7 @@ const url = Deno.env.get("SUPABASE_URL") || "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const resendKey = Deno.env.get("RESEND_API_KEY") || "";
 const resendFrom = Deno.env.get("RESEND_FROM_EMAIL") || "";
+const wordpressMailUrl = (Deno.env.get("WORDPRESS_AUTH_MAIL_URL") || "https://lenoy.com.br/wp-json/lenoy/v1/auth-mail").trim();
 const handle = (Deno.env.get("INFINITEPAY_HANDLE") || "robsonmasselli").replace(/^\$/, "").trim();
 const siteUrl = (Deno.env.get("PLATFORM_SITE_URL") || "https://imoveis.lenoy.com.br").replace(/\/$/,"");
 const db = url && serviceKey ? createClient(url,serviceKey,{auth:{persistSession:false}}) : null;
@@ -104,6 +105,28 @@ async function getCandidates(date:string){
  }
  return result;
 }
+async function sendWordPressMail(destination:string,subject:string,plain:string,html:string){
+ if(!db)throw Error("db_not_configured");
+ const bytes=crypto.getRandomValues(new Uint8Array(36));
+ const raw=String.fromCharCode(...bytes);
+ const token=btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
+ const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(token));
+ const tokenHash=[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,"0")).join("");
+ const {data:row,error}=await db.from("auth_mail_bridge_requests").insert({
+  token_hash:tokenHash,email:destination,subject,html_body:html,text_body:plain,kind:"billing_notice",
+  expires_at:new Date(Date.now()+10*60*1000).toISOString()
+ }).select("id").single();
+ if(error||!row)throw Error(error?.message||"wordpress_email_queue_failed");
+ try{
+  const response=await fetch(wordpressMailUrl,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})});
+  const body=await response.json().catch(()=>({}));
+  if(!response.ok||body?.ok!==true)throw Error(String(body?.error||body?.message||`WordPress HTTP ${response.status}`));
+  return {id:String(row.id),provider:"wordpress"};
+ }catch(err){
+  await db.from("auth_mail_bridge_requests").update({last_error:String(err)}).eq("id",row.id);
+  throw err;
+ }
+}
 async function dispatch(item:any,checkoutUrl:string){
  if(!db)throw Error("db_not_configured");
  const identity={subscription_id:item.subscription_id,notification_type:item.notification_type,due_date:item.due_date};
@@ -125,15 +148,22 @@ async function dispatch(item:any,checkoutUrl:string){
     :`LENOY | Sua assinatura vence hoje — ${fmtDate(item.due_date)}`;
  const msg=`Olá, ${item.agency_name}.\nPlano: ${item.plan_name}\nCiclo: ${item.billing_cycle==="annual"?"Anual":"Mensal"}\nValor da cobrança: ${money(item.amount)}\nVencimento: ${fmtDate(item.due_date)}\nLink de pagamento: ${checkoutUrl}\nSe já realizou o pagamento, desconsidere e aguarde a confirmação.\nLENOY IMOBILIÁRIAS`;
  try {
-  const send=await fetch("https://api.resend.com/emails",{method:"POST",
-   headers:{"authorization":`Bearer ${resendKey}`,"content-type":"application/json","idempotency-key":id},
-   body:JSON.stringify({from:resendFrom,to:[item.destination],subject,text:msg,
-   html:`<div style="font-family:Arial,sans-serif;max-width:640px"><h2>LENOY IMOBILIÁRIAS</h2><p>${escapeHtml(item.agency_name)},</p><p>${item.notification_type==="before_5d"?"Sua assinatura vence em cinco dias.":"Sua assinatura vence hoje."}</p><p>Plano: ${escapeHtml(item.plan_name)}<br>Valor: <strong>${money(item.amount)}</strong><br>Vencimento: ${fmtDate(item.due_date)}</p><p><a href="${escapeHtml(checkoutUrl)}">Pagar assinatura pela InfinitePay</a></p><p>Se já pagou, desconsidere.</p></div>`})});
-  const data=await send.json().catch(()=>({}));
-  await db.from("billing_notification_deliveries").update({status:send.ok?"sent":"failed",
-    provider_message_id:String(data?.id||"")||null,error_message:send.ok?null:String(data?.message||send.status),
-    updated_at:new Date().toISOString()}).eq("id",id);
-  return send.ok?"sent":"failed";
+  const html=`<div style="font-family:Arial,sans-serif;max-width:640px"><h2>LENOY IMOBILIÁRIAS</h2><p>${escapeHtml(item.agency_name)},</p><p>${item.notification_type==="before_5d"?"Sua assinatura vence em cinco dias.":"Sua assinatura vence hoje."}</p><p>Plano: ${escapeHtml(item.plan_name)}<br>Valor: <strong>${money(item.amount)}</strong><br>Vencimento: ${fmtDate(item.due_date)}</p><p><a href="${escapeHtml(checkoutUrl)}">Pagar assinatura pela InfinitePay</a></p><p>Se já pagou, desconsidere.</p></div>`;
+  let providerId="";
+  if(resendKey&&resendFrom){
+   const send=await fetch("https://api.resend.com/emails",{method:"POST",
+    headers:{"authorization":`Bearer ${resendKey}`,"content-type":"application/json","idempotency-key":id},
+    body:JSON.stringify({from:resendFrom,to:[item.destination],subject,text:msg,html})});
+   const data=await send.json().catch(()=>({}));
+   if(!send.ok)throw Error(String(data?.message||`Resend HTTP ${send.status}`));
+   providerId=String(data?.id||"");
+  }else{
+   const wordpress=await sendWordPressMail(item.destination,subject,msg,html);
+   providerId=wordpress.id;
+  }
+  await db.from("billing_notification_deliveries").update({status:"sent",
+    provider_message_id:providerId||null,error_message:null,updated_at:new Date().toISOString()}).eq("id",id);
+  return "sent";
  }catch(e){
   await db.from("billing_notification_deliveries").update({status:"failed",error_message:String(e),updated_at:new Date().toISOString()}).eq("id",id);
   return "failed";
@@ -150,7 +180,6 @@ Deno.serve(async(request)=>{
   const candidates=await getCandidates(today);
   if(request.headers.get("x-billing-dry-run")==="true")return json({dry_run:true,date:today,candidates:candidates.length,types:candidates.reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
   if(!settings.emails_enabled)return json({date:today,disabled:true,candidates:candidates.length});
-  if(!resendKey||!resendFrom)return json({error:"resend_not_configured"},503);
   let sent=0,failed=0,skipped=0;
   for(const item of candidates){
    try{
