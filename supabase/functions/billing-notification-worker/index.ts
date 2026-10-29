@@ -5,7 +5,6 @@ const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const secret = Deno.env.get("BILLING_MAINTENANCE_SECRET") || "";
 const resendKey = Deno.env.get("RESEND_API_KEY") || "";
 const sender = Deno.env.get("RESEND_FROM_EMAIL") || "";
-const site = (Deno.env.get("PLATFORM_SITE_URL") || "https://imoveis.lenoy.com.br").replace(/\/$/, "");
 const json = (body: unknown, status=200) => new Response(JSON.stringify(body), {status, headers: {"content-type":"application/json"}});
 const formatMoney = (n:number) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n);
 const day = (value:string) => { const [y,m,d]=value.slice(0,10).split("-"); return `${d}/${m}/${y}`; };
@@ -23,13 +22,13 @@ Deno.serve(async (req)=>{
   if(error) return json({error:error.message},500);
   let sent=0,skipped=0,failed=0;
   for(const item of items||[]){
-    const reserve=await db.from("billing_notification_deliveries").insert({
+    const reserve=await db.from("billing_notification_deliveries").upsert({
       subscription_id:item.subscription_id,notification_type:item.notification_type,due_date:item.due_date,
       destination:item.billing_email,status:"sending"
-    }).select("id").maybeSingle();
+    },{onConflict:"subscription_id,notification_type,due_date",ignoreDuplicates:true}).select("id").maybeSingle();
     if(reserve.error){if(reserve.error.code==="23505"){skipped++;continue;}failed++;continue;}
     const id=reserve.data?.id;
-    if(!id){failed++;continue;}
+    if(!id){skipped++;continue;}
     const url=item.checkout_url&&/^https:\/\//i.test(item.checkout_url)?item.checkout_url:null;
     if(!url){await db.from("billing_notification_deliveries").update({status:"failed",error_message:"valid_checkout_url_missing",updated_at:new Date().toISOString()}).eq("id",id);failed++;continue;}
     const subject=item.notification_type==="before_5d"?
