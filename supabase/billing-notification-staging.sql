@@ -21,7 +21,7 @@ returns table(subscription_id uuid,notification_type text,due_date date,billing_
 language sql stable security invoker set search_path=public as $$
  with targets as (
  select s.id as subscription_id,s.agency_id,s.plan_id,s.billing_cycle,
-        (coalesce(s.ends_at,s.renews_at) at time zone 'America/Sao_Paulo')::date as due_date,
+        (coalesce(s.renews_at,s.ends_at) at time zone 'America/Sao_Paulo')::date as due_date,
         a.name as agency_name,coalesce(nullif(trim(c.billing_email),''),nullif(trim(a.email),'')) as billing_email,
         p.name as plan_name,p.monthly_price,p.annual_price,bp.monthly_price_override
  from public.agency_subscriptions s
@@ -29,7 +29,7 @@ language sql stable security invoker set search_path=public as $$
  join public.subscription_plans p on p.id=s.plan_id
  left join lateral (select bc.billing_email from public.billing_customers bc where bc.agency_id=s.agency_id and bc.provider='infinitepay' order by bc.updated_at desc limit 1) c on true
  left join public.agency_billing_profiles bp on bp.agency_id=s.agency_id
- where s.status in ('active','past_due') and coalesce(s.ends_at,s.renews_at) is not null
+ where s.status in ('active','past_due') and coalesce(s.renews_at,s.ends_at) is not null
    and a.status in ('active','past_due')
    and not exists (select 1 from public.agency_subscriptions newer where newer.agency_id=s.agency_id and (newer.created_at, newer.id)>(s.created_at,s.id) and newer.status in ('trial','active','past_due'))
  )
@@ -42,7 +42,7 @@ language sql stable security invoker set search_path=public as $$
  join lateral (select cs.amount, cs.checkout_url from public.billing_checkout_sessions cs
    where cs.agency_id=t.agency_id and cs.plan_id=t.plan_id
      and cs.charge_type='subscription' and cs.status='pending'
-     and cs.expires_at>now() and cs.amount>0 and cs.checkout_url like 'https://%'
+     and cs.provider='infinitepay' and cs.expires_at>now() and cs.amount>0 and cs.checkout_url like 'https://%'
    order by cs.created_at desc limit 1) b on true
  where t.due_date in (p_local_date,p_local_date+5) and t.billing_email like '%@%';
 $$;
