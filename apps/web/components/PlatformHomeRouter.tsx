@@ -55,7 +55,8 @@ export default function PlatformHomeRouter() {
       if(isSupabaseConfigured && supabaseBrowser){
         const access = await supabaseBrowser.rpc("billing_public_visibility_for_host", {p_hostname:host});
         if(!active)return;
-        if(!access.error && Array.isArray(access.data) && access.data[0]){
+        if(access.error){setMode("paused");return;}
+        if(Array.isArray(access.data) && access.data[0]){
           const state=access.data[0] as {visibility?:string;agency_name?:string};
           if(state.visibility==="limited"||state.visibility==="suspended"){
             setBillingAgencyName(state.agency_name||"");
