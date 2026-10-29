@@ -1,61 +1,165 @@
-import { createClient } from "jsr:@supabase/supabase-js@2.112.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const base = Deno.env.get("SUPABASE_URL") || "";
-const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const secret = Deno.env.get("BILLING_NOTIFICATION_SECRET") || "";
+const url = Deno.env.get("SUPABASE_URL") || "";
+const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const resendKey = Deno.env.get("RESEND_API_KEY") || "";
-const sender = Deno.env.get("RESEND_FROM_EMAIL") || "";
-const enabled = Deno.env.get("BILLING_NOTIFICATIONS_ENABLED") === "true";
-const mode = Deno.env.get("BILLING_NOTIFICATION_MODE") || "test";
-const testRecipients = (Deno.env.get("BILLING_TEST_RECIPIENTS") || "").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
-const json = (body: unknown, status=200) => new Response(JSON.stringify(body), {status, headers: {"content-type":"application/json"}});
-const formatMoney = (n:number) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n);
-const day = (value:string) => { const [y,m,d]=value.slice(0,10).split("-"); return `${d}/${m}/${y}`; };
-const esc = (s:string) => s.replace(/[&<>"']/g, x => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]||x));
-
-Deno.serve(async (req)=>{
-  if(req.method!=="POST") return json({error:"method_not_allowed"},405);
-  if(!base||!key||!secret) return json({error:"billing_core_not_configured"},503);
-  if(req.headers.get("x-billing-notification-secret")!==secret) return json({error:"unauthorized"},401);
-  const db=createClient(base,key,{auth:{persistSession:false}});
-  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
-  const part=(key:string)=>parts.find(p=>p.type===key)?.value||"";
-  const today=`${part("year")}-${part("month")}-${part("day")}`;
-  const dryRun=req.headers.get("x-billing-dry-run")==="true";
-  const {data:items,error}=await db.rpc("billing_due_notification_candidates",{p_local_date:today});
-  if(error) return json({error:error.message},500);
-  if(dryRun) return json({dry_run:true,date:today,candidates:(items||[]).length,types:(items||[]).reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
-  if(!enabled) return json({error:"notifications_disabled",date:today},423);
-  if(!resendKey||!sender) return json({error:"email_provider_not_configured"},503);
-  if(mode!=="test" && mode!=="live") return json({error:"invalid_notification_mode"},423);
-  if(mode==="test" && testRecipients.length===0) return json({error:"test_recipient_allowlist_required"},423);
-  let sent=0,skipped=0,failed=0;
-  for(const item of items||[]){
-    if(mode==="test" && !testRecipients.includes(String(item.billing_email||"").trim().toLowerCase())){skipped++;continue;}
-    const reserve=await db.from("billing_notification_deliveries").upsert({
-      subscription_id:item.subscription_id,notification_type:item.notification_type,due_date:item.due_date,
-      destination:item.billing_email,status:"sending"
-    },{onConflict:"subscription_id,notification_type,due_date",ignoreDuplicates:true}).select("id").maybeSingle();
-    if(reserve.error){if(reserve.error.code==="23505"){skipped++;continue;}failed++;continue;}
-    const id=reserve.data?.id;
-    if(!id){skipped++;continue;}
-    const url=item.checkout_url&&/^https:\/\/[^\s]+$/i.test(item.checkout_url)?item.checkout_url:null;
-    if(!url){await db.from("billing_notification_deliveries").update({status:"failed",error_message:"valid_checkout_url_missing",updated_at:new Date().toISOString()}).eq("id",id);failed++;continue;}
-    const subject=item.notification_type==="before_5d"?
-      `LENOY | Sua mensalidade vence em 5 dias — ${day(item.due_date)}`:
-      `LENOY | Mensalidade vence hoje — ${day(item.due_date)}`;
-    if (!Number.isFinite(Number(item.amount)) || Number(item.amount)<=0){failed++;await db.from("billing_notification_deliveries").update({status:"failed",error_message:"invalid_amount"}).eq("id",id);continue;}
-    const plain=`Olá, ${item.agency_name}.\nPlano: ${item.plan_name}\nCiclo: ${item.billing_cycle==="annual"?"Anual":"Mensal"}\nValor: ${formatMoney(Number(item.amount))}\nVencimento: ${day(item.due_date)}\nPagar/gerar cobrança: ${url}\nSe já pagou, aguarde a confirmação automática.\nLENOY IMOBILIÁRIAS`;
-    const html=`<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#24384d"><h2>LENOY IMOBILIÁRIAS</h2><p>Olá, ${esc(item.agency_name)}.</p><p>${item.notification_type==="before_5d"?"Sua assinatura vence em cinco dias.":"Sua assinatura vence hoje."}</p><p><strong>Plano:</strong> ${esc(item.plan_name)}<br><strong>Valor:</strong> ${formatMoney(Number(item.amount))}<br><strong>Vencimento:</strong> ${day(item.due_date)}</p><p><a href="${esc(url)}" style="background:#0b2946;color:white;padding:14px 20px;text-decoration:none;border-radius:6px">Pagar assinatura</a></p><p>Se já pagou, aguarde a confirmação automática.</p></div>`;
-    try{
-      const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"authorization":`Bearer ${resendKey}`,"content-type":"application/json","idempotency-key":id},body:JSON.stringify({from:sender,to:[item.billing_email],subject,text:plain,html})});
-      const body=await response.json().catch(()=>({}));
-      await db.from("billing_notification_deliveries").update({status:response.ok?"sent":"failed",provider_message_id:body?.id||null,error_message:response.ok?null:String(body?.message||response.status),updated_at:new Date().toISOString()}).eq("id",id);
-      if(response.ok)sent++;else failed++;
-    }catch(err){
-      await db.from("billing_notification_deliveries").update({status:"failed",error_message:String(err),updated_at:new Date().toISOString()}).eq("id",id);
-      failed++;
-    }
+const resendFrom = Deno.env.get("RESEND_FROM_EMAIL") || "";
+const handle = (Deno.env.get("INFINITEPAY_HANDLE") || "robsonmasselli").replace(/^\$/, "").trim();
+const siteUrl = (Deno.env.get("PLATFORM_SITE_URL") || "https://imoveis.lenoy.com.br").replace(/\/$/,"");
+const db = url && serviceKey ? createClient(url,serviceKey,{auth:{persistSession:false}}) : null;
+const json=(x:unknown,status=200)=>new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json; charset=utf-8"}});
+const money=(n:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n);
+const escapeHtml=(s:string)=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]||c));
+const fmtDate=(s:string)=>s.slice(0,10).split("-").reverse().join("/");
+const dateBR=(d:Date)=>{const p=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);const val=(k:string)=>p.find(x=>x.type===k)?.value||"";return `${val("year")}-${val("month")}-${val("day")}`;};
+const dayNumber=(s:string)=>Math.floor(Date.parse(s+"T00:00:00Z")/86400000);
+const rounded=(n:number)=>Math.round(n*100)/100;
+function validUrl(value:unknown):value is string {
+ if(typeof value!=="string")return false;
+ try{const u=new URL(value);return u.protocol==="https:" && Boolean(u.hostname) && !u.username && !u.password;}catch{return false;}
+}
+async function webhookSecret(){
+ const configured=(Deno.env.get("INFINITEPAY_WEBHOOK_SECRET")||"").trim();
+ if(configured)return configured;
+ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(`lenoy-infinitepay-webhook:${serviceKey}`));
+ return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function ensureCheckout(item:any,amount:number,base:number,discountId:string|null,discountPercent:number,readonly:boolean){
+ if(!db)throw Error("db_not_configured");
+ const {data:previous,error:lookupError}=await db.from("billing_checkout_sessions")
+ .select("id,checkout_url,amount,expires_at,created_at").eq("agency_id",item.agency_id).eq("plan_id",item.plan_id)
+ .eq("provider","infinitepay").eq("charge_type","subscription").eq("billing_cycle",item.billing_cycle||"monthly")
+ .eq("amount",amount).eq("status","pending").order("created_at",{ascending:false}).limit(5);
+ if(lookupError)throw Error(lookupError.message);
+ const match=(previous||[]).find((x:any)=>validUrl(x.checkout_url)&&(!x.expires_at||new Date(x.expires_at).getTime()>Date.now()));
+ if(match)return {checkout_url:match.checkout_url,checkout_id:match.id,reused:true};
+ if(readonly)return {checkout_url:null,checkout_id:null,reused:false};
+ if(!handle)throw Error("infinitepay_handle_not_configured");
+ const id=crypto.randomUUID();
+ const orderNsu=id;
+ const hook=`${url}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(await webhookSecret())}`;
+ const description=`LENOY IMOBILIÁRIAS — ${item.plan_name} (${item.billing_cycle==="annual"?"anual":"mensal"})`;
+ const payload={handle,redirect_url:`${siteUrl}/admin/?pagamento=retorno`,webhook_url:hook,order_nsu:orderNsu,
+ items:[{quantity:1,price:Math.round(amount*100),description}],
+ customer:{name:item.agency_name,email:item.destination}};
+ const created=await db.from("billing_checkout_sessions").insert({id,agency_id:item.agency_id,plan_id:item.plan_id,
+ provider:"infinitepay",status:"created",amount,base_amount:base,discount_percent:discountPercent,discount_id:discountId,
+ charge_type:"subscription",currency:"BRL",billing_cycle:item.billing_cycle||"monthly",
+ order_nsu:orderNsu,provider_payload:{request:payload,pricing:{base_amount:base,final_amount:amount,discount_percent:discountPercent,charge_type:"subscription",billing_due_date:item.due_date}}});
+ if(created.error)throw Error(created.error.message);
+ try{
+   const response=await fetch("https://api.checkout.infinitepay.io/links",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+   const body=await response.json().catch(()=>({}));
+   const checkoutUrl=String(body?.url||"");
+   if(!response.ok||!validUrl(checkoutUrl))throw Error(String(body?.message||body?.error||`InfinitePay HTTP ${response.status}`));
+   const saved=await db.from("billing_checkout_sessions").update({status:"pending",checkout_url:checkoutUrl,provider_session_id:body?.slug?String(body.slug):null,
+       provider_payload:{request:payload,response:body,pricing:{base_amount:base,final_amount:amount,discount_percent:discountPercent,charge_type:"subscription",billing_due_date:item.due_date}},
+       updated_at:new Date().toISOString()}).eq("id",id);
+   if(saved.error)throw Error(saved.error.message);
+   return {checkout_url:checkoutUrl,checkout_id:id,reused:false};
+ }catch(e){
+   await db.from("billing_checkout_sessions").update({status:"failed",updated_at:new Date().toISOString(),
+      provider_payload:{request:payload,error:String(e)}}).eq("id",id);
+   throw e;
+ }
+}
+async function getCandidates(date:string){
+ if(!db)throw Error("db_not_configured");
+ const {data:subs,error}=await db.from("agency_subscriptions")
+  .select("id,agency_id,plan_id,status,billing_cycle,renews_at,ends_at,created_at")
+  .in("status",["active","past_due"]).order("created_at",{ascending:false});
+ if(error)throw Error(error.message);
+ const latest=new Set<string>();const result:any[]=[];
+ for(const sub of subs||[]){
+  if(latest.has(sub.agency_id))continue;latest.add(sub.agency_id);
+  const dueAt=sub.renews_at||sub.ends_at;
+  if(!dueAt)continue;
+  const dueDate=dateBR(new Date(dueAt));
+  const days=dayNumber(dueDate)-dayNumber(date);
+  if(days!==5 && days!==0)continue;
+  const [{data:agency},{data:plan},{data:profile},{data:billing}] = await Promise.all([
+   db.from("agencies").select("name,email,status").eq("id",sub.agency_id).maybeSingle(),
+   db.from("subscription_plans").select("name,monthly_price,annual_price,active,features").eq("id",sub.plan_id).maybeSingle(),
+   db.from("agency_billing_profiles").select("implementation_status,monthly_price_override").eq("agency_id",sub.agency_id).maybeSingle(),
+   db.from("billing_customers").select("billing_email").eq("agency_id",sub.agency_id).eq("provider","infinitepay").order("updated_at",{ascending:false}).limit(1).maybeSingle()
+  ]);
+  if(!agency||!["active","past_due"].includes(String(agency.status))||!plan?.active||plan.features?.internal_only===true)continue;
+  if(!["paid","waived"].includes(String(profile?.implementation_status||"")))continue;
+  const destination=String(billing?.billing_email||agency.email||"").trim();
+  if(!/^\S+@\S+\.\S+$/.test(destination))continue;
+  const cycle=sub.billing_cycle==="annual"?"annual":"monthly";
+  const base=rounded(Number(cycle==="annual"?plan.annual_price:profile?.monthly_price_override??plan.monthly_price));
+  if(!(base>0) || !Number.isFinite(base))continue;
+  const {data:discount}=await db.from("agency_billing_discounts").select("id,final_amount,discount_percent,valid_until")
+    .eq("agency_id",sub.agency_id).eq("plan_id",sub.plan_id).eq("billing_cycle",cycle).eq("status","active")
+    .order("created_at",{ascending:false}).limit(1).maybeSingle();
+  const usable=discount&&(!discount.valid_until||new Date(discount.valid_until).getTime()>Date.now())
+    &&Number(discount.final_amount)>=0&&Number(discount.final_amount)<base;
+  const amount=rounded(usable?Number(discount.final_amount):base);
+  if(!(amount>0))continue; // Free/100% subscriptions are never charged.
+  result.push({subscription_id:sub.id,agency_id:sub.agency_id,plan_id:sub.plan_id,
+    agency_name:String(agency.name||""),plan_name:String(plan.name||""),billing_cycle:cycle,
+    destination,due_date:dueDate,notification_type:days===5?"before_5d":"due_today",
+    amount,base,discountId:usable?String(discount.id):null,discountPercent:usable?Number(discount.discount_percent||0):0});
+ }
+ return result;
+}
+async function dispatch(item:any,checkoutUrl:string){
+ if(!db)throw Error("db_not_configured");
+ const identity={subscription_id:item.subscription_id,notification_type:item.notification_type,due_date:item.due_date};
+ const {data:existing,error:readError}=await db.from("billing_notification_deliveries").select("id,status,updated_at").match(identity).maybeSingle();
+ if(readError)throw Error(readError.message);
+ if(existing?.status==="sent")return "skipped";
+ if(existing?.status==="sending"&&Date.now()-new Date(existing.updated_at).getTime()<20*60000)return "skipped";
+ let id=existing?.id;
+ if(id){
+  const {error}=await db.from("billing_notification_deliveries").update({status:"sending",error_message:null,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error)throw Error(error.message);
+ }else{
+  const {data,error}=await db.from("billing_notification_deliveries").insert({...identity,destination:item.destination,status:"sending"}).select("id").single();
+  if(error){if(error.code==="23505")return "skipped";throw Error(error.message);}
+  id=data.id;
+ }
+ const subject=item.notification_type==="before_5d"
+    ?`LENOY | Sua assinatura vence em 5 dias — ${fmtDate(item.due_date)}`
+    :`LENOY | Sua assinatura vence hoje — ${fmtDate(item.due_date)}`;
+ const msg=`Olá, ${item.agency_name}.\nPlano: ${item.plan_name}\nCiclo: ${item.billing_cycle==="annual"?"Anual":"Mensal"}\nValor da cobrança: ${money(item.amount)}\nVencimento: ${fmtDate(item.due_date)}\nLink de pagamento: ${checkoutUrl}\nSe já realizou o pagamento, desconsidere e aguarde a confirmação.\nLENOY IMOBILIÁRIAS`;
+ try {
+  const send=await fetch("https://api.resend.com/emails",{method:"POST",
+   headers:{"authorization":`Bearer ${resendKey}`,"content-type":"application/json","idempotency-key":id},
+   body:JSON.stringify({from:resendFrom,to:[item.destination],subject,text:msg,
+   html:`<div style="font-family:Arial,sans-serif;max-width:640px"><h2>LENOY IMOBILIÁRIAS</h2><p>${escapeHtml(item.agency_name)},</p><p>${item.notification_type==="before_5d"?"Sua assinatura vence em cinco dias.":"Sua assinatura vence hoje."}</p><p>Plano: ${escapeHtml(item.plan_name)}<br>Valor: <strong>${money(item.amount)}</strong><br>Vencimento: ${fmtDate(item.due_date)}</p><p><a href="${escapeHtml(checkoutUrl)}">Pagar assinatura pela InfinitePay</a></p><p>Se já pagou, desconsidere.</p></div>`})});
+  const data=await send.json().catch(()=>({}));
+  await db.from("billing_notification_deliveries").update({status:send.ok?"sent":"failed",
+    provider_message_id:String(data?.id||"")||null,error_message:send.ok?null:String(data?.message||send.status),
+    updated_at:new Date().toISOString()}).eq("id",id);
+  return send.ok?"sent":"failed";
+ }catch(e){
+  await db.from("billing_notification_deliveries").update({status:"failed",error_message:String(e),updated_at:new Date().toISOString()}).eq("id",id);
+  return "failed";
+ }
+}
+Deno.serve(async(request)=>{
+ if(request.method!=="POST")return json({error:"method_not_allowed"},405);
+ if(!db||!serviceKey)return json({error:"backend_unavailable"},503);
+ if(request.headers.get("authorization")!==`Bearer ${serviceKey}`)return json({error:"unauthorized"},401);
+ try {
+  const {data:settings,error:configError}=await db.from("billing_automation_settings").select("emails_enabled").eq("id",1).single();
+  if(configError)return json({error:"billing_settings_unavailable"},503);
+  const today=dateBR(new Date());
+  const candidates=await getCandidates(today);
+  if(request.headers.get("x-billing-dry-run")==="true")return json({dry_run:true,date:today,candidates:candidates.length,types:candidates.reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
+  if(!settings.emails_enabled)return json({date:today,disabled:true,candidates:candidates.length});
+  if(!resendKey||!resendFrom)return json({error:"resend_not_configured"},503);
+  let sent=0,failed=0,skipped=0;
+  for(const item of candidates){
+   try{
+    const checkout=await ensureCheckout(item,item.amount,item.base,item.discountId,item.discountPercent,false);
+    if(!validUrl(checkout.checkout_url)){failed++;continue;}
+    const result=await dispatch(item,checkout.checkout_url);
+    if(result==="sent")sent++;else if(result==="skipped")skipped++;else failed++;
+   }catch(_error){failed++;}
   }
-  return json({date:today,candidates:(items||[]).length,sent,skipped,failed},failed?207:200);
+  return json({date:today,candidates:candidates.length,sent,failed,skipped},failed?207:200);
+ }catch(error){return json({error:error instanceof Error?error.message:"billing_worker_error"},500);}
 });
