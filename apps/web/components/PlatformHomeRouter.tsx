@@ -9,8 +9,9 @@ import PlatformLanding from "./PlatformLanding";
 import TenantCatalogPaused from "./TenantCatalogPaused";
 import TenantHome from "./TenantHome";
 import TenantUnavailable from "./TenantUnavailable";
+import TenantBillingNotice from "./TenantBillingNotice";
 
-type Mode = "loading" | "platform" | "tenant" | "paused" | "unknown";
+type Mode = "loading" | "platform" | "tenant" | "paused" | "unknown" | "billing-limited" | "billing-suspended";
 
 function isGitHubPagesPreview(host: string) {
   if (typeof window === "undefined") return false;
@@ -29,6 +30,7 @@ async function publicCatalogAllowed(){
 export default function PlatformHomeRouter() {
   const [mode, setMode] = useState<Mode>("loading");
   const [hostname, setHostname] = useState("");
+  const [billingAgencyName,setBillingAgencyName] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -50,6 +52,18 @@ export default function PlatformHomeRouter() {
         return;
       }
 
+      if(isSupabaseConfigured && supabaseBrowser){
+        const access = await supabaseBrowser.rpc("billing_public_visibility_for_host", {p_hostname:host});
+        if(!active)return;
+        if(!access.error && Array.isArray(access.data) && access.data[0]){
+          const state=access.data[0] as {visibility?:string;agency_name?:string};
+          if(state.visibility==="limited"||state.visibility==="suspended"){
+            setBillingAgencyName(state.agency_name||"");
+            setMode(state.visibility==="limited"?"billing-limited":"billing-suspended");
+            return;
+          }
+        }
+      }
       const tenant = await resolveCurrentTenant();
       if (!active) return;
       if(!tenant){setMode("unknown");return;}
@@ -63,6 +77,8 @@ export default function PlatformHomeRouter() {
   if (mode === "loading") return <main className="platformLoading"><span>LENOY IMOBILIÁRIAS</span></main>;
   if (mode === "platform") return <><PlatformLanding /><HomePlansMirror /><HomeCouponCaptureModal /></>;
   if (mode === "paused") return <TenantCatalogPaused />;
+  if (mode === "billing-limited") return <TenantBillingNotice level="limited" agencyName={billingAgencyName} />;
+  if (mode === "billing-suspended") return <TenantBillingNotice level="suspended" agencyName={billingAgencyName} />;
   if (mode === "unknown") return <TenantUnavailable hostname={hostname} />;
   return <TenantHome />;
 }
