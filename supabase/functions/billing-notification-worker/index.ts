@@ -6,6 +6,7 @@ const secret = Deno.env.get("BILLING_NOTIFICATION_SECRET") || "";
 const resendKey = Deno.env.get("RESEND_API_KEY") || "";
 const sender = Deno.env.get("RESEND_FROM_EMAIL") || "";
 const enabled = Deno.env.get("BILLING_NOTIFICATIONS_ENABLED") === "true";
+const mode = Deno.env.get("BILLING_NOTIFICATION_MODE") || "test";
 const testRecipients = (Deno.env.get("BILLING_TEST_RECIPIENTS") || "").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
 const json = (body: unknown, status=200) => new Response(JSON.stringify(body), {status, headers: {"content-type":"application/json"}});
 const formatMoney = (n:number) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n);
@@ -25,10 +26,11 @@ Deno.serve(async (req)=>{
   if(error) return json({error:error.message},500);
   if(dryRun) return json({dry_run:true,date:today,candidates:(items||[]).length,types:(items||[]).reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
   if(!enabled) return json({error:"notifications_disabled",date:today},423);
-  if(testRecipients.length===0) return json({error:"test_recipient_allowlist_required"},423);
+  if(mode!=="test" && mode!=="live") return json({error:"invalid_notification_mode"},423);
+  if(mode==="test" && testRecipients.length===0) return json({error:"test_recipient_allowlist_required"},423);
   let sent=0,skipped=0,failed=0;
   for(const item of items||[]){
-    if(!testRecipients.includes(String(item.billing_email||"").trim().toLowerCase())){skipped++;continue;}
+    if(mode==="test" && !testRecipients.includes(String(item.billing_email||"").trim().toLowerCase())){skipped++;continue;}
     const reserve=await db.from("billing_notification_deliveries").upsert({
       subscription_id:item.subscription_id,notification_type:item.notification_type,due_date:item.due_date,
       destination:item.billing_email,status:"sending"
