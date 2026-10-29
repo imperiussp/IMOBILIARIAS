@@ -2,7 +2,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2.112.4";
 
 const base = Deno.env.get("SUPABASE_URL") || "";
 const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const secret = Deno.env.get("BILLING_MAINTENANCE_SECRET") || "";
+const secret = Deno.env.get("BILLING_NOTIFICATION_SECRET") || "";
 const resendKey = Deno.env.get("RESEND_API_KEY") || "";
 const sender = Deno.env.get("RESEND_FROM_EMAIL") || "";
 const json = (body: unknown, status=200) => new Response(JSON.stringify(body), {status, headers: {"content-type":"application/json"}});
@@ -13,7 +13,7 @@ const esc = (s:string) => s.replace(/[&<>"']/g, x => ({"&":"&amp;","<":"&lt;",">
 Deno.serve(async (req)=>{
   if(req.method!=="POST") return json({error:"method_not_allowed"},405);
   if(!base||!key||!secret||!resendKey||!sender) return json({error:"billing_mail_not_configured"},503);
-  if(req.headers.get("x-billing-maintenance-secret")!==secret) return json({error:"unauthorized"},401);
+  if(req.headers.get("x-billing-notification-secret")!==secret) return json({error:"unauthorized"},401);
   const db=createClient(base,key,{auth:{persistSession:false}});
   const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
   const part=(key:string)=>parts.find(p=>p.type===key)?.value||"";
@@ -29,11 +29,12 @@ Deno.serve(async (req)=>{
     if(reserve.error){if(reserve.error.code==="23505"){skipped++;continue;}failed++;continue;}
     const id=reserve.data?.id;
     if(!id){skipped++;continue;}
-    const url=item.checkout_url&&/^https:\/\//i.test(item.checkout_url)?item.checkout_url:null;
+    const url=item.checkout_url&&/^https:\/\/[^\s]+$/i.test(item.checkout_url)?item.checkout_url:null;
     if(!url){await db.from("billing_notification_deliveries").update({status:"failed",error_message:"valid_checkout_url_missing",updated_at:new Date().toISOString()}).eq("id",id);failed++;continue;}
     const subject=item.notification_type==="before_5d"?
       `LENOY | Sua mensalidade vence em 5 dias — ${day(item.due_date)}`:
       `LENOY | Mensalidade vence hoje — ${day(item.due_date)}`;
+    if (!Number.isFinite(Number(item.amount)) || Number(item.amount)<=0){failed++;await db.from("billing_notification_deliveries").update({status:"failed",error_message:"invalid_amount"}).eq("id",id);continue;}
     const plain=`Olá, ${item.agency_name}.\nPlano: ${item.plan_name}\nCiclo: ${item.billing_cycle==="annual"?"Anual":"Mensal"}\nValor: ${formatMoney(Number(item.amount))}\nVencimento: ${day(item.due_date)}\nPagar/gerar cobrança: ${url}\nSe já pagou, aguarde a confirmação automática.\nLENOY IMOBILIÁRIAS`;
     const html=`<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#24384d"><h2>LENOY IMOBILIÁRIAS</h2><p>Olá, ${esc(item.agency_name)}.</p><p>${item.notification_type==="before_5d"?"Sua assinatura vence em cinco dias.":"Sua assinatura vence hoje."}</p><p><strong>Plano:</strong> ${esc(item.plan_name)}<br><strong>Valor:</strong> ${formatMoney(Number(item.amount))}<br><strong>Vencimento:</strong> ${day(item.due_date)}</p><p><a href="${esc(url)}" style="background:#0b2946;color:white;padding:14px 20px;text-decoration:none;border-radius:6px">Pagar assinatura</a></p><p>Se já pagou, aguarde a confirmação automática.</p></div>`;
     try{
