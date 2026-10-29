@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { billingVisibility } from "../lib/billingVisibility.ts";
+import { billingVisibility } from "../lib/billingVisibility";
 
 const cases = [
   ["before due", "2026-10-30", "2026-10-29", false, false, "full"],
