@@ -8,7 +8,7 @@ const sender = Deno.env.get("RESEND_FROM_EMAIL") || "";
 const site = (Deno.env.get("PLATFORM_SITE_URL") || "https://imoveis.lenoy.com.br").replace(/\/$/, "");
 const json = (body: unknown, status=200) => new Response(JSON.stringify(body), {status, headers: {"content-type":"application/json"}});
 const formatMoney = (n:number) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n);
-const day = (value:string) => new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(value));
+const day = (value:string) => { const [y,m,d]=value.slice(0,10).split("-"); return `${d}/${m}/${y}`; };
 const esc = (s:string) => s.replace(/[&<>"']/g, x => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[x]||x));
 
 Deno.serve(async (req)=>{
@@ -16,7 +16,9 @@ Deno.serve(async (req)=>{
   if(!base||!key||!secret||!resendKey||!sender) return json({error:"billing_mail_not_configured"},503);
   if(req.headers.get("x-billing-maintenance-secret")!==secret) return json({error:"unauthorized"},401);
   const db=createClient(base,key,{auth:{persistSession:false}});
-  const today=new Date().toLocaleDateString("en-CA",{timeZone:"America/Sao_Paulo"});
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const part=(key:string)=>parts.find(p=>p.type===key)?.value||"";
+  const today=`${part("year")}-${part("month")}-${part("day")}`;
   const {data:items,error}=await db.rpc("billing_due_notification_candidates",{p_local_date:today});
   if(error) return json({error:error.message},500);
   let sent=0,skipped=0,failed=0;
@@ -28,7 +30,8 @@ Deno.serve(async (req)=>{
     if(reserve.error){if(reserve.error.code==="23505"){skipped++;continue;}failed++;continue;}
     const id=reserve.data?.id;
     if(!id){failed++;continue;}
-    const url=item.checkout_url&&/^https:\/\//i.test(item.checkout_url)?item.checkout_url:`${site}/admin/`;
+    const url=item.checkout_url&&/^https:\/\//i.test(item.checkout_url)?item.checkout_url:null;
+    if(!url){await db.from("billing_notification_deliveries").update({status:"failed",error_message:"valid_checkout_url_missing",updated_at:new Date().toISOString()}).eq("id",id);failed++;continue;}
     const subject=item.notification_type==="before_5d"?
       `LENOY | Sua mensalidade vence em 5 dias — ${day(item.due_date)}`:
       `LENOY | Mensalidade vence hoje — ${day(item.due_date)}`;
