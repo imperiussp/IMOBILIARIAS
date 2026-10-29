@@ -32,6 +32,8 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
+      - name: Validate PHP mail relay
+        run: php -l apps/web/public/billing-mail-transport.php
       - run: pnpm --filter @imobiliarias/web typecheck
       - name: Static cPanel build
         shell: bash
