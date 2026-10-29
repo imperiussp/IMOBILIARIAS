@@ -5,6 +5,8 @@ const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const secret = Deno.env.get("BILLING_NOTIFICATION_SECRET") || "";
 const resendKey = Deno.env.get("RESEND_API_KEY") || "";
 const sender = Deno.env.get("RESEND_FROM_EMAIL") || "";
+const enabled = Deno.env.get("BILLING_NOTIFICATIONS_ENABLED") === "true";
+const testRecipients = (Deno.env.get("BILLING_TEST_RECIPIENTS") || "").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
 const json = (body: unknown, status=200) => new Response(JSON.stringify(body), {status, headers: {"content-type":"application/json"}});
 const formatMoney = (n:number) => new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n);
 const day = (value:string) => { const [y,m,d]=value.slice(0,10).split("-"); return `${d}/${m}/${y}`; };
@@ -22,8 +24,11 @@ Deno.serve(async (req)=>{
   const {data:items,error}=await db.rpc("billing_due_notification_candidates",{p_local_date:today});
   if(error) return json({error:error.message},500);
   if(dryRun) return json({dry_run:true,date:today,candidates:(items||[]).length,types:(items||[]).reduce((a:any,x:any)=>(a[x.notification_type]=(a[x.notification_type]||0)+1,a),{})});
+  if(!enabled) return json({error:"notifications_disabled",date:today},423);
+  if(testRecipients.length===0) return json({error:"test_recipient_allowlist_required"},423);
   let sent=0,skipped=0,failed=0;
   for(const item of items||[]){
+    if(!testRecipients.includes(String(item.billing_email||"").trim().toLowerCase())){skipped++;continue;}
     const reserve=await db.from("billing_notification_deliveries").upsert({
       subscription_id:item.subscription_id,notification_type:item.notification_type,due_date:item.due_date,
       destination:item.billing_email,status:"sending"
