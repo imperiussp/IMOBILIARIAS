@@ -31,7 +31,7 @@ language sql stable security invoker set search_path=public as $$
  left join public.agency_billing_profiles bp on bp.agency_id=s.agency_id
  where s.status in ('active','past_due') and coalesce(s.ends_at,s.renews_at) is not null
    and a.status in ('active','past_due')
-   and not exists (select 1 from public.agency_subscriptions newer where newer.agency_id=s.agency_id and newer.created_at>s.created_at and newer.status in ('trial','active','past_due'))
+   and not exists (select 1 from public.agency_subscriptions newer where newer.agency_id=s.agency_id and (newer.created_at, newer.id)>(s.created_at,s.id) and newer.status in ('trial','active','past_due'))
  )
  select t.subscription_id,
  case when t.due_date=p_local_date+5 then 'before_5d' else 'due_today' end,
