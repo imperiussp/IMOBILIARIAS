@@ -27,10 +27,11 @@ language sql stable security invoker set search_path=public as $$
  from public.agency_subscriptions s
  join public.agencies a on a.id=s.agency_id
  join public.subscription_plans p on p.id=s.plan_id
- left join public.billing_customers c on c.agency_id=s.agency_id and c.provider='infinitepay'
+ left join lateral (select bc.billing_email from public.billing_customers bc where bc.agency_id=s.agency_id and bc.provider='infinitepay' order by bc.updated_at desc limit 1) c on true
  left join public.agency_billing_profiles bp on bp.agency_id=s.agency_id
  where s.status in ('active','past_due') and coalesce(s.ends_at,s.renews_at) is not null
    and a.status in ('active','past_due')
+   and not exists (select 1 from public.agency_subscriptions newer where newer.agency_id=s.agency_id and newer.created_at>s.created_at and newer.status in ('trial','active','past_due'))
  )
  select t.subscription_id,
  case when t.due_date=p_local_date+5 then 'before_5d' else 'due_today' end,
