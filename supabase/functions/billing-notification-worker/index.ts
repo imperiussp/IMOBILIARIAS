@@ -118,10 +118,17 @@ async function sendWordPressMail(destination:string,subject:string,plain:string,
  }).select("id").single();
  if(error||!row)throw Error(error?.message||"wordpress_email_queue_failed");
  try{
-  const response=await fetch(wordpressMailUrl,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})});
-  const body=await response.json().catch(()=>({}));
-  if(!response.ok||body?.ok!==true)throw Error(String(body?.error||body?.message||`WordPress HTTP ${response.status}`));
-  return {id:String(row.id),provider:"wordpress"};
+  const endpoints=[`${siteUrl}/billing-mail-transport.php`,wordpressMailUrl];
+  let lastFailure="mail_transports_unavailable";
+  for(const endpoint of endpoints){
+   try{
+    const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})});
+    const body=await response.json().catch(()=>({}));
+    if(response.ok && body?.ok===true)return {id:String(row.id),provider:body?.provider||"php"};
+    lastFailure=String(body?.error||body?.message||`mail_endpoint_http_${response.status}`);
+   }catch(e){lastFailure=String(e);}
+  }
+  throw Error(lastFailure);
  }catch(err){
   await db.from("auth_mail_bridge_requests").update({last_error:String(err)}).eq("id",row.id);
   throw err;
