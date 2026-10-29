@@ -64,6 +64,12 @@ Deno.serve(async(request)=>{
     results.push({name:"process-subscription-expiry",ok:true,skipped:true,reason:"release_gate_disabled"});
   }
 
+  const billingFlags=await admin.from("billing_automation_settings").select("emails_enabled").eq("id",1).maybeSingle();
+  if(billingFlags.error)results.push({name:"billing-notification-worker",ok:false,error:billingFlags.error.message});
+  else if(controls.real_billing_enabled===true && billingFlags.data?.emails_enabled===true)
+    results.push(await callFunction("billing-notification-worker",{authorization:`Bearer ${serviceRoleKey}`}));
+  else results.push({name:"billing-notification-worker",ok:true,skipped:true,reason:"billing_email_gate_disabled"});
+
   const pendingDomains=await admin.from("agency_domains").select("id",{count:"exact",head:true}).eq("kind","custom").eq("verified",false);
   if(pendingDomains.error){results.push({name:"verify-custom-domains",ok:false,status:500,error:pendingDomains.error.message});}
   else if((pendingDomains.count||0)===0){results.push({name:"verify-custom-domains",ok:true,skipped:true,reason:"no_pending_custom_domains"});}
