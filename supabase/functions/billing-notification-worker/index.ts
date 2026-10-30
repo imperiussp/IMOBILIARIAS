@@ -180,6 +180,25 @@ Deno.serve(async(request)=>{
  if(request.method!=="POST")return json({error:"method_not_allowed"},405);
  if(!db||!serviceKey)return json({error:"backend_unavailable"},503);
  if(request.headers.get("authorization")!==`Bearer ${serviceKey}`)return json({error:"unauthorized"},401);
+ if(request.headers.get("x-billing-test-delivery")==="true"){
+   const recipient="contato@lenoy.com.br";
+   if(!resendKey||!resendFrom)return json({error:"resend_configuration_missing"},503);
+   const message={
+     from:resendFrom,to:[recipient],
+     subject:"LENOY Imobiliárias | Teste de envio de e-mail",
+     text:"Este é um teste de configuração do envio de avisos de cobrança do LENOY Imobiliárias. Nenhuma cobrança foi emitida e nenhum cliente foi notificado.",
+     html:"<h2>LENOY Imobiliárias</h2><p>Este é um teste de configuração do envio de avisos de cobrança.</p><p>Nenhuma cobrança foi emitida e nenhum cliente foi notificado.</p>"
+   };
+   try{
+     const response=await fetch("https://api.resend.com/emails",{
+       method:"POST",headers:{"authorization":`Bearer ${resendKey}`,"content-type":"application/json"},
+       body:JSON.stringify(message)
+     });
+     const result=await response.json().catch(()=>({}));
+     if(!response.ok)return json({ok:false,provider:"resend",status:response.status,error:String(result?.message||result?.name||"send_failed")},502);
+     return json({ok:true,provider:"resend",email_id:String(result?.id||""),recipient});
+   }catch(e){return json({ok:false,error:e instanceof Error?e.message:"send_failed"},502);}
+ }
  try {
   const {data:settings,error:configError}=await db.from("billing_automation_settings").select("emails_enabled").eq("id",1).single();
   if(configError)return json({error:"billing_settings_unavailable"},503);
