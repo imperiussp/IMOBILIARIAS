@@ -32,6 +32,13 @@ Deno.serve(async(request)=>{
   const verified=await admin.rpc("verify_platform_maintenance_secret",{p_secret:suppliedSecret});
   if(verified.error||verified.data!==true)return json({error:"unauthorized"},401);
 
+  if(request.headers.get("x-billing-test-delivery")==="true"){
+    const result=await callFunction("billing-notification-worker",{
+      authorization:`Bearer ${serviceRoleKey}`,"x-billing-test-delivery":"true"
+    });
+    return json({email_test:result},result.ok?200:502);
+  }
+
   const startedAt=new Date().toISOString();
   const results:any[]=[];
 
