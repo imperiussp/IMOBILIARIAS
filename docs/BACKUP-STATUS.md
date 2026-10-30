@@ -1,9 +1,9 @@
 # Supabase Backup Status
 
 - Result: **SUCCESS**
-- Commit: `52a1565ea9c8530b7b46935983682209f946e78c`
-- Run: `40877502588`
-- Checked at UTC: `2026-10-29T13:01:07Z`
+- Commit: `3c9580fe116f7d7ad1240c615842c7657e547562`
+- Run: `41058411485`
+- Checked at UTC: `2026-10-30T12:53:19Z`
 - Data export exit: `0`
 - Storage export exit: `0`
 - Schema copy exit: `0`
@@ -20,9 +20,9 @@ site_settings: 1 row(s)
 subscription_plans: 6 row(s)
 synchronization_jobs: 0 row(s)
 test_client_accounts: 1 row(s)
-user_device_sessions: 22 row(s)
+user_device_sessions: 23 row(s)
 user_roles: 1 row(s)
-Exported 101/103 PostgREST table(s)/view(s).
+Exported 103/105 PostgREST table(s)/view(s).
 [storage]
 Backed up 149 Storage object(s).
 [schema]
