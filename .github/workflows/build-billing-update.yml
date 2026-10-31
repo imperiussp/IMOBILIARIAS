@@ -1,0 +1,74 @@
+name: LENOY billing update — cPanel test package
+on:
+  push:
+    branches: [fix/billing-reminders-staged-access-20261029]
+    paths:
+      - 'apps/web/**'
+      - 'supabase/**'
+      - '.github/workflows/build-billing-update.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: billing-branch-package
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      CPANEL_EXPORT: '1'
+      NEXT_PUBLIC_SITE_URL: 'https://imoveis.lenoy.com.br'
+      NEXT_PUBLIC_ALLOW_INDEXING: 'true'
+      NEXT_PUBLIC_SUPABASE_URL: 'https://rvjsonspplqelktzwusu.supabase.co'
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_jhqdOH3X4FPkxjKTY-EnUQ_37mUhy4z'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Validate PHP mail relay
+        run: php -l apps/web/public/billing-mail-transport.php
+      - run: pnpm --filter @imobiliarias/web typecheck
+      - name: Static cPanel build
+        shell: bash
+        run: |
+          rm -rf apps/web/app/api
+          pnpm build:web
+          cat > apps/web/out/.htaccess <<'EOF'
+          Options -Indexes
+          DirectoryIndex index.html
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteRule ^(.+[^/])$ $1/ [R=301,L]
+          <IfModule mod_headers.c>
+            Header always set X-Content-Type-Options "nosniff"
+            Header always set Referrer-Policy "strict-origin-when-cross-origin"
+            <FilesMatch "\.html$">
+              Header always set Cache-Control "no-cache, no-store, must-revalidate"
+            </FilesMatch>
+          </IfModule>
+          EOF
+          mkdir -p cpanel-build
+          printf 'branch_build=%s\n' "$GITHUB_SHA" > apps/web/out/cpanel-build.txt
+          (cd apps/web/out && zip -qr ../../../cpanel-build/lenoy-billing-site-cpanel.zip .)
+          zip -q -j cpanel-build/lenoy-billing-backend-source.zip supabase/billing-notification-staging.sql supabase/billing-public-access-rpcs-staging.sql supabase/billing-public-visibility-staging.sql supabase/functions/billing-notification-worker/index.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lenoy-billing-update
+          path: cpanel-build/*.zip
+          retention-days: 30
+      - name: Save compiled zip to test branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f cpanel-build/lenoy-billing-site-cpanel.zip cpanel-build/lenoy-billing-backend-source.zip
+          git commit -m "build: compiled cPanel test package [skip ci]" || exit 0
+          git push origin HEAD:fix/billing-reminders-staged-access-20261029

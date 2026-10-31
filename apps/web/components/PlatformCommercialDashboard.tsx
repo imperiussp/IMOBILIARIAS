@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabaseBrowser } from "../lib/supabaseBrowser";
+import PlatformManualBillingEmail from "./PlatformManualBillingEmail";
 
 type Agency = { id: string; name: string; slug: string; email: string | null; status: string; created_at: string };
 type BillingProfile = { agency_id: string; implementation_status: string; billing_cycle: string | null; monthly_price_override: number | null; implementation_fee_override: number | null };
@@ -237,6 +238,7 @@ function ClientEditor({ agency, profile, subscription, plans, latestCheckout, di
       <button className="button primary" type="button" disabled={saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar alterações"}</button>
     </div>
     {message ? <div className="formMessage">{message}</div> : null}
+    <PlatformManualBillingEmail agencyId={agency.id} />
   </div>;
 }
 

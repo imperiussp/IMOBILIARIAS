@@ -55,6 +55,14 @@ export default function PublicPropertyDetail() {
       const host = currentHostname();
       if (!active) return;
       if (!tenant || !host) { setError("Imobiliária não identificada para este endereço."); setLoading(false); return; }
+      const access = await supabaseBrowser.rpc("billing_public_visibility_for_host", { p_hostname: host });
+      if (!active) return;
+      const accessRow = Array.isArray(access.data) ? access.data[0] as {visibility?:string} | undefined : undefined;
+      if (access.error || (accessRow && accessRow.visibility !== "full")) {
+        setError("As informações detalhadas estão temporariamente indisponíveis neste site.");
+        setLoading(false);
+        return;
+      }
       const [propertyResult, photoResult] = await Promise.all([
         supabaseBrowser.rpc("public_property_for_host", { p_hostname: host, p_property_id: id }),
         supabaseBrowser.rpc("public_property_photos_for_host", { p_hostname: host, p_property_id: id }),

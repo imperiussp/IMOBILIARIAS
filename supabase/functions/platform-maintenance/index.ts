@@ -32,6 +32,13 @@ Deno.serve(async(request)=>{
   const verified=await admin.rpc("verify_platform_maintenance_secret",{p_secret:suppliedSecret});
   if(verified.error||verified.data!==true)return json({error:"unauthorized"},401);
 
+  if(request.headers.get("x-billing-test-delivery")==="true"){
+    const result=await callFunction("billing-notification-worker",{
+      authorization:`Bearer ${serviceRoleKey}`,"x-billing-test-delivery":"true"
+    });
+    return json({email_test:result},result.ok?200:502);
+  }
+
   const startedAt=new Date().toISOString();
   const results:any[]=[];
 
@@ -63,6 +70,12 @@ Deno.serve(async(request)=>{
   } else {
     results.push({name:"process-subscription-expiry",ok:true,skipped:true,reason:"release_gate_disabled"});
   }
+
+  const billingFlags=await admin.from("billing_automation_settings").select("emails_enabled").eq("id",1).maybeSingle();
+  if(billingFlags.error)results.push({name:"billing-notification-worker",ok:false,error:billingFlags.error.message});
+  else if(controls.real_billing_enabled===true && billingFlags.data?.emails_enabled===true)
+    results.push(await callFunction("billing-notification-worker",{authorization:`Bearer ${serviceRoleKey}`}));
+  else results.push({name:"billing-notification-worker",ok:true,skipped:true,reason:"billing_email_gate_disabled"});
 
   const pendingDomains=await admin.from("agency_domains").select("id",{count:"exact",head:true}).eq("kind","custom").eq("verified",false);
   if(pendingDomains.error){results.push({name:"verify-custom-domains",ok:false,status:500,error:pendingDomains.error.message});}
