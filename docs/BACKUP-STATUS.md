@@ -1,19 +1,19 @@
 # Supabase Backup Status
 
-- Result: **SUCCESS**
-- Commit: `f74808bba87f3115227a1342b3e9b3d591514170`
-- Run: `44120084987`
-- Checked at UTC: `2026-11-17T16:00:41Z`
+- Result: **FAILURE**
+- Commit: `1b95ec79fe7ce4b26ce644fc466240059737d443`
+- Run: `44337468668`
+- Checked at UTC: `2026-11-18T15:38:39Z`
 - Data export exit: `0`
-- Storage export exit: `0`
+- Storage export exit: `1`
 - Schema copy exit: `0`
 
 ## Diagnostic tail
 ```text
 [data]
-property_photos: 81 row(s)
+property_photos: 91 row(s)
 property_price_history: 1 row(s)
-property_status_history: 1 row(s)
+property_status_history: 2 row(s)
 property_types: 17 row(s)
 property_visit_appointments: 0 row(s)
 site_settings: 1 row(s)
@@ -24,6 +24,17 @@ user_device_sessions: 24 row(s)
 user_roles: 1 row(s)
 Exported 104/106 PostgREST table(s)/view(s).
 [storage]
-Backed up 153 Storage object(s).
+    response = meth(req, response)
+  File "/usr/lib/python3.14/urllib/request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "/usr/lib/python3.14/urllib/request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/usr/lib/python3.14/urllib/request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 522: <none>
 [schema]
 ```
